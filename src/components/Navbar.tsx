@@ -41,7 +41,6 @@ const socialsLinks = [
   },
 ];
 
-// Single source of truth — import this in HeroSection too
 export const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 export const MAX_WIDTH = 1280;
 
@@ -49,6 +48,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const YK = "var(--font-yanone), 'Yanone Kaffeesatz', sans-serif";
@@ -201,7 +201,6 @@ export default function Navbar() {
                 </svg>
               </button>
 
-              {/* Invisible bridge gap filler */}
               {socialsOpen && (
                 <div
                   style={{
@@ -269,8 +268,9 @@ export default function Navbar() {
               )}
             </div>
 
-            <Link
-              href="/book"
+            {/* Desktop ORDER NOW button */}
+            <button
+              onClick={() => setComingSoonOpen(true)}
               style={{
                 marginLeft: "0.5rem",
                 padding: "0.46rem 1.1rem",
@@ -280,10 +280,11 @@ export default function Navbar() {
                 fontWeight: 800,
                 fontSize: "clamp(0.6rem, 0.75vw, 0.72rem)",
                 letterSpacing: "0.2em",
-                textDecoration: "none",
                 textTransform: "uppercase",
-                transition: "background 0.2s",
+                border: "none",
+                cursor: "pointer",
                 whiteSpace: "nowrap",
+                transition: "background 0.2s",
               }}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.background = "#d4a843")
@@ -293,10 +294,10 @@ export default function Navbar() {
               }
             >
               ORDER NOW
-            </Link>
+            </button>
           </div>
 
-          {/* Mobile hamburger — only on mobile */}
+          {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="flex md:hidden"
@@ -418,9 +419,13 @@ export default function Navbar() {
             </a>
           ))}
         </div>
-        <Link
-          href="/book"
-          onClick={() => setMobileOpen(false)}
+
+        {/* Mobile ORDER NOW button */}
+        <button
+          onClick={() => {
+            setComingSoonOpen(true);
+            setMobileOpen(false);
+          }}
           style={{
             marginTop: "0.5rem",
             padding: "0.75rem 2.5rem",
@@ -430,13 +435,89 @@ export default function Navbar() {
             fontWeight: 800,
             fontSize: "0.8rem",
             letterSpacing: "0.2em",
-            textDecoration: "none",
             textTransform: "uppercase",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#d4a843")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#e8d5a3")}
+        >
+          ORDER NOW
+        </button>
+      </div>
+
+      {/* Coming Soon modal */}
+      {comingSoonOpen && (
+        <div
+          onClick={() => setComingSoonOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "rgba(8,14,8,0.85)",
+            backdropFilter: "blur(18px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          BOOK NOW
-        </Link>
-      </div>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              textAlign: "center",
+              padding: "3rem 2.5rem",
+              maxWidth: 420,
+              border: "1px solid rgba(232,213,163,0.15)",
+              background: "rgba(15,26,15,0.6)",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: YK,
+                fontSize: "clamp(2.8rem, 8vw, 4rem)",
+                fontWeight: 700,
+                color: "#e8d5a3",
+                letterSpacing: "0.12em",
+                margin: "0 0 0.5rem",
+              }}
+            >
+              COMING SOON
+            </p>
+            <p
+              style={{
+                fontFamily: DM,
+                fontSize: "0.78rem",
+                color: "rgba(232,213,163,0.5)",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                margin: "0 0 2rem",
+              }}
+            >
+              Something good is brewing. Stay tuned.
+            </p>
+            <button
+              onClick={() => setComingSoonOpen(false)}
+              style={{
+                fontFamily: DM,
+                fontSize: "0.7rem",
+                letterSpacing: "0.2em",
+                color: "rgba(232,213,163,0.4)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                textTransform: "uppercase",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#e8d5a3")}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = "rgba(232,213,163,0.4)")
+              }
+            >
+              ✕ DISMISS
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
