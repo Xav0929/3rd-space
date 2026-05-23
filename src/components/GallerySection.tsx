@@ -23,12 +23,6 @@ const row2 = [
 const r1 = [...row1, ...row1];
 const r2 = [...row2, ...row2];
 
-// Tile is 22vw wide, 16vw tall — both scale together with viewport
-const TILE_W = "22vw";
-const TILE_H = "14.666vw"; // 22vw * (2/3) = 4:6 landscape ratio
-const TILE_RADIUS = "1.2vw";
-const ROW_GAP = "0.75vw";
-
 export default function GallerySection() {
   return (
     <section
@@ -39,6 +33,57 @@ export default function GallerySection() {
         paddingBottom: "clamp(3rem, 6vw, 5rem)",
       }}
     >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;700&display=swap');
+
+        @keyframes scrollLeft {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes scrollRight {
+          0%   { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
+
+        .gallery-tile {
+          width: clamp(160px, 40vw, 22vw);
+          height: clamp(110px, 27vw, 14.666vw);
+          flex-shrink: 0;
+          background-color: #1c2b1c;
+          overflow: hidden;
+          position: relative;
+          cursor: pointer;
+          border-radius: clamp(6px, 1.2vw, 1.2vw);
+        }
+        .gallery-tile img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .gallery-tile:hover img { transform: scale(1.07); }
+        .gallery-tile .hov {
+          position: absolute;
+          inset: 0;
+          background: rgba(15,26,15,0.25);
+          transition: opacity 0.4s ease;
+          pointer-events: none;
+        }
+        .gallery-tile:hover .hov { opacity: 0; }
+
+        .gallery-row-track {
+          display: flex;
+          width: max-content;
+        }
+        .gallery-row-track.left  { animation: scrollLeft 32s linear infinite; }
+        .gallery-row-track.right { animation: scrollRight 32s linear infinite; }
+
+        @media (max-width: 640px) {
+          .gallery-row-track { gap: 8px !important; }
+        }
+      `}</style>
+
       {/* Header */}
       <div
         style={{
@@ -89,17 +134,24 @@ export default function GallerySection() {
       </div>
 
       {/* Row 1 — scrolls LEFT */}
-      <div style={{ overflow: "hidden", marginBottom: ROW_GAP }}>
+      <div
+        style={{ overflow: "hidden", marginBottom: "clamp(6px, 0.75vw, 12px)" }}
+      >
         <div
-          style={{
-            display: "flex",
-            gap: ROW_GAP,
-            width: "max-content",
-            animation: "scrollLeft 32s linear infinite",
-          }}
+          className="gallery-row-track left"
+          style={{ gap: "clamp(6px, 0.75vw, 12px)" }}
         >
           {r1.map((src, i) => (
-            <GalleryTile key={i} src={src} />
+            <div key={i} className="gallery-tile">
+              <img
+                src={src}
+                alt=""
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <div className="hov" />
+            </div>
           ))}
         </div>
       </div>
@@ -107,15 +159,20 @@ export default function GallerySection() {
       {/* Row 2 — scrolls RIGHT */}
       <div style={{ overflow: "hidden" }}>
         <div
-          style={{
-            display: "flex",
-            gap: ROW_GAP,
-            width: "max-content",
-            animation: "scrollRight 32s linear infinite",
-          }}
+          className="gallery-row-track right"
+          style={{ gap: "clamp(6px, 0.75vw, 12px)" }}
         >
           {r2.map((src, i) => (
-            <GalleryTile key={i} src={src} />
+            <div key={i} className="gallery-tile">
+              <img
+                src={src}
+                alt=""
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <div className="hov" />
+            </div>
           ))}
         </div>
       </div>
@@ -144,7 +201,7 @@ export default function GallerySection() {
             gap: "0.75rem",
             transition: "background 0.3s, color 0.3s",
             textTransform: "uppercase",
-            borderRadius: TILE_RADIUS,
+            borderRadius: "clamp(6px, 1.2vw, 1.2vw)",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background = "#e8d5a3";
@@ -172,80 +229,6 @@ export default function GallerySection() {
           </svg>
         </Link>
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;700&display=swap');
-
-        @keyframes scrollLeft {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes scrollRight {
-          0%   { transform: translateX(-50%); }
-          100% { transform: translateX(0); }
-        }
-      `}</style>
     </section>
-  );
-}
-
-function GalleryTile({ src }: { src: string }) {
-  return (
-    <div
-      style={{
-        width: TILE_W,
-        height: TILE_H,
-        flexShrink: 0,
-        backgroundColor: "#1c2b1c",
-        overflow: "hidden",
-        position: "relative",
-        cursor: "pointer",
-        borderRadius: TILE_RADIUS,
-      }}
-      onMouseEnter={(e) => {
-        const img = e.currentTarget.querySelector(
-          "img",
-        ) as HTMLImageElement | null;
-        const ov = e.currentTarget.querySelector(".hov") as HTMLElement | null;
-        if (img) img.style.transform = "scale(1.07)";
-        if (ov) ov.style.opacity = "0";
-      }}
-      onMouseLeave={(e) => {
-        const img = e.currentTarget.querySelector(
-          "img",
-        ) as HTMLImageElement | null;
-        const ov = e.currentTarget.querySelector(".hov") as HTMLElement | null;
-        if (img) img.style.transform = "scale(1)";
-        if (ov) ov.style.opacity = "1";
-      }}
-    >
-      <img
-        src={src}
-        alt=""
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-          transition: "transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-        }}
-        onError={(e) => {
-          (e.currentTarget as HTMLImageElement).style.display = "none";
-        }}
-      />
-      <div
-        className="hov"
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          background: "rgba(15,26,15,0.25)",
-          transition: "opacity 0.4s ease",
-          pointerEvents: "none",
-        }}
-      />
-    </div>
   );
 }

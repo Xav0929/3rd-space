@@ -60,6 +60,17 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
   const openSocials = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     setSocialsOpen(true);
@@ -76,7 +87,7 @@ export default function Navbar() {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 50,
+          zIndex: 100,
           transition: "background 0.5s, border-color 0.5s",
           background: scrolled ? "rgba(15,26,15,0.92)" : "transparent",
           backdropFilter: scrolled ? "blur(14px)" : "none",
@@ -97,7 +108,6 @@ export default function Navbar() {
             justifyContent: "space-between",
           }}
         >
-          {/* Logo */}
           <Link
             href="/"
             style={{
@@ -115,8 +125,8 @@ export default function Navbar() {
               height={52}
               style={{
                 objectFit: "contain",
-                width: "clamp(120px, 4vw, 52px)",
-                height: "clamp(120px, 4vw, 52px)",
+                width: "clamp(36px, 4vw, 52px)",
+                height: "clamp(36px, 4vw, 52px)",
               }}
             />
           </Link>
@@ -154,7 +164,6 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* Socials dropdown */}
             <div
               style={{ position: "relative" }}
               onMouseEnter={openSocials}
@@ -227,7 +236,7 @@ export default function Navbar() {
                     border: "1px solid rgba(232,213,163,0.12)",
                     borderRadius: 10,
                     padding: "6px 0",
-                    zIndex: 100,
+                    zIndex: 200,
                   }}
                 >
                   {socialsLinks.map((s) => (
@@ -268,7 +277,6 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Desktop ORDER NOW button */}
             <button
               onClick={() => setComingSoonOpen(true)}
               style={{
@@ -297,10 +305,11 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile hamburger */}
+          {/* Mobile hamburger — z-index 101 so it sits above overlay */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="flex md:hidden"
+            aria-label="Toggle menu"
             style={{
               background: "none",
               border: "none",
@@ -308,6 +317,8 @@ export default function Navbar() {
               padding: 8,
               flexDirection: "column",
               gap: 5,
+              position: "relative",
+              zIndex: 101,
             }}
           >
             <span
@@ -351,48 +362,70 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile overlay */}
+      {/* ── MOBILE OVERLAY — only nav links, socials, and order button ── */}
       <div
         style={{
           position: "fixed",
           inset: 0,
-          zIndex: 40,
-          background: "rgba(10,18,10,0.98)",
-          backdropFilter: "blur(20px)",
+          zIndex: 99,
+          background: "rgba(8,14,8,0.99)",
+          backdropFilter: "blur(24px)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          gap: "2rem",
-          transition: "opacity 0.4s",
+          transition: "opacity 0.35s, visibility 0.35s",
           opacity: mobileOpen ? 1 : 0,
+          visibility: mobileOpen ? "visible" : "hidden",
           pointerEvents: mobileOpen ? "auto" : "none",
         }}
       >
-        {navLinks.map((link, i) => (
-          <Link
-            key={link.label}
-            href={link.href}
-            onClick={() => setMobileOpen(false)}
-            style={{
-              fontFamily: YK,
-              fontWeight: 700,
-              fontSize: "clamp(2rem, 8vw, 3rem)",
-              color: "#e8d5a3",
-              textDecoration: "none",
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              transition: `color 0.2s, opacity 0.3s ${i * 60}ms, transform 0.3s ${i * 60}ms`,
-              opacity: mobileOpen ? 1 : 0,
-              transform: mobileOpen ? "translateY(0)" : "translateY(16px)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#d4a843")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#e8d5a3")}
-          >
-            {link.label}
-          </Link>
-        ))}
-        <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
+        {/* Nav links */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.2rem",
+            marginBottom: "2.5rem",
+          }}
+        >
+          {navLinks.map((link, i) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              style={{
+                fontFamily: YK,
+                fontWeight: 700,
+                fontSize: "clamp(2.2rem, 9vw, 3.2rem)",
+                color: "#e8d5a3",
+                textDecoration: "none",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                padding: "0.15rem 0",
+                transition: `color 0.2s, opacity 0.4s ${i * 70}ms, transform 0.4s ${i * 70}ms`,
+                opacity: mobileOpen ? 1 : 0,
+                transform: mobileOpen ? "translateY(0)" : "translateY(20px)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#d4a843")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#e8d5a3")}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Socials */}
+        <div
+          style={{
+            display: "flex",
+            gap: "1.5rem",
+            marginBottom: "2rem",
+            opacity: mobileOpen ? 1 : 0,
+            transition: `opacity 0.4s ${navLinks.length * 70 + 60}ms`,
+          }}
+        >
           {socialsLinks.map((s) => (
             <a
               key={s.label}
@@ -401,8 +434,8 @@ export default function Navbar() {
               rel="noopener noreferrer"
               style={{
                 fontFamily: DM,
-                fontSize: "0.75rem",
-                color: "rgba(232,213,163,0.5)",
+                fontSize: "0.72rem",
+                color: "rgba(232,213,163,0.4)",
                 textDecoration: "none",
                 letterSpacing: "0.18em",
                 display: "flex",
@@ -411,7 +444,7 @@ export default function Navbar() {
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#e8d5a3")}
               onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "rgba(232,213,163,0.5)")
+                (e.currentTarget.style.color = "rgba(232,213,163,0.4)")
               }
             >
               {s.icon}
@@ -420,24 +453,25 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Mobile ORDER NOW button */}
+        {/* ORDER NOW */}
         <button
           onClick={() => {
             setComingSoonOpen(true);
             setMobileOpen(false);
           }}
           style={{
-            marginTop: "0.5rem",
-            padding: "0.75rem 2.5rem",
+            padding: "0.85rem 3rem",
             background: "#e8d5a3",
             color: "#0f1a0f",
             fontFamily: DM,
             fontWeight: 800,
-            fontSize: "0.8rem",
-            letterSpacing: "0.2em",
+            fontSize: "0.78rem",
+            letterSpacing: "0.22em",
             textTransform: "uppercase",
             border: "none",
             cursor: "pointer",
+            opacity: mobileOpen ? 1 : 0,
+            transition: `opacity 0.4s ${navLinks.length * 70 + 120}ms, background 0.2s`,
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "#d4a843")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "#e8d5a3")}
@@ -446,7 +480,7 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Coming Soon modal */}
+      {/* ── COMING SOON MODAL ── */}
       {comingSoonOpen && (
         <div
           onClick={() => setComingSoonOpen(false)}
@@ -454,11 +488,12 @@ export default function Navbar() {
             position: "fixed",
             inset: 0,
             zIndex: 200,
-            background: "rgba(8,14,8,0.85)",
-            backdropFilter: "blur(18px)",
+            background: "rgba(8,14,8,0.88)",
+            backdropFilter: "blur(20px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            padding: "1.5rem",
           }}
         >
           <div
@@ -466,15 +501,16 @@ export default function Navbar() {
             style={{
               textAlign: "center",
               padding: "3rem 2.5rem",
+              width: "100%",
               maxWidth: 420,
               border: "1px solid rgba(232,213,163,0.15)",
-              background: "rgba(15,26,15,0.6)",
+              background: "rgba(15,26,15,0.7)",
             }}
           >
             <p
               style={{
                 fontFamily: YK,
-                fontSize: "clamp(2.8rem, 8vw, 4rem)",
+                fontSize: "clamp(2.8rem, 10vw, 4rem)",
                 fontWeight: 700,
                 color: "#e8d5a3",
                 letterSpacing: "0.12em",
@@ -486,22 +522,25 @@ export default function Navbar() {
             <p
               style={{
                 fontFamily: DM,
-                fontSize: "0.78rem",
+                fontSize: "0.75rem",
                 color: "rgba(232,213,163,0.5)",
-                letterSpacing: "0.2em",
+                letterSpacing: "0.18em",
                 textTransform: "uppercase",
                 margin: "0 0 2rem",
+                lineHeight: 1.7,
               }}
             >
-              Something good is brewing. Stay tuned.
+              Something good is brewing.
+              <br />
+              Stay tuned.
             </p>
             <button
               onClick={() => setComingSoonOpen(false)}
               style={{
                 fontFamily: DM,
-                fontSize: "0.7rem",
+                fontSize: "0.68rem",
                 letterSpacing: "0.2em",
-                color: "rgba(232,213,163,0.4)",
+                color: "rgba(232,213,163,0.35)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -510,7 +549,7 @@ export default function Navbar() {
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#e8d5a3")}
               onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "rgba(232,213,163,0.4)")
+                (e.currentTarget.style.color = "rgba(232,213,163,0.35)")
               }
             >
               ✕ DISMISS

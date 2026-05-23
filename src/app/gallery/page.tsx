@@ -208,6 +208,7 @@ function Lightbox({
         padding: "clamp(1rem,4vw,3rem)",
       }}
     >
+      {/* Prev */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -302,6 +303,7 @@ function Lightbox({
         </button>
       </div>
 
+      {/* Next */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -343,7 +345,6 @@ function Lightbox({
   );
 }
 
-// ── Shuffle icon SVG ──
 function ShuffleIcon() {
   return (
     <svg
@@ -364,13 +365,26 @@ function ShuffleIcon() {
 }
 
 export default function GalleryPage() {
+  // On mobile we skip the landing and go straight to the grid
+  const [isMobile, setIsMobile] = useState(false);
   const [explored, setExplored] = useState(false);
   const [items, setItems] = useState(GALLERY_ITEMS);
-  const [shuffled, setShuffled] = useState(false);
+  const [shuffleActive, setShuffleActive] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [heroIn, setHeroIn] = useState(false);
   const [fading, setFading] = useState(false);
   const [gridKey, setGridKey] = useState(0);
+
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setExplored(true);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setHeroIn(true), 80);
@@ -379,19 +393,17 @@ export default function GalleryPage() {
 
   const handleShuffle = useCallback(() => {
     setItems(shuffle(GALLERY_ITEMS));
-    setShuffled(true);
+    setShuffleActive(true);
     setGridKey((k) => k + 1);
-    // brief flash to show it reshuffled
-    setTimeout(() => setShuffled(false), 600);
+    setTimeout(() => setShuffleActive(false), 600);
   }, []);
 
   const handleAll = useCallback(() => {
     setItems(GALLERY_ITEMS);
-    setShuffled(false);
+    setShuffleActive(false);
     setGridKey((k) => k + 1);
   }, []);
 
-  const lightboxItem = lightbox !== null ? items[lightbox] : null;
   const closeLightbox = () => setLightbox(null);
   const prevLightbox = () =>
     setLightbox((i) =>
@@ -450,18 +462,18 @@ export default function GalleryPage() {
           gap: 5px; height: 100%;
         }
 
-        /* ── GRID: 3 cols, uniform rows ── */
+        /* Photo grid: 3 cols desktop, 2 cols mobile */
         .photo-grid {
           display: grid;
-          grid-template-columns: repeat(3,1fr);
-          grid-auto-rows: clamp(180px,19vw,270px);
+          grid-template-columns: repeat(3, 1fr);
+          grid-auto-rows: clamp(180px, 19vw, 270px);
           gap: 8px;
         }
 
         .explore-btn {
           display: inline-flex; align-items: center; gap: 10px;
           background: #e8d5a3; color: #0b1510;
-          font-family: 'Yanone Kaffeesatz',sans-serif;
+          font-family: 'Yanone Kaffeesatz', sans-serif;
           font-weight: 700; font-size: clamp(0.7rem,1vw,0.88rem);
           letter-spacing: 0.22em; text-transform: uppercase;
           border: none; cursor: pointer;
@@ -472,7 +484,7 @@ export default function GalleryPage() {
 
         .back-btn {
           background: none; border: none; cursor: pointer;
-          color: rgba(232,213,163,0.3); font-family: 'DM Sans',sans-serif;
+          color: rgba(232,213,163,0.3); font-family: 'DM Sans', sans-serif;
           font-size: clamp(0.52rem,0.75vw,0.63rem);
           letter-spacing: 0.28em; text-transform: uppercase;
           display: flex; align-items: center; gap: 6px;
@@ -480,7 +492,6 @@ export default function GalleryPage() {
         }
         .back-btn:hover { color: #e8d5a3; }
 
-        /* ── VIEW CONTROLS (All + Shuffle) ── */
         .view-controls {
           display: flex; align-items: center; gap: 6px;
         }
@@ -488,7 +499,7 @@ export default function GalleryPage() {
           background: none;
           border: 1px solid rgba(232,213,163,0.1);
           color: rgba(232,213,163,0.35);
-          font-family: 'DM Sans',sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-size: clamp(0.5rem,0.7vw,0.6rem);
           letter-spacing: 0.28em; text-transform: uppercase;
           cursor: pointer; padding: 0.35rem 0.85rem;
@@ -498,18 +509,26 @@ export default function GalleryPage() {
         }
         .vc-btn:hover { color: #e8d5a3; border-color: rgba(232,213,163,0.28); }
         .vc-btn.active { color: #0b1510; background: #d4a843; border-color: #d4a843; }
-        .vc-btn.shuffle-active { animation: pop 0.3s ease; }
+        .vc-btn.shuffle-pop { animation: pop 0.3s ease; }
 
-        @media (max-width: 900px) {
-          .g-landing { flex-direction: column; height: auto; min-height: calc(100vh - 60px); }
-          .g-left { flex: none; border-right: none; border-bottom: 1px solid rgba(232,213,163,0.05); }
-          .g-right { min-height: 45vw; }
-          .photo-grid { grid-template-columns: repeat(2,1fr); grid-auto-rows: clamp(150px,22vw,220px); }
+        @media (max-width: 768px) {
+          .photo-grid {
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-rows: clamp(140px, 44vw, 220px);
+            gap: 6px;
+          }
+          .sticky-bar-inner {
+            padding-top: 0.65rem !important;
+            padding-bottom: 0.65rem !important;
+          }
         }
-        @media (max-width: 560px) {
-          .bento-grid { grid-template-columns: repeat(2,1fr); }
-          .bento-grid > * { grid-column: span 1 !important; grid-row: span 1 !important; }
-          .photo-grid { grid-template-columns: repeat(2,1fr); grid-auto-rows: 160px; }
+
+        @media (max-width: 480px) {
+          .photo-grid {
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-rows: 44vw;
+            gap: 5px;
+          }
         }
       `}</style>
 
@@ -523,8 +542,8 @@ export default function GalleryPage() {
           transition: "opacity 0.36s ease",
         }}
       >
-        {/* ══ LANDING ══ */}
-        {!explored && (
+        {/* ══ DESKTOP LANDING (hidden on mobile — isMobile forces explored=true) ══ */}
+        {!explored && !isMobile && (
           <>
             <div className="g-landing">
               <div className="g-left">
@@ -768,7 +787,7 @@ export default function GalleryPage() {
           </>
         )}
 
-        {/* ══ EXPLORE ══ */}
+        {/* ══ EXPLORE / GRID VIEW ══ */}
         {explored && (
           <>
             {/* STICKY BAR */}
@@ -777,12 +796,13 @@ export default function GalleryPage() {
                 position: "sticky",
                 top: "clamp(56px,6vw,78px)",
                 zIndex: 50,
-                background: "rgba(11,21,16,0.92)",
+                background: "rgba(11,21,16,0.94)",
                 backdropFilter: "blur(16px)",
                 borderBottom: "1px solid rgba(232,213,163,0.06)",
               }}
             >
               <div
+                className="sticky-bar-inner"
                 style={{
                   maxWidth: MAX_WIDTH,
                   margin: "0 auto",
@@ -797,34 +817,39 @@ export default function GalleryPage() {
                   gap: "0.8rem",
                 }}
               >
-                {/* left */}
+                {/* Left side */}
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "1rem" }}
                 >
-                  <button className="back-btn" onClick={goBack}>
-                    <svg
-                      width="11"
-                      height="11"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M15 19l-7-7 7-7"
+                  {/* Back button — hidden on mobile since landing is skipped */}
+                  {!isMobile && (
+                    <>
+                      <button className="back-btn" onClick={goBack}>
+                        <svg
+                          width="11"
+                          height="11"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M15 19l-7-7 7-7"
+                          />
+                        </svg>
+                        Back
+                      </button>
+                      <div
+                        style={{
+                          width: 1,
+                          height: 14,
+                          background: "rgba(232,213,163,0.1)",
+                        }}
                       />
-                    </svg>
-                    Back
-                  </button>
-                  <div
-                    style={{
-                      width: 1,
-                      height: 14,
-                      background: "rgba(232,213,163,0.1)",
-                    }}
-                  />
+                    </>
+                  )}
                   <span
                     style={{
                       fontFamily: YK,
@@ -850,16 +875,16 @@ export default function GalleryPage() {
                   </span>
                 </div>
 
-                {/* right — All + Shuffle */}
+                {/* Right side — All + Shuffle */}
                 <div className="view-controls">
                   <button
-                    className={`vc-btn${!shuffled ? " active" : ""}`}
+                    className={`vc-btn${!shuffleActive ? " active" : ""}`}
                     onClick={handleAll}
                   >
                     All
                   </button>
                   <button
-                    className={`vc-btn${shuffled ? " shuffle-active" : ""}`}
+                    className={`vc-btn${shuffleActive ? " shuffle-pop" : ""}`}
                     onClick={handleShuffle}
                     title="Shuffle"
                   >
@@ -877,7 +902,7 @@ export default function GalleryPage() {
                 margin: "0 auto",
                 paddingLeft: SITE_PADDING,
                 paddingRight: SITE_PADDING,
-                paddingTop: "clamp(1.5rem,2vw,2rem)",
+                paddingTop: "clamp(1rem,2vw,2rem)",
                 paddingBottom: "clamp(4rem,7vw,6rem)",
               }}
             >
@@ -896,7 +921,7 @@ export default function GalleryPage() {
         )}
       </main>
 
-      {lightbox !== null && lightboxItem && (
+      {lightbox !== null && (
         <Lightbox
           items={items}
           index={lightbox}
