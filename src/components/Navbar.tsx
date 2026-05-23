@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 const navLinks = [
   { label: "ABOUT", href: "/about" },
@@ -44,15 +45,72 @@ const socialsLinks = [
 export const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 export const MAX_WIDTH = 1280;
 
+// Crisp SVG hamburger — 3 lines closed, X open
+function HamburgerIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 22 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block" }}
+    >
+      {/* Top line → top arm of X */}
+      <line
+        x1="3"
+        y1="6"
+        x2="19"
+        y2="6"
+        stroke="#e8d5a3"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        style={{ transition: "transform 0.3s ease, opacity 0.3s ease" }}
+        transform={open ? "rotate(45, 11, 11) translate(0, 5)" : ""}
+      />
+      {/* Middle line → hidden when open */}
+      <line
+        x1="3"
+        y1="11"
+        x2="19"
+        y2="11"
+        stroke="#e8d5a3"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        style={{ transition: "opacity 0.2s ease" }}
+        opacity={open ? 0 : 1}
+      />
+      {/* Bottom line → bottom arm of X */}
+      <line
+        x1="3"
+        y1="16"
+        x2="19"
+        y2="16"
+        stroke="#e8d5a3"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        style={{ transition: "transform 0.3s ease, opacity 0.3s ease" }}
+        transform={open ? "rotate(-45, 11, 11) translate(0, -5)" : ""}
+      />
+    </svg>
+  );
+}
+
 export default function Navbar() {
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pathname = usePathname();
 
   const YK = "var(--font-yanone), 'Yanone Kaffeesatz', sans-serif";
   const DM = "var(--font-dm), 'DM Sans', sans-serif";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -61,15 +119,15 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const openSocials = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -78,6 +136,8 @@ export default function Navbar() {
   const closeSocials = () => {
     closeTimer.current = setTimeout(() => setSocialsOpen(false), 120);
   };
+
+  const isOpen = mounted && mobileOpen;
 
   return (
     <>
@@ -125,8 +185,8 @@ export default function Navbar() {
               height={52}
               style={{
                 objectFit: "contain",
-                width: "clamp(36px, 4vw, 52px)",
-                height: "clamp(36px, 4vw, 52px)",
+                width: "clamp(116px, 4vw, 52px)",
+                height: "clamp(116px, 4vw, 52px)",
               }}
             />
           </Link>
@@ -305,64 +365,31 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile hamburger — z-index 101 so it sits above overlay */}
+          {/* Mobile hamburger — SVG based, crisp at any DPR */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex md:hidden"
+            className="md:hidden"
             aria-label="Toggle menu"
             style={{
               background: "none",
               border: "none",
               cursor: "pointer",
               padding: 8,
-              flexDirection: "column",
-              gap: 5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               position: "relative",
               zIndex: 101,
+              width: 38,
+              height: 38,
             }}
           >
-            <span
-              style={{
-                display: "block",
-                width: 22,
-                height: 1.5,
-                background: "#e8d5a3",
-                borderRadius: 1,
-                transition: "transform 0.3s",
-                transform: mobileOpen
-                  ? "rotate(45deg) translateY(6.5px)"
-                  : "none",
-              }}
-            />
-            <span
-              style={{
-                display: "block",
-                width: 22,
-                height: 1.5,
-                background: "#e8d5a3",
-                borderRadius: 1,
-                transition: "opacity 0.3s",
-                opacity: mobileOpen ? 0 : 1,
-              }}
-            />
-            <span
-              style={{
-                display: "block",
-                width: 22,
-                height: 1.5,
-                background: "#e8d5a3",
-                borderRadius: 1,
-                transition: "transform 0.3s",
-                transform: mobileOpen
-                  ? "rotate(-45deg) translateY(-6.5px)"
-                  : "none",
-              }}
-            />
+            <HamburgerIcon open={isOpen} />
           </button>
         </div>
       </nav>
 
-      {/* ── MOBILE OVERLAY — only nav links, socials, and order button ── */}
+      {/* Mobile Overlay */}
       <div
         style={{
           position: "fixed",
@@ -374,13 +401,12 @@ export default function Navbar() {
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          transition: "opacity 0.35s, visibility 0.35s",
-          opacity: mobileOpen ? 1 : 0,
-          visibility: mobileOpen ? "visible" : "hidden",
-          pointerEvents: mobileOpen ? "auto" : "none",
+          transition: mounted ? "opacity 0.35s, visibility 0.35s" : "none",
+          opacity: isOpen ? 1 : 0,
+          visibility: isOpen ? "visible" : "hidden",
+          pointerEvents: isOpen ? "auto" : "none",
         }}
       >
-        {/* Nav links */}
         <div
           style={{
             display: "flex",
@@ -394,7 +420,6 @@ export default function Navbar() {
             <Link
               key={link.label}
               href={link.href}
-              onClick={() => setMobileOpen(false)}
               style={{
                 fontFamily: YK,
                 fontWeight: 700,
@@ -404,9 +429,11 @@ export default function Navbar() {
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
                 padding: "0.15rem 0",
-                transition: `color 0.2s, opacity 0.4s ${i * 70}ms, transform 0.4s ${i * 70}ms`,
-                opacity: mobileOpen ? 1 : 0,
-                transform: mobileOpen ? "translateY(0)" : "translateY(20px)",
+                transition: mounted
+                  ? `color 0.2s, opacity 0.4s ${i * 70}ms, transform 0.4s ${i * 70}ms`
+                  : "none",
+                opacity: isOpen ? 1 : 0,
+                transform: isOpen ? "translateY(0)" : "translateY(20px)",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#d4a843")}
               onMouseLeave={(e) => (e.currentTarget.style.color = "#e8d5a3")}
@@ -416,14 +443,15 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Socials */}
         <div
           style={{
             display: "flex",
             gap: "1.5rem",
             marginBottom: "2rem",
-            opacity: mobileOpen ? 1 : 0,
-            transition: `opacity 0.4s ${navLinks.length * 70 + 60}ms`,
+            opacity: isOpen ? 1 : 0,
+            transition: mounted
+              ? `opacity 0.4s ${navLinks.length * 70 + 60}ms`
+              : "none",
           }}
         >
           {socialsLinks.map((s) => (
@@ -453,7 +481,6 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* ORDER NOW */}
         <button
           onClick={() => {
             setComingSoonOpen(true);
@@ -470,8 +497,10 @@ export default function Navbar() {
             textTransform: "uppercase",
             border: "none",
             cursor: "pointer",
-            opacity: mobileOpen ? 1 : 0,
-            transition: `opacity 0.4s ${navLinks.length * 70 + 120}ms, background 0.2s`,
+            opacity: isOpen ? 1 : 0,
+            transition: mounted
+              ? `opacity 0.4s ${navLinks.length * 70 + 120}ms, background 0.2s`
+              : "none",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "#d4a843")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "#e8d5a3")}
@@ -480,7 +509,7 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* ── COMING SOON MODAL ── */}
+      {/* Coming Soon Modal */}
       {comingSoonOpen && (
         <div
           onClick={() => setComingSoonOpen(false)}
