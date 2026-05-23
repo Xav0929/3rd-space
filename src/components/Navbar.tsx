@@ -365,17 +365,16 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile hamburger — SVG based, crisp at any DPR */}
+          {/* Mobile hamburger — Fixed: Removed inline display: flex to allow md:hidden to work */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden"
+            className="flex md:hidden"
             aria-label="Toggle menu"
             style={{
               background: "none",
               border: "none",
               cursor: "pointer",
               padding: 8,
-              display: "flex",
               alignItems: "center",
               justifyContent: "center",
               position: "relative",
@@ -389,8 +388,9 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay — Fixed: Added md:hidden to ensure it never shows on desktop */}
       <div
+        className="md:hidden"
         style={{
           position: "fixed",
           inset: 0,
