@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Yanone_Kaffeesatz, DM_Sans } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import NavbarWrapper from "@/components/NavbarWrapper";
 
 const yanone = Yanone_Kaffeesatz({
   subsets: ["latin"],
@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${yanone.variable} ${dmSans.variable}`}>
       <body>
-        <Navbar />
+        <NavbarWrapper />
         {children}
       </body>
     </html>

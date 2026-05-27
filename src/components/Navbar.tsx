@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const navLinks = [
   { label: "ABOUT", href: "/about" },
@@ -45,7 +45,9 @@ const socialsLinks = [
 export const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 export const MAX_WIDTH = 1280;
 
-// Crisp SVG hamburger — 3 lines closed, X open
+// Logo long-press counter for secret admin access
+const ADMIN_TAP_TARGET = 5;
+
 function HamburgerIcon({ open }: { open: boolean }) {
   return (
     <svg
@@ -56,7 +58,6 @@ function HamburgerIcon({ open }: { open: boolean }) {
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: "block" }}
     >
-      {/* Top line → top arm of X */}
       <line
         x1="3"
         y1="6"
@@ -68,7 +69,6 @@ function HamburgerIcon({ open }: { open: boolean }) {
         style={{ transition: "transform 0.3s ease, opacity 0.3s ease" }}
         transform={open ? "rotate(45, 11, 11) translate(0, 5)" : ""}
       />
-      {/* Middle line → hidden when open */}
       <line
         x1="3"
         y1="11"
@@ -80,7 +80,6 @@ function HamburgerIcon({ open }: { open: boolean }) {
         style={{ transition: "opacity 0.2s ease" }}
         opacity={open ? 0 : 1}
       />
-      {/* Bottom line → bottom arm of X */}
       <line
         x1="3"
         y1="16"
@@ -101,9 +100,14 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Secret admin tap counter (tap logo 5x fast)
+  const adminTapCount = useRef(0);
+  const adminTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const pathname = usePathname();
+  const router = useRouter();
 
   const YK = "var(--font-yanone), 'Yanone Kaffeesatz', sans-serif";
   const DM = "var(--font-dm), 'DM Sans', sans-serif";
@@ -137,6 +141,19 @@ export default function Navbar() {
     closeTimer.current = setTimeout(() => setSocialsOpen(false), 120);
   };
 
+  // Secret admin access: tap logo 5 times within 2 seconds
+  function handleLogoTap() {
+    adminTapCount.current += 1;
+    if (adminTapTimer.current) clearTimeout(adminTapTimer.current);
+    adminTapTimer.current = setTimeout(() => {
+      adminTapCount.current = 0;
+    }, 2000);
+    if (adminTapCount.current >= ADMIN_TAP_TARGET) {
+      adminTapCount.current = 0;
+      router.push("/admin");
+    }
+  }
+
   const isOpen = mounted && mobileOpen;
 
   return (
@@ -168,8 +185,10 @@ export default function Navbar() {
             justifyContent: "space-between",
           }}
         >
+          {/* Logo — tap 5× fast to reach admin */}
           <Link
             href="/"
+            onClick={handleLogoTap}
             style={{
               display: "flex",
               alignItems: "center",
@@ -224,6 +243,7 @@ export default function Navbar() {
               </Link>
             ))}
 
+            {/* Socials dropdown */}
             <div
               style={{ position: "relative" }}
               onMouseEnter={openSocials}
@@ -337,8 +357,9 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* ORDER NOW — goes to /order */}
             <button
-              onClick={() => setComingSoonOpen(true)}
+              onClick={() => router.push("/order")}
               style={{
                 marginLeft: "0.5rem",
                 padding: "0.46rem 1.1rem",
@@ -365,7 +386,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile hamburger — Fixed: Removed inline display: flex to allow md:hidden to work */}
+          {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="flex md:hidden"
@@ -388,7 +409,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Overlay — Fixed: Added md:hidden to ensure it never shows on desktop */}
+      {/* Mobile Overlay */}
       <div
         className="md:hidden"
         style={{
@@ -481,10 +502,11 @@ export default function Navbar() {
           ))}
         </div>
 
+        {/* Mobile ORDER NOW — goes to /order */}
         <button
           onClick={() => {
-            setComingSoonOpen(true);
             setMobileOpen(false);
+            router.push("/order");
           }}
           style={{
             padding: "0.85rem 3rem",
@@ -508,84 +530,6 @@ export default function Navbar() {
           ORDER NOW
         </button>
       </div>
-
-      {/* Coming Soon Modal */}
-      {comingSoonOpen && (
-        <div
-          onClick={() => setComingSoonOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 200,
-            background: "rgba(8,14,8,0.88)",
-            backdropFilter: "blur(20px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1.5rem",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              textAlign: "center",
-              padding: "3rem 2.5rem",
-              width: "100%",
-              maxWidth: 420,
-              border: "1px solid rgba(232,213,163,0.15)",
-              background: "rgba(15,26,15,0.7)",
-            }}
-          >
-            <p
-              style={{
-                fontFamily: YK,
-                fontSize: "clamp(2.8rem, 10vw, 4rem)",
-                fontWeight: 700,
-                color: "#e8d5a3",
-                letterSpacing: "0.12em",
-                margin: "0 0 0.5rem",
-              }}
-            >
-              COMING SOON
-            </p>
-            <p
-              style={{
-                fontFamily: DM,
-                fontSize: "0.75rem",
-                color: "rgba(232,213,163,0.5)",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                margin: "0 0 2rem",
-                lineHeight: 1.7,
-              }}
-            >
-              Something good is brewing.
-              <br />
-              Stay tuned.
-            </p>
-            <button
-              onClick={() => setComingSoonOpen(false)}
-              style={{
-                fontFamily: DM,
-                fontSize: "0.68rem",
-                letterSpacing: "0.2em",
-                color: "rgba(232,213,163,0.35)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textTransform: "uppercase",
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#e8d5a3")}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "rgba(232,213,163,0.35)")
-              }
-            >
-              ✕ DISMISS
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }
