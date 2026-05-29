@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const ext = file.name.split(".").pop();
-  const key = `receipts/${uuidv4()}.${ext}`;
+  const key = `menu/${uuidv4()}.${ext}`; // ← changed from receipts/
 
   const url = await uploadToR2(key, buffer, file.type);
   return NextResponse.json({ url, key });

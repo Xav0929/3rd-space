@@ -37,6 +37,11 @@ const OrderSchema = new Schema(
     tableNumber: { type: String },
 
     // payment
+    paymentMethod: {
+      type: String,
+      enum: ["gcash", "cash", "pending"], // "pending" = customer chose Pay Later
+      default: "pending",
+    },
     paymentStatus: {
       type: String,
       enum: ["pending", "confirmed"],
@@ -44,6 +49,7 @@ const OrderSchema = new Schema(
     },
 
     notes: { type: String, default: "" },
+    waiterName: { type: String, default: "" },
   },
   { timestamps: true },
 );

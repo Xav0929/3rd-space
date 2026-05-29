@@ -12,12 +12,22 @@ function generateOrderNumber() {
 }
 
 export async function GET(req: NextRequest) {
-  if (!(await isAdminAuthenticated()))
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   await connectDB();
 
   const { searchParams } = new URL(req.url);
+  const orderNumber = searchParams.get("orderNumber");
+
+  // Public guest tracking by order number
+  if (orderNumber) {
+    const order = await Order.findOne({ orderNumber });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+    return NextResponse.json([order]);
+  }
+
+  // ← FIXED: allow staff/waiter to fetch all orders without admin auth
+  // Admin-only filters (status, type, date range) still work when passed
   const status = searchParams.get("status");
   const type = searchParams.get("type");
   const from = searchParams.get("from");
@@ -49,11 +59,15 @@ export async function POST(req: NextRequest) {
     deliveryAddress,
     receiptUrl,
     receiptKey,
+    gcashRef,
     tableNumber,
+    paymentMethod,
     notes,
+    waiterName, // ← FIXED: was missing
+    source,
   } = body;
 
-  // validations
+  // Basic validation
   if (!type || !items?.length || !total) {
     return NextResponse.json(
       { error: "Missing required fields" },
@@ -68,9 +82,13 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    if (!receiptUrl) {
+    // Waiter-placed orders skip receipt requirement; customer-facing orders need proof
+    if (source !== "waiter" && !receiptUrl && !gcashRef) {
       return NextResponse.json(
-        { error: "Payment receipt required for delivery" },
+        {
+          error:
+            "Payment proof required for delivery (screenshot or ref number)",
+        },
         { status: 400 },
       );
     }
@@ -83,19 +101,72 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const normalizedItems = items.map((item: any) => ({
+    menuItemId: item.id || item.menuItemId || undefined,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+  }));
+
   const order = await Order.create({
     orderNumber: generateOrderNumber(),
     type,
-    items,
+    items: normalizedItems,
     total,
     customerName,
     customerContact,
     deliveryAddress,
     receiptUrl,
     receiptKey,
+    gcashRef,
     tableNumber,
+    paymentMethod,
     notes,
+    waiterName, // ← FIXED: now saved to DB
+    source,
   });
 
   return NextResponse.json(order, { status: 201 });
+}
+
+export async function PATCH(req: NextRequest) {
+  await connectDB();
+  const body = await req.json();
+
+  // Allow status/payment updates without strict admin auth
+  // (waiter needs to be able to confirm payment too)
+  const { id, status, paymentStatus } = body;
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  const update: any = {};
+  if (status) update.status = status;
+  if (paymentStatus) update.paymentStatus = paymentStatus;
+
+  if (!Object.keys(update).length) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const order = await Order.findByIdAndUpdate(id, update, { new: true });
+  if (!order) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(order);
+}
+
+export async function DELETE(req: NextRequest) {
+  if (!(await isAdminAuthenticated()))
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  await Order.findByIdAndDelete(id);
+  return NextResponse.json({ success: true });
 }
