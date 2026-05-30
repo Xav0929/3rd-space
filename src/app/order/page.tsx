@@ -23,6 +23,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 
+/* ─── TOKENS ──────────────────────────────────────────────────────────────── */
 const G = "#d4a843";
 const GD = "rgba(212,168,67,0.13)";
 const C = "#e8d5a3";
@@ -34,6 +35,7 @@ const BR = "rgba(232,213,163,0.11)";
 const BRH = "rgba(212,168,67,0.45)";
 const ERR = "rgba(248,113,113,0.8)";
 
+/* ─── TYPES ───────────────────────────────────────────────────────────────── */
 interface MenuItem {
   _id: string;
   name: string;
@@ -54,6 +56,7 @@ type OrderType = "dine-in" | "delivery";
 type PayMethod = "cash" | "gcash" | "pay-later";
 type Step = "mode-select" | "menu" | "checkout" | "payment" | "confirmed";
 
+/* ─── PH PHONE HELPERS ────────────────────────────────────────────────────── */
 function normalizePHPhone(raw: string): string {
   let d = raw.replace(/\D/g, "");
   if (d.length === 10 && d.startsWith("9")) d = "0" + d;
@@ -61,16 +64,14 @@ function normalizePHPhone(raw: string): string {
   return d.slice(0, 11);
 }
 function isValidPHPhone(v: string) {
-  const n = normalizePHPhone(v);
-  return /^09\d{9}$/.test(n);
+  return /^09\d{9}$/.test(normalizePHPhone(v));
 }
 function formatPHPhoneDisplay(stored: string): string {
   const d = normalizePHPhone(stored);
-  const without0 = d.startsWith("0") ? d.slice(1) : d;
-  if (without0.length <= 3) return without0;
-  if (without0.length <= 6)
-    return `${without0.slice(0, 3)} ${without0.slice(3)}`;
-  return `${without0.slice(0, 3)} ${without0.slice(3, 6)} ${without0.slice(6)}`;
+  const w = d.startsWith("0") ? d.slice(1) : d;
+  if (w.length <= 3) return w;
+  if (w.length <= 6) return `${w.slice(0, 3)} ${w.slice(3)}`;
+  return `${w.slice(0, 3)} ${w.slice(3, 6)} ${w.slice(6)}`;
 }
 
 /* ─── TOP NAV ─────────────────────────────────────────────────────────────── */
@@ -96,7 +97,7 @@ function TopNav({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 16px",
+        padding: "0 clamp(12px,4vw,20px)",
       }}
     >
       <img
@@ -120,6 +121,8 @@ function TopNav({
           cursor: "pointer",
           transition: "all .2s",
           color: cartCount > 0 ? BG : C,
+          minHeight: 40,
+          touchAction: "manipulation",
         }}
       >
         <ShoppingCart size={15} />
@@ -160,7 +163,7 @@ function PlainHeader({ label }: { label: string }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 16px",
+        padding: "0 clamp(12px,4vw,20px)",
       }}
     >
       <img
@@ -198,7 +201,7 @@ function SubBar({
       style={{
         display: "flex",
         alignItems: "center",
-        padding: "10px 16px 6px",
+        padding: "10px clamp(12px,4vw,20px) 6px",
       }}
     >
       <button
@@ -218,6 +221,8 @@ function SubBar({
           fontFamily: "'Cinzel',serif",
           padding: 0,
           transition: "color .18s",
+          minHeight: 36,
+          touchAction: "manipulation",
         }}
       >
         <ChevronLeft size={13} />
@@ -255,22 +260,30 @@ function ModeCard({ emoji, title, sub, onClick }: any) {
         background: hov ? GD : CARD,
         border: `1.5px solid ${hov ? G : BR}`,
         borderRadius: 20,
-        padding: "38px 20px",
+        padding: "clamp(24px,5vw,38px) 20px",
         cursor: "pointer",
         textAlign: "center",
         transform: hov ? "translateY(-3px)" : "none",
         boxShadow: hov ? "0 12px 40px rgba(212,168,67,.12)" : "none",
         transition: "all .22s ease",
         outline: "none",
+        touchAction: "manipulation",
+        width: "100%",
       }}
     >
-      <div style={{ fontSize: 46, marginBottom: 14, lineHeight: 1 }}>
+      <div
+        style={{
+          fontSize: "clamp(36px,8vw,46px)",
+          marginBottom: 14,
+          lineHeight: 1,
+        }}
+      >
         {emoji}
       </div>
       <div
         style={{
           fontFamily: "'Cinzel',serif",
-          fontSize: 19,
+          fontSize: "clamp(16px,4vw,19px)",
           fontWeight: 700,
           letterSpacing: ".15em",
           color: hov ? G : C,
@@ -280,7 +293,7 @@ function ModeCard({ emoji, title, sub, onClick }: any) {
       >
         {title}
       </div>
-      <div style={{ color: CM, fontSize: 12 }}>{sub}</div>
+      <div style={{ color: CM, fontSize: "clamp(11px,2.5vw,13px)" }}>{sub}</div>
     </button>
   );
 }
@@ -294,14 +307,18 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px 16px",
+        padding: "clamp(20px,5vw,40px) clamp(14px,4vw,24px)",
         background: `radial-gradient(ellipse at 55% 20%, rgba(212,168,67,.08) 0%, transparent 60%), ${BG}`,
       }}
     >
       <img
         src="/logo.png"
         alt="3rd Space"
-        style={{ height: 104, objectFit: "contain", marginBottom: 24 }}
+        style={{
+          height: "clamp(72px,18vw,104px)",
+          objectFit: "contain",
+          marginBottom: 20,
+        }}
         onError={(e) => {
           (e.target as HTMLImageElement).style.display = "none";
         }}
@@ -317,10 +334,11 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
       <p
         style={{
           color: CM,
-          fontSize: 13,
+          fontSize: "clamp(11px,2.8vw,13px)",
           letterSpacing: ".1em",
           marginBottom: 28,
           fontFamily: "'Cinzel',serif",
+          textAlign: "center",
         }}
       >
         HOW WOULD YOU LIKE TO ORDER?
@@ -328,7 +346,7 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+          gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,220px),1fr))",
           gap: 14,
           width: "100%",
           maxWidth: 520,
@@ -380,7 +398,7 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
             background: CARD,
             color: CM,
             fontFamily: "'Cinzel',serif",
-            fontSize: 11,
+            fontSize: "clamp(10px,2.5vw,11px)",
             letterSpacing: ".12em",
             textDecoration: "none",
             whiteSpace: "nowrap",
@@ -400,8 +418,8 @@ function Btn32({ children, onClick, gold }: any) {
     <button
       onClick={onClick}
       style={{
-        width: 28,
-        height: 28,
+        width: 32,
+        height: 32,
         borderRadius: 999,
         border: "none",
         background: gold ? G : "transparent",
@@ -410,6 +428,7 @@ function Btn32({ children, onClick, gold }: any) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        touchAction: "manipulation",
       }}
     >
       {children}
@@ -446,7 +465,7 @@ function MenuCard({
     >
       <div
         style={{
-          height: 150,
+          height: "clamp(120px,22vw,150px)",
           background: "rgba(212,168,67,.07)",
           overflow: "hidden",
         }}
@@ -466,11 +485,16 @@ function MenuCard({
           }}
         />
       </div>
-      <div style={{ padding: "13px 15px 15px" }}>
+      <div
+        style={{
+          padding:
+            "clamp(10px,3vw,13px) clamp(12px,3vw,15px) clamp(12px,3vw,15px)",
+        }}
+      >
         <p
           style={{
             fontFamily: "'Cinzel',serif",
-            fontSize: 13,
+            fontSize: "clamp(12px,2.8vw,13px)",
             fontWeight: 700,
             letterSpacing: ".04em",
             color: C,
@@ -482,7 +506,7 @@ function MenuCard({
         <p
           style={{
             color: CM,
-            fontSize: 11,
+            fontSize: "clamp(10px,2.4vw,11px)",
             lineHeight: 1.5,
             marginBottom: 13,
             display: "-webkit-box",
@@ -503,7 +527,7 @@ function MenuCard({
           <span
             style={{
               fontFamily: "'Cinzel',serif",
-              fontSize: 17,
+              fontSize: "clamp(15px,3.5vw,17px)",
               fontWeight: 700,
               color: G,
             }}
@@ -544,8 +568,8 @@ function MenuCard({
             <button
               onClick={onAdd}
               style={{
-                width: 34,
-                height: 34,
+                width: 36,
+                height: 36,
                 borderRadius: 999,
                 border: "none",
                 background: G,
@@ -554,6 +578,7 @@ function MenuCard({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                touchAction: "manipulation",
               }}
             >
               <Plus size={16} />
@@ -608,7 +633,7 @@ function CartDrawer({
       >
         <div
           style={{
-            padding: "18px 18px 14px",
+            padding: "18px clamp(14px,4vw,18px) 14px",
             borderBottom: `1px solid ${BR}`,
             display: "flex",
             alignItems: "center",
@@ -634,13 +659,14 @@ function CartDrawer({
               background: CARD,
               border: `1px solid ${BR}`,
               borderRadius: 999,
-              width: 30,
-              height: 30,
+              width: 36,
+              height: 36,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: CM,
+              touchAction: "manipulation",
             }}
           >
             <X size={14} />
@@ -650,7 +676,7 @@ function CartDrawer({
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: 16,
+            padding: "clamp(12px,3vw,16px)",
             display: "flex",
             flexDirection: "column",
             gap: 10,
@@ -727,8 +753,8 @@ function CartDrawer({
                     onClick={() => onRemove(item._id)}
                     style={{
                       marginLeft: 4,
-                      width: 26,
-                      height: 26,
+                      width: 30,
+                      height: 30,
                       borderRadius: 999,
                       border: "none",
                       background: "rgba(248,113,113,.1)",
@@ -737,6 +763,7 @@ function CartDrawer({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      touchAction: "manipulation",
                     }}
                   >
                     <Trash2 size={11} />
@@ -747,7 +774,12 @@ function CartDrawer({
           )}
         </div>
         {cart.length > 0 && (
-          <div style={{ padding: 16, borderTop: `1px solid ${BR}` }}>
+          <div
+            style={{
+              padding: "clamp(12px,3vw,16px)",
+              borderTop: `1px solid ${BR}`,
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -776,12 +808,13 @@ function CartDrawer({
                 color: BG,
                 border: "none",
                 borderRadius: 12,
-                padding: "14px",
+                padding: "15px",
                 fontFamily: "'Cinzel',serif",
                 fontSize: 13,
                 letterSpacing: ".15em",
                 fontWeight: 700,
                 cursor: "pointer",
+                touchAction: "manipulation",
               }}
             >
               PROCEED TO CHECKOUT
@@ -813,7 +846,7 @@ function MenuScreen({
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 640px)");
+    const mq = window.matchMedia("(min-width:640px)");
     setIsDesktop(mq.matches);
     const h = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
     mq.addEventListener("change", h);
@@ -854,7 +887,7 @@ function MenuScreen({
       <SubBar onClick={onBack} label="Change Mode" />
 
       {/* Search */}
-      <div style={{ padding: "4px 16px 10px", flexShrink: 0 }}>
+      <div style={{ padding: "4px clamp(12px,4vw,16px) 10px", flexShrink: 0 }}>
         <div
           style={{
             display: "flex",
@@ -863,7 +896,7 @@ function MenuScreen({
             background: CARD,
             border: `1px solid ${searchFocused ? G : BR}`,
             borderRadius: 10,
-            padding: "8px 12px",
+            padding: "9px 12px",
             transition: "border-color .18s",
           }}
         >
@@ -885,7 +918,7 @@ function MenuScreen({
               border: "none",
               outline: "none",
               color: C,
-              fontSize: 13,
+              fontSize: 16,
               fontFamily: "inherit",
             }}
           />
@@ -899,6 +932,8 @@ function MenuScreen({
                 color: CM,
                 display: "flex",
                 alignItems: "center",
+                padding: 4,
+                touchAction: "manipulation",
               }}
             >
               <X size={13} />
@@ -907,11 +942,10 @@ function MenuScreen({
         </div>
       </div>
 
-      {/* Body: sidebar + grid */}
+      {/* Body */}
       <div
         style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}
       >
-        {/* Desktop sidebar */}
         {isDesktop && !searchResults && (
           <aside
             style={{
@@ -965,8 +999,6 @@ function MenuScreen({
             })}
           </aside>
         )}
-
-        {/* Mobile tabs + grid wrapper */}
         <div
           style={{
             flex: 1,
@@ -982,7 +1014,7 @@ function MenuScreen({
                 display: "flex",
                 gap: 8,
                 overflowX: "auto",
-                padding: "0 16px 10px",
+                padding: `0 clamp(12px,4vw,16px) 10px`,
                 borderBottom: `1px solid ${BR}`,
                 scrollbarWidth: "none",
                 flexShrink: 0,
@@ -996,17 +1028,19 @@ function MenuScreen({
                     onClick={() => setActive(cat)}
                     style={{
                       whiteSpace: "nowrap",
-                      padding: "7px 18px",
+                      padding: "8px 18px",
                       borderRadius: 999,
                       border: `1px solid ${a ? G : BR}`,
                       background: a ? G : "transparent",
                       color: a ? BG : CM,
                       fontFamily: "'Cinzel',serif",
-                      fontSize: 11,
+                      fontSize: "clamp(10px,2.5vw,11px)",
                       letterSpacing: ".1em",
                       cursor: "pointer",
                       transition: "all .18s",
                       fontWeight: a ? 700 : 400,
+                      minHeight: 38,
+                      touchAction: "manipulation",
                     }}
                   >
                     {cat}
@@ -1015,13 +1049,13 @@ function MenuScreen({
               })}
             </div>
           )}
-
-          {/* Scrollable grid */}
           <div
             style={{
               flex: 1,
               overflowY: "auto",
-              padding: isDesktop ? "18px 20px 100px" : "14px 16px 100px",
+              padding: isDesktop
+                ? "18px 20px 100px"
+                : `14px clamp(12px,4vw,16px) 100px`,
             }}
           >
             {searchResults && (
@@ -1052,8 +1086,8 @@ function MenuScreen({
                 style={{
                   display: "grid",
                   gridTemplateColumns:
-                    "repeat(auto-fill,minmax(min(100%,260px),1fr))",
-                  gap: 14,
+                    "repeat(auto-fill,minmax(min(100%,clamp(140px,40vw,260px)),1fr))",
+                  gap: "clamp(10px,2.5vw,14px)",
                 }}
               >
                 {displayItems.map((item: MenuItem) => {
@@ -1074,12 +1108,12 @@ function MenuScreen({
         </div>
       </div>
 
-      {/* Sticky checkout bar */}
+      {/* Sticky checkout */}
       {count > 0 && (
         <div
           style={{
             flexShrink: 0,
-            padding: "12px 16px",
+            padding: `clamp(10px,3vw,12px) clamp(12px,4vw,16px)`,
             background: `${BG}f2`,
             backdropFilter: "blur(16px)",
             borderTop: `1px solid ${BR}`,
@@ -1093,15 +1127,16 @@ function MenuScreen({
               color: BG,
               border: "none",
               borderRadius: 14,
-              padding: "15px",
+              padding: "clamp(13px,3.5vw,15px) 16px",
               fontFamily: "'Cinzel',serif",
-              fontSize: 14,
+              fontSize: "clamp(13px,3vw,14px)",
               letterSpacing: ".15em",
               fontWeight: 700,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
+              touchAction: "manipulation",
             }}
           >
             <span
@@ -1173,7 +1208,7 @@ function InputField({
           background: "rgba(255,255,255,.03)",
           border: `1px solid ${focused ? G : BR}`,
           borderRadius: 8,
-          padding: "11px 12px",
+          padding: "12px 12px",
           color: C,
           fontSize: 16,
           outline: "none",
@@ -1210,8 +1245,8 @@ function DeliveryAddressPicker({
   const searchTimer = useRef<any>(null);
   const geocodeDebounce = useRef<any>(null);
 
-  const DEFAULT_LAT = 15.4817;
-  const DEFAULT_LNG = 120.966;
+  const DEFAULT_LAT = 15.4817,
+    DEFAULT_LNG = 120.966;
 
   const reverseGeocode = useCallback(
     async (lat: number, lng: number) => {
@@ -1251,9 +1286,8 @@ function DeliveryAddressPicker({
       if (!mapRef.current || !leafletRef.current) return;
       if (mapObjRef.current) return;
       const L = leafletRef.current;
-      const startLat = lat ?? (value?.lat || DEFAULT_LAT);
-      const startLng = lng ?? (value?.lng || DEFAULT_LNG);
-
+      const startLat = lat ?? (value?.lat || DEFAULT_LAT),
+        startLng = lng ?? (value?.lng || DEFAULT_LNG);
       const map = L.map(mapRef.current, {
         center: [startLat, startLng],
         zoom: 17,
@@ -1263,7 +1297,6 @@ function DeliveryAddressPicker({
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(map);
-
       map.on("moveend", () => {
         const c = map.getCenter();
         clearTimeout(geocodeDebounce.current);
@@ -1321,9 +1354,11 @@ function DeliveryAddressPicker({
       },
       (err) => {
         setLocating(false);
-        if (err.code === 1)
-          setLocError("Location denied. Drag the map to your address.");
-        else setLocError("Could not get GPS. Drag the map to your address.");
+        setLocError(
+          err.code === 1
+            ? "Location denied. Drag the map to your address."
+            : "Could not get GPS. Drag the map to your address.",
+        );
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
@@ -1377,7 +1412,7 @@ function DeliveryAddressPicker({
             background: "rgba(255,255,255,.04)",
             border: `1px solid ${searchFocused ? G : BR}`,
             borderRadius: 10,
-            padding: "9px 12px",
+            padding: "10px 12px",
             transition: "border-color .18s",
           }}
         >
@@ -1399,7 +1434,7 @@ function DeliveryAddressPicker({
               border: "none",
               outline: "none",
               color: C,
-              fontSize: 14,
+              fontSize: 16,
               fontFamily: "inherit",
             }}
           />
@@ -1428,7 +1463,8 @@ function DeliveryAddressPicker({
                 cursor: "pointer",
                 color: CM,
                 display: "flex",
-                padding: 0,
+                padding: 4,
+                touchAction: "manipulation",
               }}
             >
               <X size={13} />
@@ -1469,6 +1505,7 @@ function DeliveryAddressPicker({
                   display: "flex",
                   alignItems: "flex-start",
                   gap: 8,
+                  touchAction: "manipulation",
                 }}
               >
                 <MapPin
@@ -1492,13 +1529,13 @@ function DeliveryAddressPicker({
         )}
       </div>
 
-      {/* GPS button */}
+      {/* GPS */}
       <button
         onClick={locateMe}
         disabled={locating}
         style={{
           width: "100%",
-          padding: "11px 16px",
+          padding: "12px 16px",
           background: locating ? "rgba(212,168,67,.1)" : GD,
           border: `1.5px solid ${G}`,
           borderRadius: 10,
@@ -1513,6 +1550,8 @@ function DeliveryAddressPicker({
           letterSpacing: ".08em",
           fontWeight: 700,
           transition: "all .2s",
+          touchAction: "manipulation",
+          minHeight: 48,
         }}
       >
         <Navigation
@@ -1545,18 +1584,18 @@ function DeliveryAddressPicker({
         </div>
       )}
 
-      {/* Map — pin fixed center, map drags */}
+      {/* Map */}
       <div
         style={{
           position: "relative",
           borderRadius: 14,
           overflow: "hidden",
           border: `1px solid ${BR}`,
-          height: 220,
+          height: "clamp(180px,45vw,220px)",
         }}
       >
         <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
-        {/* Fixed center pin */}
+        {/* Fixed pin */}
         <div
           style={{
             position: "absolute",
@@ -1604,7 +1643,6 @@ function DeliveryAddressPicker({
             }}
           />
         </div>
-        {/* Geocoding overlay */}
         {geocoding && (
           <div
             style={{
@@ -1635,7 +1673,6 @@ function DeliveryAddressPicker({
             <span style={{ color: CM, fontSize: 11 }}>Finding address…</span>
           </div>
         )}
-        {/* Drag hint */}
         {mapReady && !geocoding && (
           <div
             style={{
@@ -1658,7 +1695,6 @@ function DeliveryAddressPicker({
         )}
       </div>
 
-      {/* Address preview */}
       {value?.fullAddress && (
         <div
           style={{
@@ -1678,7 +1714,6 @@ function DeliveryAddressPicker({
         </div>
       )}
 
-      {/* Editable fields */}
       {showFields && (
         <>
           <p
@@ -1735,6 +1770,8 @@ function DeliveryAddressPicker({
             fontSize: 12,
             textDecoration: "underline",
             textUnderlineOffset: 3,
+            touchAction: "manipulation",
+            padding: "4px 0",
           }}
         >
           Enter address manually instead
@@ -1767,7 +1804,6 @@ function CheckoutScreen({
     const digits = normalizePHPhone(raw);
     onFormChange("customerContact", digits);
   };
-
   const storedPhone = form.customerContact || "";
   const phoneDisplay = formatPHPhoneDisplay(storedPhone);
   const phoneValid = isValidPHPhone(storedPhone);
@@ -1798,9 +1834,14 @@ function CheckoutScreen({
     >
       <PlainHeader label={orderType === "dine-in" ? "DINE IN" : "DELIVERY"} />
       <SubBar onClick={onBack} label="Back to Menu" />
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 16px 32px" }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: `8px clamp(12px,4vw,16px) 32px`,
+        }}
+      >
         <div style={{ maxWidth: 520, margin: "0 auto" }}>
-          {/* Compact order summary */}
           <SectionTitle>Order Summary</SectionTitle>
           <div
             style={{
@@ -1881,7 +1922,6 @@ function CheckoutScreen({
             </div>
           </div>
 
-          {/* Fields */}
           <SectionTitle>
             {orderType === "dine-in" ? "Table Details" : "Delivery Info"}
           </SectionTitle>
@@ -1921,7 +1961,6 @@ function CheckoutScreen({
                   value={form.customerName || ""}
                   onChange={(v: string) => onFormChange("customerName", v)}
                 />
-                {/* Phone */}
                 <div>
                   <label
                     style={{
@@ -1965,7 +2004,7 @@ function CheckoutScreen({
                         background: "rgba(255,255,255,.03)",
                         border: `1px solid ${phoneError ? "rgba(248,113,113,.6)" : phoneValid && phoneTouched ? G : BR}`,
                         borderRadius: 8,
-                        padding: "11px 12px 11px 92px",
+                        padding: "12px 12px 12px 92px",
                         color: C,
                         fontSize: 16,
                         outline: "none",
@@ -2001,7 +2040,6 @@ function CheckoutScreen({
                     </p>
                   )}
                 </div>
-                {/* Delivery address */}
                 <div>
                   <label
                     style={{
@@ -2039,14 +2077,16 @@ function CheckoutScreen({
               color: valid ? BG : CM,
               border: "none",
               borderRadius: 14,
-              padding: "17px 16px",
+              padding: "clamp(14px,4vw,17px) 16px",
               fontFamily: "'Cinzel',serif",
-              fontSize: 14,
+              fontSize: "clamp(13px,3vw,14px)",
               letterSpacing: ".12em",
               fontWeight: 700,
               cursor: valid ? "pointer" : "not-allowed",
               transition: "all .2s",
               WebkitAppearance: "none" as any,
+              touchAction: "manipulation",
+              minHeight: 52,
             }}
           >
             {valid ? "CHOOSE PAYMENT →" : "FILL IN REQUIRED FIELDS"}
@@ -2084,14 +2124,21 @@ function PaymentScreen({
   const [preview, setPreview] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // ── GCash-specific state ──────────────────────────────────────────────────
+  // copied: user has tapped "Copy Number"
   const [copied, setCopied] = useState(false);
+  // hasCopied: latched true once copied, never goes false — used for gate logic
+  const [hasCopied, setHasCopied] = useState(false);
+  // sentConfirmed: dine-in only — user ticked "I've sent the money"
+  const [sentConfirmed, setSentConfirmed] = useState(false);
+
   const effectiveMethod: PayMethod =
     orderType === "delivery" ? "gcash" : paymentMethod;
 
-  // ⚠️ Replace with your actual GCash number
+  // ⚠️ Replace with actual GCash number
   const GCASH_NUMBER = "09XX XXX XXXX";
-  const GCASH_DIGITS = GCASH_NUMBER.replace(/\s/g, "");
-  const gcashDeepLink = `gcash://send?amount=${total.toFixed(2)}&to=${GCASH_DIGITS}`;
+  const GCASH_NAME = "3RD SPACE COFFEE";
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2115,18 +2162,34 @@ function PaymentScreen({
   };
 
   const copyNumber = () => {
-    navigator.clipboard.writeText(GCASH_DIGITS);
+    navigator.clipboard.writeText(GCASH_NUMBER.replace(/\s/g, "")).catch(() => {
+      // Fallback for browsers that block clipboard
+      const ta = document.createElement("textarea");
+      ta.value = GCASH_NUMBER.replace(/\s/g, "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    });
     setCopied(true);
+    setHasCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Cash and Pay Later skip the screenshot requirement
-  const canConfirm =
-    effectiveMethod === "cash" ||
-    effectiveMethod === "pay-later" ||
-    (effectiveMethod === "gcash" && orderType === "dine-in")
+  /**
+   * canConfirm logic:
+   *   - cash / pay-later:        always true
+   *   - gcash + dine-in:         hasCopied AND sentConfirmed
+   *   - gcash + delivery:        uploaded screenshot
+   */
+  const canConfirm: boolean =
+    effectiveMethod === "cash" || effectiveMethod === "pay-later"
       ? true
-      : uploaded;
+      : effectiveMethod === "gcash" && orderType === "dine-in"
+        ? hasCopied && sentConfirmed
+        : uploaded; // delivery
 
   return (
     <div
@@ -2140,7 +2203,13 @@ function PaymentScreen({
     >
       <PlainHeader label="PAYMENT" />
       <SubBar onClick={onBack} label="Back to Details" />
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 16px 32px" }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: `8px clamp(12px,4vw,16px) 32px`,
+        }}
+      >
         <div style={{ maxWidth: 520, margin: "0 auto" }}>
           {/* Amount */}
           <div
@@ -2163,7 +2232,7 @@ function PaymentScreen({
             <span
               style={{
                 fontFamily: "'Cinzel',serif",
-                fontSize: 28,
+                fontSize: "clamp(24px,6vw,28px)",
                 fontWeight: 700,
                 color: G,
               }}
@@ -2172,7 +2241,7 @@ function PaymentScreen({
             </span>
           </div>
 
-          {/* ── DINE-IN: 3-option payment selector ── */}
+          {/* Dine-in method selector */}
           {orderType === "dine-in" && (
             <>
               <SectionTitle>How will you pay?</SectionTitle>
@@ -2180,7 +2249,7 @@ function PaymentScreen({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: 10,
+                  gap: "clamp(8px,2vw,10px)",
                   marginBottom: 18,
                 }}
               >
@@ -2201,22 +2270,31 @@ function PaymentScreen({
                     id: "pay-later" as PayMethod,
                     icon: <HelpCircle size={20} />,
                     label: "DECIDE LATER",
-                    sub: "Tell staff when done",
+                    sub: "Tell staff",
                   },
                 ].map((m) => {
                   const a = paymentMethod === m.id;
                   return (
                     <button
                       key={m.id}
-                      onClick={() => onPayMethodChange(m.id)}
+                      onClick={() => {
+                        onPayMethodChange(m.id);
+                        // Reset GCash state when switching methods
+                        if (m.id !== "gcash") {
+                          setHasCopied(false);
+                          setSentConfirmed(false);
+                        }
+                      }}
                       style={{
-                        padding: "14px 8px",
+                        padding: "clamp(10px,3vw,14px) 6px",
                         borderRadius: 14,
                         border: `1.5px solid ${a ? G : BR}`,
                         background: a ? GD : CARD,
                         cursor: "pointer",
                         textAlign: "center",
                         transition: "all .18s",
+                        touchAction: "manipulation",
+                        minHeight: 90,
                       }}
                     >
                       <div style={{ color: a ? G : CM, marginBottom: 6 }}>
@@ -2225,9 +2303,9 @@ function PaymentScreen({
                       <div
                         style={{
                           fontFamily: "'Cinzel',serif",
-                          fontSize: 10,
+                          fontSize: "clamp(8px,2.2vw,10px)",
                           fontWeight: 700,
-                          letterSpacing: ".08em",
+                          letterSpacing: ".06em",
                           color: a ? G : C,
                           marginBottom: 3,
                           lineHeight: 1.3,
@@ -2235,7 +2313,13 @@ function PaymentScreen({
                       >
                         {m.label}
                       </div>
-                      <div style={{ fontSize: 10, color: CM, lineHeight: 1.3 }}>
+                      <div
+                        style={{
+                          fontSize: "clamp(9px,2vw,10px)",
+                          color: CM,
+                          lineHeight: 1.3,
+                        }}
+                      >
                         {m.sub}
                       </div>
                     </button>
@@ -2245,7 +2329,6 @@ function PaymentScreen({
             </>
           )}
 
-          {/* Delivery GCash notice */}
           {orderType === "delivery" && (
             <div
               style={{
@@ -2401,9 +2484,9 @@ function PaymentScreen({
                   color: BG,
                   border: "none",
                   borderRadius: 14,
-                  padding: "17px 16px",
+                  padding: "clamp(14px,4vw,17px) 16px",
                   fontFamily: "'Cinzel',serif",
-                  fontSize: 14,
+                  fontSize: "clamp(13px,3vw,14px)",
                   letterSpacing: ".12em",
                   fontWeight: 700,
                   cursor: "pointer",
@@ -2412,6 +2495,8 @@ function PaymentScreen({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 10,
+                  touchAction: "manipulation",
+                  minHeight: 52,
                 }}
               >
                 <Receipt size={16} />
@@ -2473,8 +2558,6 @@ function PaymentScreen({
                     </p>
                   </div>
                 </div>
-
-                {/* Mini receipt */}
                 <div
                   style={{
                     background: "rgba(212,168,67,.05)",
@@ -2546,7 +2629,6 @@ function PaymentScreen({
                   </div>
                 </div>
               </div>
-
               <button
                 onClick={onConfirm}
                 disabled={submitting}
@@ -2556,9 +2638,9 @@ function PaymentScreen({
                   color: BG,
                   border: "none",
                   borderRadius: 14,
-                  padding: "17px 16px",
+                  padding: "clamp(14px,4vw,17px) 16px",
                   fontFamily: "'Cinzel',serif",
-                  fontSize: 14,
+                  fontSize: "clamp(13px,3vw,14px)",
                   letterSpacing: ".12em",
                   fontWeight: 700,
                   cursor: "pointer",
@@ -2567,6 +2649,8 @@ function PaymentScreen({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 10,
+                  touchAction: "manipulation",
+                  minHeight: 52,
                 }}
               >
                 <Receipt size={16} />
@@ -2579,7 +2663,8 @@ function PaymentScreen({
           {effectiveMethod === "gcash" && (
             <>
               <SectionTitle>GCash Payment</SectionTitle>
-              {/* Steps */}
+
+              {/* ── Steps card ── */}
               <div
                 style={{
                   background: CARD,
@@ -2589,28 +2674,57 @@ function PaymentScreen({
                   marginBottom: 16,
                 }}
               >
-                {[
-                  {
-                    n: 1,
-                    text: 'Tap "Open GCash App" below — it pre-fills the amount and number for you',
-                  },
-                  { n: 2, text: "Confirm the payment inside GCash" },
-                  { n: 3, text: "Screenshot your GCash success screen" },
-                  { n: 4, text: "Come back here and upload the screenshot" },
-                ].map((s) => (
+                {(orderType === "dine-in"
+                  ? [
+                      {
+                        n: 1,
+                        text: 'Copy the GCash number below by tapping "COPY NUMBER".',
+                      },
+                      {
+                        n: 2,
+                        text: "Open GCash on your phone and send the exact amount to that number.",
+                      },
+                      {
+                        n: 3,
+                        text: 'Come back here, tick "I\'ve sent the money", then confirm your order.',
+                      },
+                      {
+                        n: 4,
+                        text: "The staff will verify on their end before serving your order.",
+                      },
+                    ]
+                  : [
+                      {
+                        n: 1,
+                        text: 'Copy the GCash number below by tapping "COPY NUMBER".',
+                      },
+                      {
+                        n: 2,
+                        text: "Open GCash and send the exact amount to that number.",
+                      },
+                      {
+                        n: 3,
+                        text: "Take a screenshot of the GCash success screen.",
+                      },
+                      {
+                        n: 4,
+                        text: "Come back here and upload the screenshot to confirm your order.",
+                      },
+                    ]
+                ).map((s) => (
                   <div
                     key={s.n}
                     style={{
                       display: "flex",
                       alignItems: "flex-start",
                       gap: 10,
-                      marginBottom: 10,
+                      marginBottom: s.n < 4 ? 10 : 0,
                     }}
                   >
                     <div
                       style={{
-                        width: 20,
-                        height: 20,
+                        width: 22,
+                        height: 22,
                         borderRadius: 999,
                         background: G,
                         display: "flex",
@@ -2621,26 +2735,33 @@ function PaymentScreen({
                       }}
                     >
                       <span
-                        style={{ color: BG, fontSize: 10, fontWeight: 700 }}
+                        style={{ color: BG, fontSize: 11, fontWeight: 700 }}
                       >
                         {s.n}
                       </span>
                     </div>
-                    <span style={{ color: CM, fontSize: 12, lineHeight: 1.5 }}>
+                    <span
+                      style={{
+                        color: CM,
+                        fontSize: "clamp(11px,2.8vw,12px)",
+                        lineHeight: 1.5,
+                      }}
+                    >
                       {s.text}
                     </span>
                   </div>
                 ))}
               </div>
 
-              {/* Open GCash */}
+              {/* ── GCash number card ── */}
               <div
                 style={{
                   background: CARD,
-                  border: `1px solid ${BR}`,
+                  border: `1px solid ${hasCopied ? G : BR}`,
                   borderRadius: 16,
-                  padding: "18px 16px",
+                  padding: "clamp(14px,4vw,18px) clamp(14px,4vw,16px)",
                   marginBottom: 16,
+                  transition: "border-color .3s",
                 }}
               >
                 <div
@@ -2673,12 +2794,12 @@ function PaymentScreen({
                         marginBottom: 2,
                       }}
                     >
-                      3RD SPACE COFFEE
+                      {GCASH_NAME}
                     </p>
                     <p
                       style={{
                         fontFamily: "'Cinzel',serif",
-                        fontSize: 20,
+                        fontSize: "clamp(18px,5vw,20px)",
                         fontWeight: 700,
                         color: G,
                         letterSpacing: ".04em",
@@ -2691,10 +2812,12 @@ function PaymentScreen({
                     onClick={copyNumber}
                     style={{
                       flexShrink: 0,
-                      padding: "8px 14px",
+                      padding: "9px 14px",
                       background: copied
                         ? "rgba(74,222,128,.15)"
-                        : "rgba(212,168,67,.1)",
+                        : hasCopied
+                          ? "rgba(212,168,67,.2)"
+                          : "rgba(212,168,67,.1)",
                       border: `1px solid ${copied ? "#4ade80" : G}`,
                       borderRadius: 10,
                       color: copied ? "#4ade80" : G,
@@ -2703,17 +2826,35 @@ function PaymentScreen({
                       fontFamily: "'Cinzel',serif",
                       cursor: "pointer",
                       transition: "all .2s",
+                      touchAction: "manipulation",
+                      minHeight: 40,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
                     }}
                   >
-                    {copied ? "✓ COPIED" : "COPY NO."}
+                    {copied ? (
+                      <>
+                        <Check size={11} />
+                        COPIED
+                      </>
+                    ) : hasCopied ? (
+                      <>
+                        <Check size={11} />
+                        COPY AGAIN
+                      </>
+                    ) : (
+                      "COPY NUMBER"
+                    )}
                   </button>
                 </div>
+
+                {/* Amount row */}
                 <div
                   style={{
                     background: "rgba(212,168,67,.07)",
                     borderRadius: 10,
                     padding: "10px 14px",
-                    marginBottom: 16,
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
@@ -2725,7 +2866,7 @@ function PaymentScreen({
                   <span
                     style={{
                       fontFamily: "'Cinzel',serif",
-                      fontSize: 22,
+                      fontSize: "clamp(20px,5vw,22px)",
                       fontWeight: 700,
                       color: G,
                     }}
@@ -2733,47 +2874,128 @@ function PaymentScreen({
                     ₱{total.toFixed(2)}
                   </span>
                 </div>
-                <a
-                  href={gcashDeepLink}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
-                    width: "100%",
-                    padding: "15px",
-                    background: "#0066cc",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 12,
-                    fontFamily: "'Cinzel',serif",
-                    fontSize: 14,
-                    letterSpacing: ".12em",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 20px rgba(0,102,204,.35)",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <Smartphone size={17} />
-                  OPEN GCASH APP
-                </a>
-                <p
-                  style={{
-                    color: CF,
-                    fontSize: 11,
-                    textAlign: "center",
-                    marginTop: 8,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  If GCash doesn't open automatically, open it manually and send
-                  to the number above.
-                </p>
+
+                {/* Hint before copy */}
+                {!hasCopied && (
+                  <p
+                    style={{
+                      color: CF,
+                      fontSize: 11,
+                      textAlign: "center",
+                      marginTop: 12,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Tap <strong style={{ color: CM }}>COPY NUMBER</strong>{" "}
+                    first, then open GCash and send ₱{total.toFixed(2)} to that
+                    number.
+                  </p>
+                )}
+
+                {/* After copy — open GCash reminder */}
+                {hasCopied && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      background: "rgba(212,168,67,.06)",
+                      border: `1px solid ${BR}`,
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                    }}
+                  >
+                    <Smartphone
+                      size={14}
+                      color={G}
+                      style={{ flexShrink: 0, marginTop: 1 }}
+                    />
+                    <p style={{ color: CM, fontSize: 12, lineHeight: 1.5 }}>
+                      Number copied! Open your GCash app, go to{" "}
+                      <strong style={{ color: C }}>Send Money</strong>, paste
+                      the number, and send{" "}
+                      <strong style={{ color: G }}>₱{total.toFixed(2)}</strong>.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Screenshot upload — DELIVERY ONLY */}
+              {/* ── Dine-in: "I've sent it" checkbox ── */}
+              {orderType === "dine-in" && (
+                <button
+                  onClick={() => {
+                    if (hasCopied) setSentConfirmed((v) => !v);
+                  }}
+                  disabled={!hasCopied}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "14px 16px",
+                    marginBottom: 16,
+                    background: sentConfirmed
+                      ? "rgba(74,222,128,.08)"
+                      : hasCopied
+                        ? CARD
+                        : "rgba(255,255,255,.02)",
+                    border: `1.5px solid ${
+                      sentConfirmed
+                        ? "rgba(74,222,128,.5)"
+                        : hasCopied
+                          ? BR
+                          : "rgba(232,213,163,.05)"
+                    }`,
+                    borderRadius: 12,
+                    cursor: hasCopied ? "pointer" : "not-allowed",
+                    transition: "all .2s",
+                    touchAction: "manipulation",
+                    textAlign: "left",
+                    opacity: hasCopied ? 1 : 0.45,
+                  }}
+                >
+                  {/* Checkbox visual */}
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      border: `2px solid ${sentConfirmed ? "#4ade80" : hasCopied ? G : CM}`,
+                      background: sentConfirmed
+                        ? "rgba(74,222,128,.2)"
+                        : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      transition: "all .2s",
+                    }}
+                  >
+                    {sentConfirmed && <Check size={13} color="#4ade80" />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p
+                      style={{
+                        color: sentConfirmed ? "#4ade80" : hasCopied ? C : CM,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 2,
+                        transition: "color .2s",
+                      }}
+                    >
+                      I've sent the money via GCash
+                    </p>
+                    <p style={{ color: CM, fontSize: 11, lineHeight: 1.4 }}>
+                      {hasCopied
+                        ? "Staff will verify before serving your order."
+                        : "Copy the number first, then come back and tick this."}
+                    </p>
+                  </div>
+                </button>
+              )}
+
+              {/* ── Delivery: screenshot upload ── */}
               {orderType === "delivery" && (
                 <div
                   style={{
@@ -2783,6 +3005,7 @@ function PaymentScreen({
                     padding: 18,
                     marginBottom: 18,
                     transition: "border-color .3s",
+                    opacity: hasCopied ? 1 : 0.5,
                   }}
                 >
                   <div
@@ -2801,7 +3024,7 @@ function PaymentScreen({
                         fontFamily: "'Cinzel',serif",
                       }}
                     >
-                      SCREENSHOT UPLOAD <span style={{ color: ERR }}>*</span>
+                      GCASH SCREENSHOT <span style={{ color: ERR }}>*</span>
                     </p>
                     {uploaded && (
                       <div
@@ -2825,11 +3048,15 @@ function PaymentScreen({
                       lineHeight: 1.5,
                     }}
                   >
-                    After paying in GCash, screenshot the{" "}
-                    <strong style={{ color: CM }}>
-                      success/confirmation screen
-                    </strong>{" "}
-                    and upload it here. Required to verify your payment.
+                    {hasCopied ? (
+                      <>
+                        After sending in GCash, screenshot the{" "}
+                        <strong style={{ color: CM }}>success screen</strong>{" "}
+                        and upload it here.
+                      </>
+                    ) : (
+                      "Copy the number and send money in GCash first, then upload your screenshot here."
+                    )}
                   </p>
                   <input
                     ref={fileRef}
@@ -2837,6 +3064,7 @@ function PaymentScreen({
                     accept="image/*"
                     onChange={handleFile}
                     style={{ display: "none" }}
+                    disabled={!hasCopied}
                   />
                   {preview ? (
                     <div>
@@ -2891,17 +3119,18 @@ function PaymentScreen({
                         )}
                       </div>
                       <button
-                        onClick={() => fileRef.current?.click()}
+                        onClick={() => hasCopied && fileRef.current?.click()}
                         style={{
                           marginTop: 8,
                           width: "100%",
-                          padding: "8px",
+                          padding: "9px",
                           background: "transparent",
                           border: `1px dashed ${BR}`,
                           borderRadius: 8,
                           color: CM,
                           fontSize: 11,
-                          cursor: "pointer",
+                          cursor: hasCopied ? "pointer" : "not-allowed",
+                          touchAction: "manipulation",
                         }}
                       >
                         <Edit3
@@ -2913,21 +3142,24 @@ function PaymentScreen({
                     </div>
                   ) : (
                     <button
-                      onClick={() => fileRef.current?.click()}
-                      disabled={uploading}
+                      onClick={() => hasCopied && fileRef.current?.click()}
+                      disabled={uploading || !hasCopied}
                       style={{
                         width: "100%",
                         padding: "22px 16px",
                         background: "rgba(212,168,67,.05)",
-                        border: `2px dashed ${G}`,
+                        border: `2px dashed ${hasCopied ? G : BR}`,
                         borderRadius: 12,
-                        color: G,
-                        cursor: "pointer",
+                        color: hasCopied ? G : CM,
+                        cursor: hasCopied ? "pointer" : "not-allowed",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         gap: 8,
                         boxSizing: "border-box",
+                        touchAction: "manipulation",
+                        minHeight: 100,
+                        transition: "all .2s",
                       }}
                     >
                       <Upload size={22} />
@@ -2940,16 +3172,21 @@ function PaymentScreen({
                       >
                         {uploading
                           ? "UPLOADING…"
-                          : "TAP TO UPLOAD GCASH SCREENSHOT"}
+                          : hasCopied
+                            ? "TAP TO UPLOAD GCASH SCREENSHOT"
+                            : "COPY NUMBER FIRST"}
                       </span>
-                      <span style={{ color: CM, fontSize: 11 }}>
-                        JPG, PNG accepted
+                      <span style={{ color: CF, fontSize: 11 }}>
+                        {hasCopied
+                          ? "JPG, PNG accepted"
+                          : "Then come back and upload here"}
                       </span>
                     </button>
                   )}
                 </div>
               )}
 
+              {/* ── Confirm button ── */}
               <button
                 onClick={onConfirm}
                 disabled={submitting || !canConfirm}
@@ -2959,21 +3196,33 @@ function PaymentScreen({
                   color: canConfirm ? BG : CM,
                   border: "none",
                   borderRadius: 14,
-                  padding: "17px 16px",
+                  padding: "clamp(14px,4vw,17px) 16px",
                   fontFamily: "'Cinzel',serif",
-                  fontSize: 14,
+                  fontSize: "clamp(13px,3vw,14px)",
                   letterSpacing: ".12em",
                   fontWeight: 700,
                   cursor: canConfirm ? "pointer" : "not-allowed",
                   transition: "all .2s",
+                  touchAction: "manipulation",
+                  minHeight: 52,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
                 }}
               >
+                <Receipt size={16} />
                 {submitting
                   ? "PLACING ORDER…"
-                  : !canConfirm
-                    ? "UPLOAD GCASH SCREENSHOT TO CONTINUE"
-                    : "CONFIRM & PLACE ORDER"}
+                  : !hasCopied
+                    ? "COPY GCASH NUMBER TO CONTINUE"
+                    : orderType === "dine-in" && !sentConfirmed
+                      ? "TICK THE CHECKBOX TO CONTINUE"
+                      : orderType === "delivery" && !uploaded
+                        ? "UPLOAD SCREENSHOT TO CONTINUE"
+                        : "CONFIRM & PLACE ORDER"}
               </button>
+
               {orderType === "delivery" && (
                 <p
                   style={{
@@ -3019,13 +3268,11 @@ function ConfirmationScreen({
       .filter(Boolean)
       .join(", ");
   };
-
   const headline = isPayLater
     ? "ORDER PLACED!"
     : isCash
       ? "ORDER PLACED!"
       : "ORDER CONFIRMED!";
-
   const icon =
     isCash || isPayLater ? (
       <Receipt size={34} color={BG} strokeWidth={2} />
@@ -3034,7 +3281,7 @@ function ConfirmationScreen({
     );
 
   const message = () => {
-    if (isPayLater) {
+    if (isPayLater)
       return (
         <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
           Your order is in! Just let the staff know when you're ready to pay —
@@ -3049,8 +3296,7 @@ function ConfirmationScreen({
           )}
         </p>
       );
-    }
-    if (isCash) {
+    if (isCash)
       return (
         <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
           Show Order <strong style={{ color: C }}>#{orderNumber}</strong> to the
@@ -3059,8 +3305,7 @@ function ConfirmationScreen({
             ` Sit back at ${form.tableNumber} — we'll bring it to you.`}
         </p>
       );
-    }
-    if (isDelivery) {
+    if (isDelivery)
       return (
         <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
           Verifying your GCash payment. Delivery to{" "}
@@ -3072,11 +3317,9 @@ function ConfirmationScreen({
           .
         </p>
       );
-    }
-    // dine-in GCash
     return (
       <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
-        GCash payment received — verifying now.
+        GCash payment received — staff will verify shortly.
         {form.tableNumber && (
           <>
             {" "}
@@ -3097,7 +3340,7 @@ function ConfirmationScreen({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "32px 16px",
+        padding: "32px clamp(14px,4vw,24px)",
         textAlign: "center",
       }}
     >
@@ -3119,7 +3362,7 @@ function ConfirmationScreen({
       <div
         style={{
           fontFamily: "'Cinzel',serif",
-          fontSize: "clamp(1.5rem,5vw,2.4rem)",
+          fontSize: "clamp(1.4rem,5vw,2.4rem)",
           fontWeight: 700,
           letterSpacing: ".15em",
           color: C,
@@ -3141,7 +3384,7 @@ function ConfirmationScreen({
           background: CARD,
           border: `2px solid ${G}`,
           borderRadius: 18,
-          padding: "22px 36px",
+          padding: "22px clamp(20px,6vw,36px)",
           marginBottom: 22,
           minWidth: "min(100%,300px)",
         }}
@@ -3183,8 +3426,6 @@ function ConfirmationScreen({
       >
         {message()}
       </div>
-
-      {/* Buttons — Track Order only for delivery */}
       <div
         style={{
           display: "flex",
@@ -3205,7 +3446,7 @@ function ConfirmationScreen({
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              padding: "14px 20px",
+              padding: "clamp(12px,3.5vw,14px) 20px",
               background: "transparent",
               color: G,
               border: `1.5px solid ${G}`,
@@ -3215,6 +3456,8 @@ function ConfirmationScreen({
               letterSpacing: ".1em",
               fontWeight: 700,
               textDecoration: "none",
+              touchAction: "manipulation",
+              minHeight: 48,
             }}
           >
             <Clock size={14} />
@@ -3230,7 +3473,7 @@ function ConfirmationScreen({
             color: BG,
             border: "none",
             borderRadius: 12,
-            padding: "14px 20px",
+            padding: "clamp(12px,3.5vw,14px) 20px",
             fontFamily: "'Cinzel',serif",
             fontSize: 13,
             letterSpacing: ".1em",
@@ -3240,6 +3483,8 @@ function ConfirmationScreen({
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
+            touchAction: "manipulation",
+            minHeight: 48,
           }}
         >
           NEW ORDER <ArrowRight size={14} />
@@ -3271,6 +3516,7 @@ export default function OrderPage() {
   useEffect(() => {
     fetchMenu();
   }, []);
+
   async function fetchMenu() {
     try {
       const r = await fetch("/api/menu");
@@ -3279,6 +3525,7 @@ export default function OrderPage() {
       console.error(e);
     }
   }
+
   function addToCart(item: MenuItem) {
     setCart((p) => {
       const ex = p.find((c) => c._id === item._id);
@@ -3374,13 +3621,13 @@ export default function OrderPage() {
     };
     setStep(map[step]);
   }
+
   function reset() {
     setStep("mode-select");
     setOrderType("dine-in");
     setCart([]);
     setReceiptUrl("");
     setReceiptKey("");
-    // Default back to pay-later for dine-in convenience
     setPaymentMethod("pay-later");
     setForm({
       customerName: "",
@@ -3396,20 +3643,26 @@ export default function OrderPage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; overflow: hidden; background: ${BG}; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; background: ${BG}; -webkit-text-size-adjust: 100%; }
         input::placeholder, textarea::placeholder { color: ${CF}; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${BR}; border-radius: 99px; }
-        input[type="text"], input[type="tel"], textarea { -webkit-appearance: none; font-size: 16px !important; }
+        /* Prevent iOS zoom on focus */
+        input[type="text"], input[type="tel"], input[type="search"], textarea { -webkit-appearance: none; font-size: 16px !important; }
+        /* Remove tap highlight on mobile */
+        button, a { -webkit-tap-highlight-color: transparent; }
+        /* Safe area insets for notched devices */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .safe-bottom { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
       {step === "mode-select" && (
         <ModeSelectScreen
           onSelect={(m) => {
             setOrderType(m);
-            // Delivery always starts on gcash; dine-in defaults to pay-later
             setPaymentMethod(m === "delivery" ? "gcash" : "pay-later");
             setStep("menu");
           }}
