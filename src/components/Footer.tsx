@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+// import { useState } from "react";
 
 const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 const FONT = "'Yanone Kaffeesatz', sans-serif";
@@ -52,7 +52,7 @@ const socials = [
 ];
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
+  // const [email, setEmail] = useState("");
 
   return (
     <footer
@@ -93,7 +93,7 @@ export default function Footer() {
               />
             </div>
 
-            <p
+            {/* <p
               style={{
                 color: "rgba(232,213,163,0.4)",
                 fontSize: "clamp(0.65rem, 1vw, 0.75rem)",
@@ -176,7 +176,7 @@ export default function Footer() {
                   />
                 </svg>
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Link cols */}

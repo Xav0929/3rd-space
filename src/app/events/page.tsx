@@ -15,8 +15,8 @@ const EVENTS = [
     label: "TAROT THURSDAY",
     time: "7:00 – 10:00 PM",
     desc: "Pull a card. Sip something warm. Let the night tell you what you already know.",
-    image: "/events/tarot-thursday.jpg",
-    href: "/events/tarot-thursday",
+    image: "/images/events/tarot-thursday.png",
+    href: "/images/events/tarot-thursday",
     firstPanel: false,
   },
   {
@@ -27,8 +27,8 @@ const EVENTS = [
     label: "FILM FRIDAY",
     time: "8:00 – 11:00 PM",
     desc: "Curated films. Dim lights. Great coffee. Something different every week.",
-    image: "/events/film-friday.jpg",
-    href: "/events/film-friday",
+    image: "/images/events/film-friday.png",
+    href: "/images/events/film-friday",
     firstPanel: false,
   },
   {
@@ -39,8 +39,8 @@ const EVENTS = [
     label: "SOBER SATURDAY",
     time: "6:00 – 11:00 PM",
     desc: "No alcohol. No pressure. Just people being present — and really good coffee.",
-    image: "/events/sober-saturday.jpg",
-    href: "/events/sober-saturday",
+    image: "/images/events/sober-saturday.png",
+    href: "/images/events/sober-saturday",
     firstPanel: false,
   },
   {
@@ -48,11 +48,11 @@ const EVENTS = [
     day: "SUN",
     fullDay: "Sunday",
     name: "SING",
-    label: "SING SUNDAY",
+    label: "SLOW SUNDAY",
     time: "7:00 – 11:00 PM",
     desc: "Open mic. Acoustic sets. End the week loud, off-key, and happy.",
-    image: "/events/sing-sunday.jpg",
-    href: "/events/sing-sunday",
+    image: "/images/events/slow-sunday.png",
+    href: "/images/events/slow-sunday",
     firstPanel: false,
   },
 ];
@@ -60,10 +60,17 @@ const EVENTS = [
 export default function EventsPage() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 80);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => setMouse({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", fn);
+    return () => window.removeEventListener("mousemove", fn);
   }, []);
 
   return (
@@ -90,22 +97,19 @@ export default function EventsPage() {
           transition: flex 0.5s cubic-bezier(0.4,0,0.2,1);
         }
         .panel:last-child { border-right: none; }
-        .panel:hover { flex: 1.55; }
 
-        .panel-img {
+.panel-img {
           position: absolute;
           inset: 0;
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transition: filter 0.5s ease, transform 0.7s ease;
-          transform: scale(1.03);
+          transition: filter 0.5s ease;
         }
 
-        /* default state per panel */
         .panel-img { filter: grayscale(1) brightness(0.5); }
         .panel.first-active .panel-img { filter: grayscale(0.5) brightness(0.65); }
-        .panel:hover .panel-img { filter: grayscale(0) brightness(0.72); transform: scale(1.08); }
+        .panel:hover .panel-img { filter: grayscale(0) brightness(0.72); }
 
         /* dark gradient at bottom always */
         .panel-grad {
@@ -220,7 +224,7 @@ export default function EventsPage() {
           border-color: rgba(255,255,255,0.6);
         }
 
-        .free-badge {
+.free-badge {
           display: inline-block;
           font-family: 'DM Sans', sans-serif;
           font-size: 0.52rem;
@@ -232,6 +236,43 @@ export default function EventsPage() {
           padding: 2px 9px;
           margin-left: 8px;
           vertical-align: middle;
+        }
+
+        .panel-glare {
+          position: absolute;
+          inset: 0;
+          z-index: 3;
+          pointer-events: none;
+          overflow: hidden;
+        }
+        .panel-glare::after {
+          content: '';
+          position: absolute;
+          top: -20%;
+          left: -60%;
+          width: 40%;
+          height: 140%;
+          background: linear-gradient(
+            105deg,
+            transparent 20%,
+            rgba(255,255,255,0.045) 40%,
+            rgba(255,255,255,0.09) 50%,
+            rgba(255,255,255,0.045) 60%,
+            transparent 80%
+          );
+          transform: skewX(-10deg);
+          animation: glare-sweep 4s ease-in-out infinite;
+        }
+        .panel:nth-child(2) .panel-glare::after { animation-delay: 1s; }
+        .panel:nth-child(3) .panel-glare::after { animation-delay: 2s; }
+        .panel:nth-child(4) .panel-glare::after { animation-delay: 3s; }
+
+        @keyframes glare-sweep {
+          0%   { left: -60%; opacity: 0; }
+          10%  { opacity: 1; }
+          60%  { left: 120%; opacity: 1; }
+          61%  { opacity: 0; }
+          100% { left: 120%; opacity: 0; }
         }
 
         @media (max-width: 640px) {
@@ -250,8 +291,20 @@ export default function EventsPage() {
         style={{
           opacity: mounted ? 1 : 0,
           transition: "opacity 0.7s ease",
+          position: "relative",
         }}
       >
+        {/* Mouse shine overlay */}
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            pointerEvents: "none",
+            zIndex: 10,
+            background: `radial-gradient(600px circle at ${mouse.x}px ${mouse.y}px, rgba(255,255,255,0.055), transparent 60%)`,
+            transition: "background 0.1s ease",
+          }}
+        />
         {EVENTS.map((event, i) => (
           <Link
             key={event.id}
@@ -263,6 +316,7 @@ export default function EventsPage() {
             <img src={event.image} alt={event.label} className="panel-img" />
 
             <div className="panel-grad" />
+            <div className="panel-glare" />
 
             {/* idle day label */}
             <span className="panel-day">{event.day}</span>

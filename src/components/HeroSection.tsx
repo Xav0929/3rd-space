@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 const MAX_WIDTH = 1280;
@@ -101,6 +102,12 @@ export default function HeroSection() {
           .hero-voucher {
             align-self: flex-start;
           }
+        }
+        .voucher-cta:hover .voucher-preview-img {
+          transform: rotate(-10deg) scale(1.08);
+        }
+        .voucher-preview-img {
+          transition: transform 0.4s ease;
         }
       `}</style>
       <section
@@ -425,7 +432,7 @@ export default function HeroSection() {
                 </p>
               </div>
 
-              {/* Voucher CTA */}
+              {/* Voucher CTA — now showing real voucher previews */}
               <div
                 className="hero-voucher"
                 style={{
@@ -435,6 +442,7 @@ export default function HeroSection() {
               >
                 <Link
                   href="/vouchers"
+                  className="voucher-cta"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -454,30 +462,45 @@ export default function HeroSection() {
                       "rgba(232,213,163,0.2)")
                   }
                 >
+                  {/* Stacked voucher preview images */}
                   <div
                     style={{
                       position: "relative",
-                      width: 36,
-                      height: 24,
+                      width: 52,
+                      height: 34,
                       flexShrink: 0,
                     }}
                   >
-                    <div
+                    <img
+                      src="/vouchers/food-voucher.png"
+                      alt="Food Voucher"
+                      className="voucher-preview-img"
                       style={{
                         position: "absolute",
-                        inset: 0,
-                        background: "linear-gradient(135deg, #6b9bd2, #3a6ea8)",
-                        borderRadius: 3,
-                        transform: "rotate(-7deg)",
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: "linear-gradient(135deg, #d4a843, #9a7020)",
+                        top: 4,
+                        left: 4,
+                        width: 46,
+                        height: 30,
+                        objectFit: "cover",
                         borderRadius: 3,
                         transform: "rotate(5deg)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                      }}
+                    />
+                    <img
+                      src="/vouchers/drink-voucher.png"
+                      alt="Drink Voucher"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: 46,
+                        height: 30,
+                        objectFit: "cover",
+                        borderRadius: 3,
+                        transform: "rotate(-4deg)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                        transition: "transform 0.4s ease",
                       }}
                     />
                   </div>

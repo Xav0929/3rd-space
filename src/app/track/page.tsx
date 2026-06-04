@@ -68,10 +68,10 @@ const STATUS_CONFIG: Record<
   },
   cancelled: {
     color: "#f87171",
-    bg: "rgba(248,113,113,0.1)",
+    bg: "rgba(248,113,113,0.06)",
     icon: <XCircle size={18} />,
     label: "CANCELLED",
-    desc: "This order has been cancelled. Please contact us for help.",
+    desc: "",
   },
 };
 
@@ -82,6 +82,7 @@ interface Order {
   items: { name: string; quantity: number; price: number }[];
   total: number;
   createdAt: string;
+  cancelReason?: string;
 }
 
 const DINE_STEPS = ["pending", "confirmed", "preparing", "ready", "completed"];
@@ -327,7 +328,6 @@ function ETACircle({ status }: { status: string }) {
   );
 }
 
-// ── STRIP # PREFIX AND WHITESPACE BEFORE QUERYING ────────────────────────────
 function normalizeOrderNumber(raw: string): string {
   return raw.trim().replace(/^#+/, "").trim();
 }
@@ -345,12 +345,11 @@ function TrackContent() {
 
   async function handleTrack(e?: React.FormEvent, silent = false) {
     if (e) e.preventDefault();
-    // ── FIX: strip leading # and whitespace before sending to API ──
     const trimmed = normalizeOrderNumber(orderNumber);
     if (!trimmed) return;
     if (!silent) {
       setLoading(true);
-      setOrder(null); // clear previous result immediately
+      setOrder(null);
       setError("");
     }
     try {
@@ -366,14 +365,13 @@ function TrackContent() {
     } catch (err: any) {
       if (!silent) {
         setError(err.message);
-        setOrder(null); // clear on error too — don't leave old result visible
+        setOrder(null);
       }
     } finally {
       if (!silent) setLoading(false);
     }
   }
 
-  // Auto-poll every 10s, stop when order is done
   useEffect(() => {
     if (!order) return;
     const done = order.status === "completed" || order.status === "cancelled";
@@ -402,6 +400,7 @@ function TrackContent() {
   const statusCfg = order
     ? STATUS_CONFIG[order.status] || STATUS_CONFIG.pending
     : null;
+  const isCancelled = order?.status === "cancelled";
 
   return (
     <div
@@ -483,7 +482,7 @@ function TrackContent() {
             />
             <input
               type="text"
-              placeholder="#3S-YYYYMMDD-XXXX or 3S-YYYYMMDD-XXXX"
+              placeholder="#3S-YYYYMMDD-XXXX"
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
               onFocus={() => setFocused(true)}
@@ -579,7 +578,7 @@ function TrackContent() {
           <div
             style={{
               background: BG_CARD,
-              border: `1px solid ${BORDER}`,
+              border: `1px solid ${isCancelled ? "rgba(248,113,113,0.2)" : BORDER}`,
               borderRadius: 20,
               overflow: "hidden",
               animation: "fadeUp 0.35s ease",
@@ -587,109 +586,197 @@ function TrackContent() {
           >
             <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-            {/* Status header */}
-            <div
-              style={{
-                background: statusCfg.bg,
-                borderBottom: `1px solid ${BORDER}`,
-                padding: "18px 20px",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 14,
-              }}
-            >
-              <div
-                style={{ color: statusCfg.color, marginTop: 2, flexShrink: 0 }}
-              >
-                {statusCfg.icon}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontFamily: "'Cinzel', serif",
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: statusCfg.color,
-                    letterSpacing: "0.1em",
-                    marginBottom: 4,
-                  }}
-                >
-                  {statusCfg.label}
-                </p>
-                <p
-                  style={{ color: CREAM_MUTED, fontSize: 12, lineHeight: 1.5 }}
-                >
-                  {statusCfg.desc}
-                </p>
-              </div>
+            {/* ── CANCELLED: single clean block, no header ── */}
+            {isCancelled ? (
               <div
                 style={{
-                  flexShrink: 0,
-                  background:
-                    order.type === "dine-in"
-                      ? "rgba(212,168,67,0.15)"
-                      : "rgba(96,165,250,0.12)",
-                  border: `1px solid ${order.type === "dine-in" ? GOLD : "#60a5fa"}`,
-                  borderRadius: 999,
-                  padding: "4px 12px",
-                  fontSize: 11,
-                  color: order.type === "dine-in" ? GOLD : "#60a5fa",
-                  fontFamily: "'Cinzel', serif",
-                  letterSpacing: "0.08em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {order.type === "dine-in" ? "🍽 DINE IN" : "🛵 DELIVERY"}
-              </div>
-            </div>
-
-            {/* ETA ring — delivery only, active orders */}
-            {order.type === "delivery" &&
-              order.status !== "cancelled" &&
-              order.status !== "completed" && (
-                <ETACircle status={order.status} />
-              )}
-
-            {/* Completed delivery message */}
-            {order.type === "delivery" && order.status === "completed" && (
-              <div
-                style={{
-                  padding: "20px",
-                  borderBottom: `1px solid ${BORDER}`,
-                  background: "rgba(74,222,128,0.06)",
+                  padding: "36px 24px 28px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 16,
                   textAlign: "center",
+                  background: "rgba(248,113,113,0.04)",
+                  borderBottom: `1px solid rgba(248,113,113,0.15)`,
                 }}
               >
-                <p style={{ fontSize: 28, marginBottom: 8 }}>🎉</p>
-                <p
+                <div
                   style={{
-                    color: "#4ade80",
-                    fontFamily: "'Cinzel', serif",
-                    fontSize: 13,
-                    letterSpacing: "0.08em",
+                    width: 56,
+                    height: 56,
+                    borderRadius: "50%",
+                    background: "rgba(248,113,113,0.1)",
+                    border: "1px solid rgba(248,113,113,0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 24,
                   }}
                 >
-                  YOUR ORDER HAS BEEN DELIVERED!
-                </p>
-                <p style={{ color: CREAM_FAINT, fontSize: 12, marginTop: 4 }}>
-                  Thank you for ordering with 3rd Space.
+                  🚫
+                </div>
+                <div>
+                  <p
+                    style={{
+                      fontFamily: "'Cinzel', serif",
+                      color: "#f87171",
+                      fontSize: 18,
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                      marginBottom: 10,
+                    }}
+                  >
+                    ORDER CANCELLED
+                  </p>
+                  <p
+                    style={{
+                      color: CREAM_MUTED,
+                      fontSize: 13,
+                      lineHeight: 1.7,
+                      maxWidth: 300,
+                    }}
+                  >
+                    {order.cancelReason ? (
+                      <>
+                        <span style={{ color: CREAM_FAINT }}>Reason: </span>
+                        <span style={{ color: CREAM }}>
+                          {order.cancelReason}
+                        </span>
+                      </>
+                    ) : (
+                      "Your order was cancelled. Please contact us if you have any questions."
+                    )}
+                  </p>
+                </div>
+                <p
+                  style={{
+                    color: CREAM_FAINT,
+                    fontSize: 11,
+                    lineHeight: 1.6,
+                    padding: "10px 16px",
+                    background: "rgba(255,255,255,0.02)",
+                    borderRadius: 8,
+                    border: `1px solid ${BORDER}`,
+                  }}
+                >
+                  If you paid via GCash, please contact us for a refund.
                 </p>
               </div>
+            ) : (
+              <>
+                {/* Status header — only for non-cancelled */}
+                <div
+                  style={{
+                    background: statusCfg.bg,
+                    borderBottom: `1px solid ${BORDER}`,
+                    padding: "18px 20px",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 14,
+                  }}
+                >
+                  <div
+                    style={{
+                      color: statusCfg.color,
+                      marginTop: 2,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {statusCfg.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        fontFamily: "'Cinzel', serif",
+                        fontSize: 22,
+                        fontWeight: 700,
+                        color: statusCfg.color,
+                        letterSpacing: "0.1em",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {statusCfg.label}
+                    </p>
+                    {statusCfg.desc && (
+                      <p
+                        style={{
+                          color: CREAM_MUTED,
+                          fontSize: 12,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {statusCfg.desc}
+                      </p>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      flexShrink: 0,
+                      background:
+                        order.type === "dine-in"
+                          ? "rgba(212,168,67,0.15)"
+                          : "rgba(96,165,250,0.12)",
+                      border: `1px solid ${order.type === "dine-in" ? GOLD : "#60a5fa"}`,
+                      borderRadius: 999,
+                      padding: "4px 12px",
+                      fontSize: 11,
+                      color: order.type === "dine-in" ? GOLD : "#60a5fa",
+                      fontFamily: "'Cinzel', serif",
+                      letterSpacing: "0.08em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {order.type === "dine-in" ? "🍽 DINE IN" : "🛵 DELIVERY"}
+                  </div>
+                </div>
+
+                {/* ETA ring — delivery only */}
+                {order.type === "delivery" && (
+                  <ETACircle status={order.status} />
+                )}
+
+                {/* Completed delivery message */}
+                {order.type === "delivery" && order.status === "completed" && (
+                  <div
+                    style={{
+                      padding: "20px",
+                      borderBottom: `1px solid ${BORDER}`,
+                      background: "rgba(74,222,128,0.06)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p style={{ fontSize: 28, marginBottom: 8 }}>🎉</p>
+                    <p
+                      style={{
+                        color: "#4ade80",
+                        fontFamily: "'Cinzel', serif",
+                        fontSize: 13,
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      YOUR ORDER HAS BEEN DELIVERED!
+                    </p>
+                    <p
+                      style={{ color: CREAM_FAINT, fontSize: 12, marginTop: 4 }}
+                    >
+                      Thank you for ordering with 3rd Space.
+                    </p>
+                  </div>
+                )}
+
+                {/* Progress steps */}
+                <div
+                  style={{
+                    padding: "20px 20px 16px",
+                    borderBottom: `1px solid ${BORDER}`,
+                  }}
+                >
+                  <StatusProgress status={order.status} type={order.type} />
+                </div>
+              </>
             )}
 
-            {/* Progress steps */}
-            {order.status !== "cancelled" && (
-              <div
-                style={{
-                  padding: "20px 20px 16px",
-                  borderBottom: `1px solid ${BORDER}`,
-                }}
-              >
-                <StatusProgress status={order.status} type={order.type} />
-              </div>
-            )}
-
-            {/* Order items */}
+            {/* Order items — always shown */}
             <div style={{ padding: "18px 20px" }}>
               <p
                 style={{
@@ -768,7 +855,8 @@ function TrackContent() {
                     fontFamily: "'Cinzel', serif",
                     fontSize: 22,
                     fontWeight: 700,
-                    color: GOLD,
+                    color: isCancelled ? CREAM_FAINT : GOLD,
+                    textDecoration: isCancelled ? "line-through" : "none",
                   }}
                 >
                   ₱{order.total.toFixed(0)}
@@ -825,7 +913,7 @@ function TrackContent() {
                     )}`
                   )}
                 </p>
-                {order.type === "delivery" && (
+                {order.type === "delivery" && !isCancelled && (
                   <button
                     onClick={copyLink}
                     style={{

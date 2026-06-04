@@ -55,12 +55,20 @@ export default function GallerySection() {
           cursor: pointer;
           border-radius: clamp(6px, 1.2vw, 1.2vw);
         }
-        .gallery-tile img {
+.gallery-tile img {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
           transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          -webkit-user-drag: none;
+          user-select: none;
+          pointer-events: none;
+        }
+        .gallery-tile-shield {
+          position: absolute;
+          inset: 0;
+          z-index: 5;
         }
         .gallery-tile:hover img { transform: scale(1.07); }
         .gallery-tile .hov {
@@ -146,11 +154,17 @@ export default function GallerySection() {
               <img
                 src={src}
                 alt=""
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).style.display = "none";
                 }}
               />
               <div className="hov" />
+              <div
+                className="gallery-tile-shield"
+                onContextMenu={(e) => e.preventDefault()}
+              />
             </div>
           ))}
         </div>
@@ -167,11 +181,17 @@ export default function GallerySection() {
               <img
                 src={src}
                 alt=""
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).style.display = "none";
                 }}
               />
               <div className="hov" />
+              <div
+                className="gallery-tile-shield"
+                onContextMenu={(e) => e.preventDefault()}
+              />
             </div>
           ))}
         </div>

@@ -10,6 +10,7 @@ const navLinks = [
   { label: "MENU", href: "/menu" },
   { label: "EVENTS", href: "/events" },
   { label: "GALLERY", href: "/gallery" },
+  { label: "THE BOARD", href: "/bulletin" },
 ];
 
 const socialsLinks = [

@@ -2,6 +2,7 @@ import HeroSection from "@/components/HeroSection";
 import EventSlider from "@/components/EventSlider";
 import GallerySection from "@/components/GallerySection";
 import CommunitySection from "@/components/CommunitySection";
+import PartnersSection from "@/components/PartnersSection";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -10,6 +11,7 @@ export default function Home() {
       <HeroSection />
       <EventSlider />
       <GallerySection />
+      <PartnersSection />
       <CommunitySection />
       <Footer />
     </main>

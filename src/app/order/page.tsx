@@ -59,19 +59,20 @@ type Step = "mode-select" | "menu" | "checkout" | "payment" | "confirmed";
 /* ─── PH PHONE HELPERS ────────────────────────────────────────────────────── */
 function normalizePHPhone(raw: string): string {
   let d = raw.replace(/\D/g, "");
-  if (d.length === 10 && d.startsWith("9")) d = "0" + d;
-  if (d.startsWith("63") && d.length === 12) d = "0" + d.slice(2);
-  return d.slice(0, 11);
+  if (d.startsWith("63") && d.length > 10) d = d.slice(2); // strip +63
+  if (d.startsWith("0")) d = d.slice(1); // strip leading 0
+  return d.slice(0, 10); // cap at 10
 }
+
 function isValidPHPhone(v: string) {
-  return /^09\d{9}$/.test(normalizePHPhone(v));
+  return /^9\d{9}$/.test(v); // exactly 10 digits starting with 9
 }
+
 function formatPHPhoneDisplay(stored: string): string {
-  const d = normalizePHPhone(stored);
-  const w = d.startsWith("0") ? d.slice(1) : d;
-  if (w.length <= 3) return w;
-  if (w.length <= 6) return `${w.slice(0, 3)} ${w.slice(3)}`;
-  return `${w.slice(0, 3)} ${w.slice(3, 6)} ${w.slice(6)}`;
+  // stored is always 9XXXXXXXXX (10 digits)
+  if (stored.length <= 3) return stored;
+  if (stored.length <= 6) return `${stored.slice(0, 3)} ${stored.slice(3)}`;
+  return `${stored.slice(0, 3)} ${stored.slice(3, 6)} ${stored.slice(6)}`;
 }
 
 /* ─── TOP NAV ─────────────────────────────────────────────────────────────── */
@@ -468,22 +469,29 @@ function MenuCard({
           height: "clamp(120px,22vw,150px)",
           background: "rgba(212,168,67,.07)",
           overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <img
-          src={item.image}
-          alt={item.name}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transition: "transform .4s",
-            transform: hov ? "scale(1.05)" : "scale(1)",
-          }}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
-        />
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transition: "transform .4s",
+              transform: hov ? "scale(1.05)" : "scale(1)",
+            }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        ) : (
+          <span style={{ fontSize: 28, opacity: 0.35 }}>☕</span>
+        )}
       </div>
       <div
         style={{
@@ -838,12 +846,18 @@ function MenuScreen({
 }: any) {
   const categories = Array.from(
     new Set(menuItems.map((i: MenuItem) => i.category)),
-  );
+  ) as string[];
+
   const [active, setActive] = useState(categories[0] || "");
   const [search, setSearch] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const isManualScroll = useRef(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width:640px)");
@@ -861,13 +875,65 @@ function MenuScreen({
             i.description.toLowerCase().includes(search.toLowerCase()),
         )
       : null;
-  const filtered = menuItems.filter((i: MenuItem) => i.category === active);
-  const displayItems = searchResults ?? filtered;
+
   const total = cart.reduce(
     (s: number, i: CartItem) => s + i.price * i.quantity,
     0,
   );
   const count = cart.reduce((s: number, i: CartItem) => s + i.quantity, 0);
+
+  // Scroll spy — update active tab as user scrolls
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (isManualScroll.current) return;
+      let current = categories[0];
+      for (const cat of categories) {
+        const el = sectionRefs.current[cat];
+        if (!el) continue;
+        const top =
+          el.getBoundingClientRect().top -
+          container.getBoundingClientRect().top;
+        if (top <= 120) current = cat;
+      }
+      setActive(current);
+      // Scroll active tab into view
+      const tabsContainer = tabsRef.current;
+      if (tabsContainer) {
+        const activeBtn = tabsContainer.querySelector(
+          `[data-cat="${current}"]`,
+        ) as HTMLElement;
+        if (activeBtn) {
+          activeBtn.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+          });
+        }
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [categories]);
+
+  const scrollToCategory = (cat: string) => {
+    setActive(cat);
+    isManualScroll.current = true;
+    const el = sectionRefs.current[cat];
+    const container = scrollRef.current;
+    if (el && container) {
+      const elTop = el.getBoundingClientRect().top;
+      const containerTop = container.getBoundingClientRect().top;
+      const scrollTop = container.scrollTop + elTop - containerTop - 16;
+      container.scrollTo({ top: scrollTop, behavior: "smooth" });
+      setTimeout(() => {
+        isManualScroll.current = false;
+      }, 800);
+    }
+  };
 
   return (
     <div
@@ -946,6 +1012,7 @@ function MenuScreen({
       <div
         style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}
       >
+        {/* Desktop sidebar */}
         {isDesktop && !searchResults && (
           <aside
             style={{
@@ -971,12 +1038,12 @@ function MenuScreen({
             >
               CATEGORIES
             </p>
-            {(categories as string[]).map((cat) => {
+            {categories.map((cat) => {
               const a = active === cat;
               return (
                 <button
                   key={cat}
-                  onClick={() => setActive(cat)}
+                  onClick={() => scrollToCategory(cat)}
                   style={{
                     textAlign: "left",
                     padding: "10px 12px",
@@ -999,6 +1066,7 @@ function MenuScreen({
             })}
           </aside>
         )}
+
         <div
           style={{
             flex: 1,
@@ -1008,8 +1076,10 @@ function MenuScreen({
             overflow: "hidden",
           }}
         >
+          {/* Mobile sticky category tabs */}
           {!isDesktop && !searchResults && (
             <div
+              ref={tabsRef}
               style={{
                 display: "flex",
                 gap: 8,
@@ -1020,12 +1090,13 @@ function MenuScreen({
                 flexShrink: 0,
               }}
             >
-              {(categories as string[]).map((cat) => {
+              {categories.map((cat) => {
                 const a = active === cat;
                 return (
                   <button
                     key={cat}
-                    onClick={() => setActive(cat)}
+                    data-cat={cat}
+                    onClick={() => scrollToCategory(cat)}
                     style={{
                       whiteSpace: "nowrap",
                       padding: "8px 18px",
@@ -1049,7 +1120,10 @@ function MenuScreen({
               })}
             </div>
           )}
+
+          {/* Scrollable content */}
           <div
+            ref={scrollRef}
             style={{
               flex: 1,
               overflowY: "auto",
@@ -1058,52 +1132,128 @@ function MenuScreen({
                 : `14px clamp(12px,4vw,16px) 100px`,
             }}
           >
+            {/* Search results */}
             {searchResults && (
-              <p style={{ color: CM, fontSize: 12, marginBottom: 14 }}>
-                {searchResults.length} result
-                {searchResults.length !== 1 ? "s" : ""} for "{search}"
-              </p>
-            )}
-            {displayItems.length === 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 300,
-                  color: CF,
-                  gap: 8,
-                }}
-              >
-                <div style={{ fontSize: 40 }}>🍃</div>
-                <p style={{ fontSize: 14 }}>
-                  {search ? "No items match your search" : "Nothing here yet"}
+              <>
+                <p style={{ color: CM, fontSize: 12, marginBottom: 14 }}>
+                  {searchResults.length} result
+                  {searchResults.length !== 1 ? "s" : ""} for "{search}"
                 </p>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fill,minmax(min(100%,clamp(140px,40vw,260px)),1fr))",
-                  gap: "clamp(10px,2.5vw,14px)",
-                }}
-              >
-                {displayItems.map((item: MenuItem) => {
-                  const ci = cart.find((c: CartItem) => c._id === item._id);
-                  return (
-                    <MenuCard
-                      key={item._id}
-                      item={item}
-                      cartItem={ci}
-                      onAdd={() => onAddToCart(item)}
-                      onUpdate={(qty: number) => onUpdateCart(item._id, qty)}
-                    />
-                  );
-                })}
-              </div>
+                {searchResults.length === 0 ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 300,
+                      color: CF,
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ fontSize: 40 }}>🍃</div>
+                    <p style={{ fontSize: 14 }}>No items match your search</p>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fill,minmax(min(100%,clamp(140px,40vw,260px)),1fr))",
+                      gap: "clamp(10px,2.5vw,14px)",
+                    }}
+                  >
+                    {searchResults.map((item: MenuItem) => {
+                      const ci = cart.find((c: CartItem) => c._id === item._id);
+                      return (
+                        <MenuCard
+                          key={item._id}
+                          item={item}
+                          cartItem={ci}
+                          onAdd={() => onAddToCart(item)}
+                          onUpdate={(qty: number) =>
+                            onUpdateCart(item._id, qty)
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
+
+            {/* Continuous category sections */}
+            {!searchResults &&
+              categories.map((cat) => {
+                const items = menuItems.filter(
+                  (i: MenuItem) => i.category === cat,
+                );
+                return (
+                  <div
+                    key={cat}
+                    ref={(el) => {
+                      sectionRefs.current[cat] = el;
+                    }}
+                    style={{ marginBottom: 32 }}
+                  >
+                    {/* Category header */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        marginBottom: 14,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: "clamp(12px,3vw,14px)",
+                          fontWeight: 700,
+                          letterSpacing: ".12em",
+                          color: G,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {cat.toUpperCase()}
+                      </p>
+                      <div
+                        style={{
+                          flex: 1,
+                          height: 1,
+                          background: `linear-gradient(90deg,${BR},transparent)`,
+                        }}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fill,minmax(min(100%,clamp(140px,40vw,260px)),1fr))",
+                        gap: "clamp(10px,2.5vw,14px)",
+                      }}
+                    >
+                      {items.map((item: MenuItem) => {
+                        const ci = cart.find(
+                          (c: CartItem) => c._id === item._id,
+                        );
+                        return (
+                          <MenuCard
+                            key={item._id}
+                            item={item}
+                            cartItem={ci}
+                            onAdd={() => onAddToCart(item)}
+                            onUpdate={(qty: number) =>
+                              onUpdateCart(item._id, qty)
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       </div>
@@ -1781,6 +1931,221 @@ function DeliveryAddressPicker({
   );
 }
 
+// ── TABLE PICKER ───────────────────────────────────────────────────────────
+const TOTAL_TABLES = 5; // change to however many tables you have
+
+function TablePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [occupiedTables, setOccupiedTables] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/orders")
+      .then((r) => r.json())
+      .then((orders: any[]) => {
+        const active = orders.filter(
+          (o) => o.status !== "completed" && o.status !== "cancelled",
+        );
+        const tables = new Set(
+          active.map((o) => String(o.tableNumber)).filter(Boolean),
+        );
+        setOccupiedTables(tables);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const tables = Array.from({ length: TOTAL_TABLES }, (_, i) => String(i + 1));
+  const selected = value ? value.replace(/\D/g, "") : "";
+
+  return (
+    <div>
+      <label
+        style={{
+          display: "block",
+          color: CM,
+          fontSize: 10,
+          letterSpacing: ".1em",
+          marginBottom: 10,
+          fontFamily: "'Cinzel',serif",
+        }}
+      >
+        SELECT YOUR TABLE *
+      </label>
+
+      {loading ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: CM,
+            fontSize: 12,
+            padding: "14px 0",
+          }}
+        >
+          <div
+            style={{
+              width: 13,
+              height: 13,
+              border: `2px solid ${G}`,
+              borderTopColor: "transparent",
+              borderRadius: 999,
+              animation: "spin .7s linear infinite",
+            }}
+          />
+          Checking table availability…
+        </div>
+      ) : (
+        <>
+          {/* Legend */}
+          <div
+            style={{
+              display: "flex",
+              gap: 16,
+              marginBottom: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            {[
+              { color: G, label: "Available" },
+              { color: "rgba(248,113,113,.7)", label: "Occupied" },
+            ].map((l) => (
+              <div
+                key={l.label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 11,
+                  color: CM,
+                }}
+              >
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 3,
+                    background: l.color,
+                  }}
+                />
+                {l.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 8,
+            }}
+          >
+            {tables.map((t) => {
+              const occupied = occupiedTables.has(t);
+              const isSelected = selected === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => {
+                    if (!occupied) onChange(t);
+                  }}
+                  disabled={occupied}
+                  style={{
+                    aspectRatio: "1",
+                    borderRadius: 12,
+                    border: `2px solid ${
+                      isSelected
+                        ? G
+                        : occupied
+                          ? "rgba(248,113,113,.3)"
+                          : "rgba(232,213,163,.15)"
+                    }`,
+                    background: isSelected
+                      ? GD
+                      : occupied
+                        ? "rgba(248,113,113,.07)"
+                        : "rgba(255,255,255,.03)",
+                    cursor: occupied ? "not-allowed" : "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    transition: "all .18s",
+                    touchAction: "manipulation",
+                    padding: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>
+                    {occupied ? "🔴" : isSelected ? "✅" : "🪑"}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: isSelected
+                        ? G
+                        : occupied
+                          ? "rgba(248,113,113,.6)"
+                          : CM,
+                      letterSpacing: ".04em",
+                    }}
+                  >
+                    {t}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      color: occupied
+                        ? "rgba(248,113,113,.5)"
+                        : isSelected
+                          ? G
+                          : "rgba(232,213,163,.3)",
+                      letterSpacing: ".06em",
+                    }}
+                  >
+                    {occupied ? "TAKEN" : isSelected ? "SELECTED" : "FREE"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected indicator */}
+          {selected && !occupiedTables.has(selected) && (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "10px 14px",
+                background: GD,
+                border: `1px solid ${G}`,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 13,
+                color: G,
+                fontFamily: "'Cinzel',serif",
+                letterSpacing: ".06em",
+              }}
+            >
+              🪑 Table {selected} selected
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── CHECKOUT SCREEN ─────────────────────────────────────────────────────── */
 function CheckoutScreen({
   cart,
@@ -1819,7 +2184,7 @@ function CheckoutScreen({
 
   const valid =
     orderType === "dine-in"
-      ? (form.tableNumber || "").trim()
+      ? (form.tableNumber || "").trim() && (form.customerName || "").trim()
       : (form.customerName || "").trim() && phoneValid && addrComplete;
 
   return (
@@ -1939,15 +2304,13 @@ function CheckoutScreen({
           >
             {orderType === "dine-in" && (
               <>
-                <InputField
-                  label="Table Number *"
-                  placeholder="e.g. Table 5"
+                <TablePicker
                   value={form.tableNumber || ""}
                   onChange={(v: string) => onFormChange("tableNumber", v)}
                 />
                 <InputField
-                  label="Your Name (optional)"
-                  placeholder="Juan dela Cruz"
+                  label="First Name"
+                  placeholder="e.g. Juan"
                   value={form.customerName || ""}
                   onChange={(v: string) => onFormChange("customerName", v)}
                 />
@@ -2262,7 +2625,13 @@ function PaymentScreen({
                   },
                   {
                     id: "gcash" as PayMethod,
-                    icon: <Smartphone size={20} />,
+                    icon: (
+                      <img
+                        src="/images/gcash.png"
+                        alt="GCash"
+                        style={{ width: 24, height: 24, objectFit: "contain" }}
+                      />
+                    ),
                     label: "GCASH",
                     sub: "Pay via app",
                   },
@@ -2295,6 +2664,10 @@ function PaymentScreen({
                         transition: "all .18s",
                         touchAction: "manipulation",
                         minHeight: 90,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       <div style={{ color: a ? G : CM, marginBottom: 6 }}>
@@ -2906,10 +3279,16 @@ function PaymentScreen({
                       gap: 8,
                     }}
                   >
-                    <Smartphone
-                      size={14}
-                      color={G}
-                      style={{ flexShrink: 0, marginTop: 1 }}
+                    <img
+                      src="/images/gcash.png"
+                      alt="GCash"
+                      style={{
+                        width: 14,
+                        height: 14,
+                        objectFit: "contain",
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
                     />
                     <p style={{ color: CM, fontSize: 12, lineHeight: 1.5 }}>
                       Number copied! Open your GCash app, go to{" "}

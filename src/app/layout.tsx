@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Yanone_Kaffeesatz, DM_Sans } from "next/font/google";
 import "./globals.css";
 import NavbarWrapper from "@/components/NavbarWrapper";
+import FeaturedPopup from "@/components/FeaturedPopup";
 
 const yanone = Yanone_Kaffeesatz({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body>
         <NavbarWrapper />
         {children}
+        <FeaturedPopup />
       </body>
     </html>
   );

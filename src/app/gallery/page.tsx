@@ -127,7 +127,6 @@ function Tile({
   const idx = parseInt(src.replace(/\D/g, "")) || 0;
   return (
     <div
-      onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
@@ -145,6 +144,8 @@ function Tile({
         src={src}
         alt=""
         onLoad={() => setLoaded(true)}
+        onContextMenu={(e) => e.preventDefault()}
+        draggable={false}
         style={{
           position: "absolute",
           inset: 0,
@@ -164,6 +165,12 @@ function Tile({
             "linear-gradient(170deg, transparent 50%, rgba(8,16,10,0.45))",
           pointerEvents: "none",
         }}
+      />
+      {/* Shield layer blocks right-click and drag on the image */}
+      <div
+        className="tile-shield"
+        onClick={onClick}
+        onContextMenu={(e) => e.preventDefault()}
       />
     </div>
   );
@@ -436,7 +443,9 @@ export default function GalleryPage() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body { background: #0b1510; }
-        ::selection { background: #d4a843; color: #0b1510; }
+::selection { background: #d4a843; color: #0b1510; }
+        img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
+        .tile-shield { position: absolute; inset: 0; z-index: 5; cursor: pointer; }
         @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.18)} 100%{transform:scale(1)} }
 

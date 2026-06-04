@@ -24,6 +24,7 @@ import {
   Eye,
   EyeOff,
   ImageIcon,
+  Newspaper,
 } from "lucide-react";
 
 const T = {
@@ -55,6 +56,29 @@ function useWindowWidth() {
   return width;
 }
 
+type Tag = "PROMO" | "EVENT" | "UPDATE" | "PINNED";
+type PinColor = "gold" | "red" | "teal";
+
+interface Post {
+  id: number;
+  tag: Tag;
+  pinned?: boolean;
+  pinColor?: PinColor;
+  date: string;
+  title: string;
+  body: string;
+  tilt?: number;
+  size?: "sm" | "md" | "lg";
+}
+
+interface Partner {
+  id: number;
+  name: string;
+  description: string;
+  fbHref: string;
+  emoji: string;
+}
+
 type OrderStatus =
   | "pending"
   | "confirmed"
@@ -80,6 +104,17 @@ type Order = {
   notes?: string;
   createdAt: string;
   waiterName?: string;
+  cancelReason?: string;
+  deliveryAddressDetails?: {
+    lat?: number;
+    lng?: number;
+    houseNo?: string;
+    street?: string;
+    barangay?: string;
+    city?: string;
+    landmark?: string;
+    fullAddress?: string;
+  };
 };
 type MenuItem = {
   _id: string;
@@ -90,7 +125,7 @@ type MenuItem = {
   image: string;
   available: boolean;
 };
-type Tab = "orders" | "menu" | "analytics" | "crew" | "accounts";
+type Tab = "orders" | "menu" | "analytics" | "crew" | "board" | "accounts";
 type Role = "admin" | "staff" | null;
 
 type Account = {
@@ -99,6 +134,94 @@ type Account = {
   displayName: string;
   role: "admin" | "staff";
   createdAt: string;
+};
+
+const INITIAL_POSTS: Post[] = [
+  {
+    id: 1,
+    tag: "PINNED",
+    pinned: true,
+    pinColor: "gold",
+    date: "June 2025",
+    title: "We're Now Open Until Midnight 🌙",
+    body: "3rd Space is extending hours to 12am every day. Come wind down, work late, or just hang.",
+    tilt: -1.2,
+    size: "lg",
+  },
+  {
+    id: 2,
+    tag: "PROMO",
+    pinColor: "red",
+    date: "June 2025",
+    title: "Buy 2 Get 1 Pastillas — Every Friday",
+    body: "Every Friday, grab any two pastillas from our pastry shelf and the third one's on us. Valid until supplies last.",
+    tilt: 0.8,
+    size: "md",
+  },
+  {
+    id: 3,
+    tag: "EVENT",
+    pinColor: "teal",
+    date: "July 2025",
+    title: "Open Mic Night",
+    body: "Bring your guitar, your poems, your voice. We'll provide the crowd and the coffee. Signups open at 7pm. Last Saturday of the month.",
+    tilt: -0.6,
+    size: "md",
+  },
+  {
+    id: 4,
+    tag: "UPDATE",
+    pinColor: "gold",
+    date: "May 2025",
+    title: "New Drinks on the Menu",
+    body: "We've added Brown Sugar Oat Latte, Mango Matcha, and Ube Cold Brew. Come try 'em while they last.",
+    tilt: 1.1,
+    size: "sm",
+  },
+];
+
+const partners: Partner[] = [
+  {
+    id: 1,
+    name: "Chollibay",
+    description:
+      "Local homegrown eats & street bites. Check their page for daily specials and collab menus with 3rd Space.",
+    fbHref: "https://facebook.com",
+    emoji: "🍢",
+  },
+  {
+    id: 2,
+    name: "Pastillas ni Lola",
+    description:
+      "Handmade pastillas straight from the province. Sold exclusively at 3rd Space every weekend.",
+    fbHref: "https://facebook.com",
+    emoji: "🍬",
+  },
+  {
+    id: 3,
+    name: "Brain Fuel Co.",
+    description:
+      "Productivity tools, planners & merch for students and creatives. Look for their pop-up at our café.",
+    fbHref: "https://facebook.com",
+    emoji: "🧠",
+  },
+];
+
+const TAG_STYLES: Record<Tag, { bg: string; color: string; label: string }> = {
+  PINNED: { bg: "#d4a843", color: "#0b150b", label: "📌 PINNED" },
+  PROMO: { bg: "rgba(212,168,67,0.18)", color: "#d4a843", label: "✦ PROMO" },
+  EVENT: { bg: "rgba(100,180,120,0.14)", color: "#7ecb93", label: "◉ EVENT" },
+  UPDATE: {
+    bg: "rgba(232,213,163,0.08)",
+    color: "rgba(232,213,163,0.55)",
+    label: "↑ UPDATE",
+  },
+};
+
+const PIN_COLORS: Record<PinColor, string> = {
+  gold: "#d4a843",
+  red: "#c0504d",
+  teal: "#4caf8a",
 };
 
 const STATUS_CFG: Record<
@@ -123,6 +246,584 @@ function ago(d: string) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+function PinDot({ color = "gold" }: { color?: PinColor }) {
+  const c = PIN_COLORS[color];
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: -10,
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: 18,
+        height: 18,
+        borderRadius: "50%",
+        background: `radial-gradient(circle at 35% 30%, #fff8, transparent 60%), ${c}`,
+        boxShadow: `0 2px 6px rgba(0,0,0,0.55), 0 0 0 2px rgba(0,0,0,0.25)`,
+        zIndex: 2,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+function BoardPostCard({
+  post,
+  onDelete,
+  isAdmin,
+}: {
+  post: Post;
+  onDelete?: (id: number) => void;
+  isAdmin: boolean;
+}) {
+  const tag = TAG_STYLES[post.tag];
+  const tilt = post.tilt ?? 0;
+  const fontSizeTitle =
+    post.size === "lg"
+      ? "clamp(1.25rem, 2.8vw, 1.9rem)"
+      : post.size === "sm"
+        ? "clamp(0.95rem, 1.8vw, 1.2rem)"
+        : "clamp(1.05rem, 2.2vw, 1.5rem)";
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        background: post.pinned
+          ? "linear-gradient(160deg, rgba(212,168,67,0.07) 0%, rgba(15,26,15,0.98) 60%)"
+          : "rgba(15,26,15,0.97)",
+        border: `1px solid ${post.pinned ? "rgba(212,168,67,0.28)" : T.border}`,
+        padding: "clamp(1.2rem, 2.5vw, 1.6rem)",
+        paddingTop: "clamp(1.6rem, 3vw, 2rem)",
+        transform: `rotate(${tilt}deg)`,
+        transition: "transform 0.25s ease, box-shadow 0.25s ease",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.45)",
+        breakInside: "avoid",
+        marginBottom: "clamp(0.75rem, 2vw, 1.25rem)",
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.transform = "rotate(0deg) translateY(-3px)";
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.transform = `rotate(${tilt}deg)`;
+      }}
+    >
+      <PinDot color={post.pinColor ?? "gold"} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "0.6rem",
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Cinzel',serif",
+            fontWeight: 700,
+            fontSize: "0.65rem",
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            padding: "3px 10px",
+            background: tag.bg,
+            color: tag.color,
+          }}
+        >
+          {tag.label}
+        </span>
+        <span
+          style={{
+            fontSize: "0.65rem",
+            color: "rgba(232,213,163,0.28)",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {post.date}
+        </span>
+      </div>
+      <h3
+        style={{
+          fontFamily: "'Cinzel',serif",
+          fontWeight: 700,
+          fontSize: fontSizeTitle,
+          color: T.cream,
+          lineHeight: 1.15,
+          margin: "0 0 0.55rem",
+        }}
+      >
+        {post.title}
+      </h3>
+      <p
+        style={{
+          fontSize: "0.875rem",
+          color: T.muted,
+          lineHeight: 1.65,
+          margin: 0,
+          flex: 1,
+        }}
+      >
+        {post.body}
+      </p>
+      {isAdmin && onDelete && (
+        <button
+          onClick={() => onDelete(post.id)}
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            background: "rgba(192,80,77,0.1)",
+            border: "1px solid rgba(192,80,77,0.25)",
+            color: "#c0504d",
+            width: 26,
+            height: 26,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            fontSize: 13,
+            borderRadius: 2,
+          }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
+function BoardPartnerCard({ partner }: { partner: Partner }) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${T.border}`,
+        padding: "clamp(1.1rem, 2.2vw, 1.5rem)",
+        display: "flex",
+        gap: "1rem",
+        alignItems: "flex-start",
+        background: "rgba(232,213,163,0.02)",
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          background: "rgba(212,168,67,0.18)",
+          border: "1px solid rgba(212,168,67,0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 20,
+          flexShrink: 0,
+          borderRadius: 4,
+        }}
+      >
+        {partner.emoji}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h4
+          style={{
+            fontFamily: "'Cinzel',serif",
+            fontWeight: 700,
+            fontSize: "1rem",
+            color: T.cream,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            margin: "0 0 0.3rem",
+          }}
+        >
+          {partner.name}
+        </h4>
+        <p
+          style={{
+            fontSize: "0.84rem",
+            color: T.muted,
+            lineHeight: 1.6,
+            margin: "0 0 0.75rem",
+          }}
+        >
+          {partner.description}
+        </p>
+        <a
+          href={partner.fbHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            fontSize: "0.7rem",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: T.muted,
+            textDecoration: "none",
+            border: `1px solid ${T.border}`,
+            padding: "5px 12px",
+          }}
+        >
+          Visit Page
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function BoardPostModal({
+  onPost,
+  onClose,
+}: {
+  onPost: (post: Omit<Post, "id">) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [tag, setTag] = useState<Tag>("UPDATE");
+  const [pinColor, setPinColor] = useState<PinColor>("gold");
+  const [size, setSize] = useState<"sm" | "md" | "lg">("md");
+  const [pinned, setPinned] = useState(false);
+
+  const handleSubmit = () => {
+    if (!title.trim() || !body.trim()) return;
+    const tilt = Math.random() * 2.4 - 1.2;
+    const date = new Date().toLocaleString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    onPost({ tag, pinned, pinColor, date, title, body, tilt, size });
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    background: "rgba(232,213,163,0.04)",
+    border: `1px solid ${T.borderH}`,
+    color: T.cream,
+    fontSize: "0.875rem",
+    padding: "0.65rem 0.9rem",
+    outline: "none",
+    boxSizing: "border-box",
+    lineHeight: 1.5,
+    borderRadius: 8,
+  };
+
+  return (
+    <div
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.75)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "1rem",
+      }}
+    >
+      <div
+        style={{
+          background: "#0f1a0f",
+          border: `1px solid ${T.borderH}`,
+          padding: "2rem",
+          width: "100%",
+          maxWidth: 520,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
+          borderRadius: 16,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: "'Cinzel',serif",
+              fontWeight: 700,
+              fontSize: "1.5rem",
+              color: T.cream,
+            }}
+          >
+            Post to The Board
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: T.muted,
+              cursor: "pointer",
+              fontSize: 18,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+        <div style={{ marginBottom: "1rem" }}>
+          <span
+            style={{
+              color: T.muted,
+              fontSize: "0.68rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              display: "block",
+              marginBottom: "0.4rem",
+            }}
+          >
+            Category
+          </span>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {(["PROMO", "EVENT", "UPDATE", "PINNED"] as Tag[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setTag(t);
+                  setPinned(t === "PINNED");
+                }}
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  fontWeight: 700,
+                  fontSize: "0.66rem",
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  padding: "5px 14px",
+                  border: `1px solid ${tag === t ? T.gold : T.border}`,
+                  background:
+                    tag === t ? "rgba(212,168,67,0.18)" : "transparent",
+                  color: tag === t ? T.gold : T.muted,
+                  cursor: "pointer",
+                  borderRadius: 6,
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: "1rem" }}>
+          <span
+            style={{
+              color: T.muted,
+              fontSize: "0.68rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              display: "block",
+              marginBottom: "0.4rem",
+            }}
+          >
+            Pin Color
+          </span>
+          <div style={{ display: "flex", gap: 10 }}>
+            {(["gold", "red", "teal"] as PinColor[]).map((c) => (
+              <button
+                key={c}
+                onClick={() => setPinColor(c)}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  background: PIN_COLORS[c],
+                  border:
+                    pinColor === c
+                      ? `2px solid ${T.cream}`
+                      : "2px solid transparent",
+                  cursor: "pointer",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: "0.68rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              display: "block",
+              marginBottom: "0.4rem",
+            }}
+          >
+            Title
+          </label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Weekend Deals Are Back"
+            style={inputStyle}
+          />
+        </div>
+        <div style={{ marginBottom: "1.5rem" }}>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: "0.68rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              display: "block",
+              marginBottom: "0.4rem",
+            }}
+          >
+            Message
+          </label>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="What's the announcement?"
+            rows={4}
+            style={{ ...inputStyle, resize: "vertical" }}
+          />
+        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={!title.trim() || !body.trim()}
+          style={{
+            width: "100%",
+            fontFamily: "'Cinzel',serif",
+            fontWeight: 700,
+            fontSize: "0.95rem",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            background:
+              title.trim() && body.trim() ? T.gold : "rgba(212,168,67,0.15)",
+            color: title.trim() && body.trim() ? "#0a0f0a" : T.muted,
+            border: "none",
+            padding: "0.85rem",
+            cursor: title.trim() && body.trim() ? "pointer" : "not-allowed",
+            borderRadius: 10,
+          }}
+        >
+          Pin It to The Board
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BoardTab({
+  posts,
+  setPosts,
+}: {
+  posts: Post[];
+  setPosts: React.Dispatch<React.SetStateAction<Post[]>>;
+}) {
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/posts")
+      .then((r) => r.json())
+      .then((data) => setPosts(data.map((p: any) => ({ ...p, id: p._id }))));
+  }, []);
+
+  const handleNewPost = async (postData: Omit<Post, "id">) => {
+    const res = await fetch("/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(postData),
+    });
+    const saved = await res.json();
+    setPosts((prev) => [{ ...saved, id: saved._id }, ...prev]);
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch(`/api/posts/${id}`, { method: "DELETE" });
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {showModal && (
+        <BoardPostModal
+          onPost={handleNewPost}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 8,
+        }}
+      >
+        <p style={{ color: T.muted, fontSize: 12 }}>{posts.length} posts</p>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{
+            padding: "8px 16px",
+            background: T.gold,
+            border: "none",
+            borderRadius: 8,
+            color: "#0a0f0a",
+            fontFamily: "'Cinzel',serif",
+            fontSize: 11,
+            letterSpacing: ".1em",
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Plus size={13} /> NEW POST
+        </button>
+      </div>
+      <div
+        style={{
+          columnCount: "auto",
+          columnWidth: "clamp(260px, 30vw, 380px)",
+          columnGap: "1rem",
+        }}
+      >
+        {posts.map((post) => (
+          <BoardPostCard
+            key={post.id}
+            post={post}
+            isAdmin={true}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
+      <div>
+        <p
+          style={{
+            color: T.gold,
+            fontSize: 11,
+            letterSpacing: ".15em",
+            textTransform: "uppercase",
+            fontFamily: "'Cinzel',serif",
+            marginBottom: 16,
+          }}
+        >
+          ◆ Our Partners
+        </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {partners.map((p) => (
+            <BoardPartnerCard key={p.id} partner={p} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── IMAGE LIGHTBOX ───────────────────────────────────────────────────────────
@@ -361,22 +1062,427 @@ function StatCard({
   );
 }
 
+function CancelReasonModal({
+  onConfirm,
+  onCancel,
+  title = "CANCEL ORDER",
+  subtitle = "Select a reason for cancellation",
+  reasons,
+}: {
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+  title?: string;
+  subtitle?: string;
+  reasons?: string[];
+}) {
+  const [selected, setSelected] = useState("");
+  const [other, setOther] = useState("");
+
+  const REASONS = reasons || [
+    "Item no longer available",
+    "Customer request",
+    "Duplicate order",
+    "Payment not received",
+    "Out of delivery range",
+    "Other",
+  ];
+
+  const finalReason = selected === "Other" ? other.trim() : selected;
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onCancel]);
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#13180f",
+          border: "1px solid rgba(239,68,68,0.4)",
+          borderRadius: 18,
+          padding: "28px 24px",
+          maxWidth: 400,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        <div>
+          <p
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.cream,
+              fontSize: 14,
+              letterSpacing: ".1em",
+              marginBottom: 4,
+            }}
+          >
+            {title}
+          </p>
+          <p style={{ color: T.muted, fontSize: 12 }}>{subtitle}</p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {REASONS.map((r) => (
+            <button
+              key={r}
+              onClick={() => setSelected(r)}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                textAlign: "left",
+                cursor: "pointer",
+                fontSize: 13,
+                background:
+                  selected === r
+                    ? "rgba(239,68,68,0.1)"
+                    : "rgba(255,255,255,0.03)",
+                border: `1px solid ${selected === r ? "rgba(239,68,68,0.5)" : T.border}`,
+                color: selected === r ? T.red : T.muted,
+                fontWeight: selected === r ? 700 : 400,
+                transition: "all .15s",
+              }}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+
+        {selected === "Other" && (
+          <textarea
+            value={other}
+            onChange={(e) => setOther(e.target.value)}
+            placeholder="Describe the reason…"
+            rows={3}
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 8,
+              padding: "10px 12px",
+              color: T.cream,
+              fontSize: 13,
+              outline: "none",
+              resize: "none",
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+            }}
+          />
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => finalReason && onConfirm(finalReason)}
+            disabled={!finalReason}
+            style={{
+              flex: 1,
+              padding: "11px",
+              background: finalReason
+                ? "rgba(239,68,68,0.12)"
+                : "rgba(255,255,255,0.04)",
+              border: `1px solid ${finalReason ? "rgba(239,68,68,0.5)" : T.border}`,
+              borderRadius: 10,
+              color: finalReason ? T.red : T.muted,
+              fontFamily: "'Cinzel',serif",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              cursor: finalReason ? "pointer" : "not-allowed",
+            }}
+          >
+            CANCEL ORDER
+          </button>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: "11px 18px",
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 10,
+              color: T.muted,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeliveryMapPanel({
+  details,
+}: {
+  details: NonNullable<Order["deliveryAddressDetails"]>;
+}) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapObjRef = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+
+  const lat = details?.lat;
+  const lng = details?.lng;
+
+  useEffect(() => {
+    if (!lat || !lng) return;
+
+    function initMap(L: any) {
+      if (!mapRef.current || mapObjRef.current) return;
+      const map = L.map(mapRef.current, {
+        center: [lat, lng],
+        zoom: 17,
+        zoomControl: true,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+      });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+      }).addTo(map);
+
+      const icon = L.divIcon({
+        html: `<div style="
+          width:28px;height:28px;
+          background:${T.gold};
+          border-radius:50% 50% 50% 0;
+          transform:rotate(-45deg);
+          border:3px solid white;
+          box-shadow:0 4px 12px rgba(0,0,0,0.5);
+        "><div style="
+          transform:rotate(45deg);
+          width:7px;height:7px;
+          background:white;
+          border-radius:50%;
+          margin:7px auto 0;
+        "></div></div>`,
+        className: "",
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+      });
+
+      L.marker([lat, lng], { icon }).addTo(map);
+      mapObjRef.current = map;
+      setReady(true);
+    }
+
+    if ((window as any).L) {
+      initMap((window as any).L);
+      return;
+    }
+
+    if (!document.querySelector('link[href*="leaflet"]')) {
+      const css = document.createElement("link");
+      css.rel = "stylesheet";
+      css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(css);
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = () => initMap((window as any).L);
+    document.head.appendChild(script);
+
+    return () => {
+      if (mapObjRef.current) {
+        mapObjRef.current.remove();
+        mapObjRef.current = null;
+      }
+    };
+  }, [lat, lng]);
+
+  if (!lat || !lng) return null;
+
+  const rows = [
+    { label: "House / Unit", value: details.houseNo },
+    { label: "Street", value: details.street },
+    { label: "Barangay", value: details.barangay },
+    { label: "City", value: details.city },
+    { label: "Landmark", value: details.landmark },
+  ].filter((r) => r.value?.trim());
+
+  return (
+    <div
+      style={{
+        background: "rgba(255,255,255,0.02)",
+        border: `1px solid ${T.border}`,
+        borderRadius: 10,
+        overflow: "hidden",
+        marginTop: 2,
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box" as const,
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          height: 180,
+          width: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          ref={mapRef}
+          style={{ width: "100%", height: "100%", zIndex: 0 }}
+        />
+        {!ready && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(10,15,10,0.85)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              color: T.muted,
+              fontSize: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 14,
+                height: 14,
+                border: `2px solid ${T.gold}`,
+                borderTopColor: "transparent",
+                borderRadius: "50%",
+                animation: "spin .7s linear infinite",
+              }}
+            />
+            Loading map…
+          </div>
+        )}
+        {ready && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 8,
+              right: 8,
+              background: "rgba(10,15,10,0.82)",
+              backdropFilter: "blur(4px)",
+              borderRadius: 6,
+              padding: "3px 8px",
+              zIndex: 998,
+            }}
+          >
+            <span
+              style={{ color: T.muted, fontSize: 10, fontFamily: "monospace" }}
+            >
+              {lat.toFixed(5)}, {lng.toFixed(5)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {rows.length > 0 && (
+        <div style={{ padding: "10px 14px" }}>
+          <p
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              fontFamily: "'Cinzel',serif",
+              marginBottom: 8,
+            }}
+          >
+            PINNED ADDRESS DETAILS
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {rows.map((r) => (
+              <div
+                key={r.label}
+                style={{ display: "flex", gap: 8, alignItems: "flex-start" }}
+              >
+                <span
+                  style={{
+                    color: T.muted,
+                    fontSize: 11,
+                    minWidth: 90,
+                    flexShrink: 0,
+                  }}
+                >
+                  {r.label}
+                </span>
+                <span
+                  style={{
+                    color: T.cream,
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                    fontWeight: 500,
+                  }}
+                >
+                  {r.value}
+                </span>
+              </div>
+            ))}
+          </div>
+          <a
+            href={`https://www.google.com/maps?q=${lat},${lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              marginTop: 10,
+              fontSize: 11,
+              color: T.blue,
+              textDecoration: "none",
+              background: "rgba(91,155,213,0.08)",
+              border: "1px solid rgba(91,155,213,0.2)",
+              borderRadius: 6,
+              padding: "4px 10px",
+            }}
+          >
+            📍 Open in Google Maps
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── ORDER CARD ───────────────────────────────────────────────────────────────
 function OrderCard({
   order,
+  menuItems,
   onStatusChange,
   onPaymentConfirm,
   onSetPaymentMethod,
   onDelete,
 }: {
   order: Order;
-  onStatusChange: (id: string, s: OrderStatus) => void;
+  menuItems: MenuItem[];
+  onStatusChange: (id: string, s: OrderStatus, reason?: string) => void;
   onPaymentConfirm: (id: string) => void;
   onSetPaymentMethod: (id: string, method: "cash" | "gcash") => void;
   onDelete: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [receiptSrc, setReceiptSrc] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const nextStatus = STATUS_CFG[order.status].next;
 
   // Determine what to show for payment method
@@ -387,6 +1493,38 @@ function OrderCard({
     <>
       {receiptSrc && (
         <ImageLightbox src={receiptSrc} onClose={() => setReceiptSrc(null)} />
+      )}
+      {showCancelModal && (
+        <CancelReasonModal
+          onConfirm={(reason) => {
+            setShowCancelModal(false);
+            onStatusChange(order._id, "cancelled", reason);
+          }}
+          onCancel={() => setShowCancelModal(false)}
+        />
+      )}
+      {showRejectModal && (
+        <CancelReasonModal
+          title="REJECT RECEIPT"
+          subtitle="Why is this receipt invalid?"
+          reasons={[
+            "Fake or edited screenshot",
+            "Wrong amount sent",
+            "Payment not received in GCash",
+            "Ref number doesn't match",
+            "Screenshot is too old",
+            "Other",
+          ]}
+          onConfirm={(reason) => {
+            setShowRejectModal(false);
+            onStatusChange(
+              order._id,
+              "cancelled",
+              `Receipt rejected: ${reason}`,
+            );
+          }}
+          onCancel={() => setShowRejectModal(false)}
+        />
       )}
       <div
         style={{
@@ -489,6 +1627,111 @@ function OrderCard({
               {" · "}
               {ago(order.createdAt)}
             </p>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                marginTop: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              {order.items.map((it) => {
+                const img = menuItems.find((m) => m.name === it.name)?.image;
+                if (!img) return null;
+                return (
+                  <div
+                    key={it.name}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReceiptSrc(img);
+                    }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 4,
+                      cursor: "zoom-in",
+                    }}
+                  >
+                    <div style={{ position: "relative" }}>
+                      <img
+                        src={img}
+                        alt={it.name}
+                        title={it.name}
+                        style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: 8,
+                          objectFit: "cover",
+                          border: `1px solid ${T.borderH}`,
+                          display: "block",
+                          transition: "transform .15s, box-shadow .15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "scale(1.08)";
+                          e.currentTarget.style.boxShadow = `0 4px 16px rgba(212,168,67,0.35)`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1)";
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        onError={(e) =>
+                          (e.currentTarget.style.display = "none")
+                        }
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          borderRadius: 8,
+                          background: "rgba(212,168,67,0.0)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "background .15s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background =
+                            "rgba(212,168,67,0.15)")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background =
+                            "rgba(212,168,67,0.0)")
+                        }
+                      >
+                        <span
+                          style={{
+                            fontSize: 14,
+                            opacity: 0,
+                            transition: "opacity .15s",
+                          }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.opacity = "1")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.opacity = "0")
+                          }
+                        >
+                          🔍
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p
+              style={{
+                fontSize: 11,
+                color: T.faint,
+                marginTop: 3,
+                lineHeight: 1.5,
+              }}
+            >
+              {order.items
+                .map((it) => `${it.quantity}× ${it.name}`)
+                .join(" · ")}
+            </p>
           </div>
           <span
             style={{
@@ -539,6 +1782,217 @@ function OrderCard({
                 </span>
               </div>
             )}
+
+            {/* ── CUSTOMER / ORDER DETAILS ── */}
+            <div
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                padding: "12px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <p
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                ORDER DETAILS
+              </p>
+
+              {order.type === "dine-in" && order.tableNumber && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ color: T.muted, fontSize: 12, minWidth: 100 }}>
+                    Table
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: T.green,
+                      background: "rgba(34,197,94,0.08)",
+                      border: "1px solid rgba(34,197,94,0.2)",
+                      padding: "3px 10px",
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    🪑 Table {order.tableNumber}
+                  </span>
+                </div>
+              )}
+
+              {order.customerName && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ color: T.muted, fontSize: 12, minWidth: 100 }}>
+                    Customer
+                  </span>
+                  <span
+                    style={{ color: T.cream, fontSize: 12, fontWeight: 600 }}
+                  >
+                    {order.customerName}
+                  </span>
+                </div>
+              )}
+
+              {order.customerContact && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ color: T.muted, fontSize: 12, minWidth: 100 }}>
+                    Phone
+                  </span>
+                  <span style={{ color: T.cream, fontSize: 12 }}>
+                    +63 {order.customerContact}
+                  </span>
+                </div>
+              )}
+
+              {order.type === "delivery" && (
+                <>
+                  {order.deliveryAddress && (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <span
+                        style={{
+                          color: T.muted,
+                          fontSize: 12,
+                          minWidth: 100,
+                          flexShrink: 0,
+                        }}
+                      >
+                        Address
+                      </span>
+                      <span
+                        style={{
+                          color: T.cream,
+                          fontSize: 12,
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {order.deliveryAddress}
+                      </span>
+                    </div>
+                  )}
+                  {order.deliveryAddressDetails?.lat && (
+                    <DeliveryMapPanel details={order.deliveryAddressDetails} />
+                  )}
+                </>
+              )}
+
+              {order.notes && (
+                <div
+                  style={{
+                    marginTop: 2,
+                    background: "rgba(212,168,67,0.06)",
+                    border: "1px solid rgba(212,168,67,0.2)",
+                    borderRadius: 8,
+                    padding: "9px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 10,
+                      letterSpacing: ".08em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 4,
+                    }}
+                  >
+                    SPECIAL REQUESTS
+                  </p>
+                  <p style={{ color: T.cream, fontSize: 12, lineHeight: 1.6 }}>
+                    {order.notes}
+                  </p>
+                </div>
+              )}
+
+              {order.cancelReason && (
+                <div
+                  style={{
+                    background: "rgba(239,68,68,0.07)",
+                    border: "1px solid rgba(239,68,68,0.2)",
+                    borderRadius: 8,
+                    padding: "9px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 10,
+                      letterSpacing: ".08em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 4,
+                    }}
+                  >
+                    CANCEL REASON
+                  </p>
+                  <p style={{ color: T.red, fontSize: 12, lineHeight: 1.5 }}>
+                    {order.cancelReason}
+                  </p>
+                </div>
+              )}
+
+              <div
+                style={{
+                  borderTop: `1px solid ${T.border}`,
+                  paddingTop: 10,
+                  marginTop: 4,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 5,
+                }}
+              >
+                {order.items.map((it, i) => (
+                  <div
+                    key={i}
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 12 }}>
+                      {it.quantity}× {it.name}
+                    </span>
+                    <span style={{ color: T.cream, fontSize: 12 }}>
+                      ₱{(it.price * it.quantity).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+                <div
+                  style={{
+                    borderTop: `1px solid ${T.border}`,
+                    paddingTop: 8,
+                    marginTop: 2,
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: T.muted,
+                      fontSize: 12,
+                      fontFamily: "'Cinzel',serif",
+                      letterSpacing: ".08em",
+                    }}
+                  >
+                    TOTAL
+                  </span>
+                  <span
+                    style={{
+                      color: T.gold,
+                      fontSize: 16,
+                      fontWeight: 700,
+                      fontFamily: "'Cinzel',serif",
+                    }}
+                  >
+                    ₱{order.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* ── PAYMENT SECTION ── */}
             <div
@@ -615,9 +2069,29 @@ function OrderCard({
                           : "rgba(212,168,67,0.3)"
                       }`,
                       fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
                     }}
                   >
-                    {order.paymentMethod === "cash" ? "💵 Cash" : "📱 GCash"}
+                    {order.paymentMethod === "cash" ? (
+                      "💵 Cash"
+                    ) : (
+                      <>
+                        <img
+                          src="/images/gcash.png"
+                          alt="GCash"
+                          style={{
+                            width: 13,
+                            height: 13,
+                            objectFit: "contain",
+                            verticalAlign: "middle",
+                            marginRight: 4,
+                          }}
+                        />
+                        GCash
+                      </>
+                    )}
                   </span>
                 )}
 
@@ -639,26 +2113,50 @@ function OrderCard({
 
                 {/* Receipt button */}
                 {order.receiptUrl && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setReceiptSrc(order.receiptUrl!);
-                    }}
-                    style={{
-                      fontSize: 12,
-                      color: T.blue,
-                      background: "rgba(91,155,213,0.08)",
-                      border: "1px solid rgba(91,155,213,0.2)",
-                      borderRadius: 6,
-                      padding: "5px 12px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <ImageIcon size={12} /> View Receipt
-                  </button>
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReceiptSrc(order.receiptUrl!);
+                      }}
+                      style={{
+                        fontSize: 12,
+                        color: T.blue,
+                        background: "rgba(91,155,213,0.08)",
+                        border: "1px solid rgba(91,155,213,0.2)",
+                        borderRadius: 6,
+                        padding: "5px 12px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <ImageIcon size={12} /> View Receipt
+                    </button>
+                    {order.paymentStatus !== "confirmed" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowRejectModal(true);
+                        }}
+                        style={{
+                          fontSize: 12,
+                          color: T.red,
+                          background: "rgba(239,68,68,0.08)",
+                          border: "1px solid rgba(239,68,68,0.2)",
+                          borderRadius: 6,
+                          padding: "5px 12px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                        }}
+                      >
+                        ✗ Reject Receipt
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -707,7 +2205,24 @@ function OrderCard({
                               fontSize: 12,
                             }}
                           >
-                            {m === "cash" ? "💵 Set Cash" : "📱 Set GCash"}
+                            {m === "cash" ? (
+                              "💵 Set Cash"
+                            ) : (
+                              <>
+                                <img
+                                  src="/images/gcash.png"
+                                  alt="GCash"
+                                  style={{
+                                    width: 13,
+                                    height: 13,
+                                    objectFit: "contain",
+                                    verticalAlign: "middle",
+                                    marginRight: 4,
+                                  }}
+                                />
+                                Set GCash
+                              </>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -815,7 +2330,7 @@ function OrderCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onStatusChange(order._id, "cancelled");
+                    setShowCancelModal(true);
                   }}
                   style={{
                     padding: "9px 12px",
@@ -2556,6 +4071,7 @@ function CrewTab({
   onOrderPlaced: () => void;
   staffName: string;
 }) {
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const w = useWindowWidth();
   const isMobile = w < 768;
 
@@ -2944,7 +4460,39 @@ function CrewTab({
                         letterSpacing: ".06em",
                       }}
                     >
-                      {m === "cash" ? "💵 CASH" : "📱 GCASH"}
+                      {m === "cash" ? (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 3,
+                          }}
+                        >
+                          <span>💵</span>
+                          CASH
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 3,
+                          }}
+                        >
+                          <img
+                            src="/images/gcash.png"
+                            alt="GCash"
+                            style={{
+                              width: 14,
+                              height: 14,
+                              objectFit: "contain",
+                            }}
+                          />
+                          GCASH
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -3062,15 +4610,13 @@ function CrewTab({
             gap: 16,
           }}
         >
-          <div>
+          <div style={{ minWidth: 0, overflow: "hidden" }}>
             <div
               style={{
                 display: "flex",
-                gap: 8,
-                overflowX: "auto",
-                paddingBottom: 10,
+                gap: 6,
+                flexWrap: "wrap",
                 marginBottom: 14,
-                scrollbarWidth: "none",
               }}
             >
               {categories.map((cat) => {
@@ -3081,9 +4627,10 @@ function CrewTab({
                     onClick={() => setActiveCategory(cat)}
                     style={{
                       whiteSpace: "nowrap",
-                      padding: "6px 16px",
+                      padding: "5px 12px",
                       borderRadius: 999,
                       cursor: "pointer",
+                      flexShrink: 0, // ← I added this
                       border: `1px solid ${a ? T.gold : T.border}`,
                       background: a ? T.gold : "transparent",
                       color: a ? "#0a0f0a" : T.muted,
@@ -3483,7 +5030,7 @@ function CrewTab({
                           </button>
                         )}
                         <button
-                          onClick={() => crewUpdateStatus(o._id, "cancelled")}
+                          onClick={() => setCancelTarget(o._id)}
                           style={{
                             padding: "7px 12px",
                             background: "rgba(239,68,68,0.08)",
@@ -3528,11 +5075,43 @@ export default function AdminDashboard() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
+  const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [activeConfirm, setActiveConfirm] = useState<{
     id: string;
     type: "order";
   } | null>(null);
+  const prevOrderIdsRef = useRef<Set<string>>(new Set());
+
+  const playNotification = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    playNotification.current = () => {
+      try {
+        const ctx = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
+        const beep = (freq: number, start: number, duration: number) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.frequency.value = freq;
+          o.type = "sine";
+          g.gain.setValueAtTime(0.4, ctx.currentTime + start);
+          g.gain.exponentialRampToValueAtTime(
+            0.001,
+            ctx.currentTime + start + duration,
+          );
+          o.start(ctx.currentTime + start);
+          o.stop(ctx.currentTime + start + duration);
+        };
+        beep(880, 0, 0.15);
+        beep(1100, 0.18, 0.15);
+        beep(1320, 0.36, 0.25);
+      } catch {}
+    };
+  }, []);
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
@@ -3559,7 +5138,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!role) return;
     const id = setInterval(() => fetchData(true), 15000);
-    return () => clearInterval(id);
+
+    // SSE for instant updates
+    const es = new EventSource("/api/orders/stream");
+    es.onmessage = () => {
+      setTimeout(() => fetchData(true), 300);
+    };
+    es.onerror = () => es.close();
+
+    return () => {
+      clearInterval(id);
+      es.close();
+    };
   }, [role]);
 
   async function login() {
@@ -3644,7 +5234,47 @@ export default function AdminDashboard() {
         fetch("/api/orders"),
         fetch("/api/menu"),
       ]);
-      if (oRes.ok) setOrders(await oRes.json());
+      if (oRes.ok) {
+        const fetched: Order[] = await oRes.json();
+        const newOrders = fetched.filter(
+          (o) =>
+            !prevOrderIdsRef.current.has(o._id) &&
+            o.status !== "completed" &&
+            o.status !== "cancelled",
+        );
+        if (prevOrderIdsRef.current.size > 0 && newOrders.length > 0) {
+          try {
+            const ctx = new (
+              window.AudioContext || (window as any).webkitAudioContext
+            )();
+            const beep = (freq: number, start: number, dur: number) => {
+              const o = ctx.createOscillator();
+              const g = ctx.createGain();
+              o.connect(g);
+              g.connect(ctx.destination);
+              o.frequency.value = freq;
+              o.type = "sine";
+              g.gain.setValueAtTime(0.5, ctx.currentTime + start);
+              g.gain.exponentialRampToValueAtTime(
+                0.001,
+                ctx.currentTime + start + dur,
+              );
+              o.start(ctx.currentTime + start);
+              o.stop(ctx.currentTime + start + dur + 0.05);
+            };
+            beep(880, 0, 0.15);
+            beep(1100, 0.2, 0.15);
+            beep(1320, 0.4, 0.3);
+          } catch (e) {
+            console.error("sound error", e);
+          }
+          showToast(
+            `🔔 ${newOrders.length} new order${newOrders.length > 1 ? "s" : ""}!`,
+          );
+        }
+        prevOrderIdsRef.current = new Set(fetched.map((o) => o._id));
+        setOrders(fetched);
+      }
       if (mRes.ok) setMenuItems(await mRes.json());
     } catch (e) {
       console.error(e);
@@ -3653,15 +5283,27 @@ export default function AdminDashboard() {
     }
   }
 
-  async function updateStatus(id: string, status: OrderStatus) {
+  async function updateStatus(
+    id: string,
+    status: OrderStatus,
+    reason?: string,
+  ) {
     try {
+      const body: any = { status };
+      if (reason) body.cancelReason = reason;
       const res = await fetch(`/api/orders/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(await res.text());
-      setOrders((p) => p.map((o) => (o._id === id ? { ...o, status } : o)));
+      setOrders((p) =>
+        p.map((o) =>
+          o._id === id
+            ? { ...o, status, ...(reason ? { cancelReason: reason } : {}) }
+            : o,
+        ),
+      );
       showToast(`→ ${STATUS_CFG[status].label}`);
     } catch (e) {
       showToast("Failed to update order status", false);
@@ -3922,7 +5564,6 @@ export default function AdminDashboard() {
       id: "orders",
       label: "Orders",
       icon: <Package size={15} />,
-      adminOnly: true,
     },
     { id: "crew", label: "Crew", icon: <Zap size={15} /> },
     {
@@ -3935,6 +5576,12 @@ export default function AdminDashboard() {
       id: "analytics",
       label: "Analytics",
       icon: <BarChart3 size={15} />,
+      adminOnly: true,
+    },
+    {
+      id: "board",
+      label: "Board",
+      icon: <Newspaper size={15} />,
       adminOnly: true,
     },
     {
@@ -4219,6 +5866,7 @@ export default function AdminDashboard() {
                     <OrderCard
                       key={o._id}
                       order={o}
+                      menuItems={menuItems}
                       onStatusChange={updateStatus}
                       onPaymentConfirm={confirmPayment}
                       onSetPaymentMethod={setPaymentMethod}
@@ -4250,6 +5898,7 @@ export default function AdminDashboard() {
                     <OrderCard
                       key={o._id}
                       order={o}
+                      menuItems={menuItems}
                       onStatusChange={updateStatus}
                       onPaymentConfirm={confirmPayment}
                       onSetPaymentMethod={setPaymentMethod}
@@ -4270,6 +5919,8 @@ export default function AdminDashboard() {
           <MenuTab items={menuItems} onRefresh={() => fetchData(true)} />
         ) : tab === "analytics" ? (
           <AnalyticsTab orders={orders} />
+        ) : tab === "board" ? (
+          <BoardTab posts={posts} setPosts={setPosts} />
         ) : (
           <AccountsTab />
         )}

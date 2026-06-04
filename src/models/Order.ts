@@ -30,6 +30,16 @@ const OrderSchema = new Schema(
     customerName: { type: String },
     customerContact: { type: String },
     deliveryAddress: { type: String },
+    deliveryAddressDetails: {
+      lat: { type: Number },
+      lng: { type: Number },
+      houseNo: { type: String },
+      street: { type: String },
+      barangay: { type: String },
+      city: { type: String },
+      landmark: { type: String },
+      fullAddress: { type: String },
+    },
     receiptUrl: { type: String },
     receiptKey: { type: String },
 

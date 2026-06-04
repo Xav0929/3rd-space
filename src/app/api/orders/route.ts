@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { notifyClients } from "@/lib/sse";
 import { isAdminAuthenticated } from "@/lib/auth";
 
 function generateOrderNumber() {
@@ -57,13 +58,14 @@ export async function POST(req: NextRequest) {
     customerName,
     customerContact,
     deliveryAddress,
+    deliveryAddressDetails,
     receiptUrl,
     receiptKey,
     gcashRef,
     tableNumber,
     paymentMethod,
     notes,
-    waiterName, // ← FIXED: was missing
+    waiterName,
     source,
   } = body;
 
@@ -107,6 +109,25 @@ export async function POST(req: NextRequest) {
     price: item.price,
     quantity: item.quantity,
   }));
+  // Rate limit: max 3 delivery orders per contact per 10 minutes
+  if (type === "delivery") {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const recentCount = await Order.countDocuments({
+      type: "delivery",
+      createdAt: { $gte: tenMinutesAgo },
+      customerContact: body.customerContact,
+    });
+
+    if (recentCount >= 3) {
+      return NextResponse.json(
+        {
+          error:
+            "Too many orders placed recently. Please wait a few minutes before trying again.",
+        },
+        { status: 429 },
+      );
+    }
+  }
 
   const order = await Order.create({
     orderNumber: generateOrderNumber(),
@@ -116,15 +137,19 @@ export async function POST(req: NextRequest) {
     customerName,
     customerContact,
     deliveryAddress,
+    deliveryAddressDetails,
     receiptUrl,
     receiptKey,
     gcashRef,
     tableNumber,
     paymentMethod,
     notes,
-    waiterName, // ← FIXED: now saved to DB
+    waiterName,
     source,
   });
+
+  // notify admin dashboard instantly
+  notifyClients();
 
   return NextResponse.json(order, { status: 201 });
 }
@@ -144,6 +169,8 @@ export async function PATCH(req: NextRequest) {
   const update: any = {};
   if (status) update.status = status;
   if (paymentStatus) update.paymentStatus = paymentStatus;
+  if (body.cancelReason) update.cancelReason = body.cancelReason;
+  if (body.paymentMethod) update.paymentMethod = body.paymentMethod;
 
   if (!Object.keys(update).length) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
