@@ -4,9 +4,10 @@ import Post from "@/models/Post";
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   await connectDB();
-  await Post.findByIdAndDelete(params.id);
+  await Post.findByIdAndDelete(id);
   return NextResponse.json({ success: true });
 }
