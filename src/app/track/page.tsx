@@ -10,6 +10,13 @@ import {
   ChefHat,
   CheckCircle2,
   XCircle,
+  Ban,
+  Bike,
+  UtensilsCrossed,
+  PartyPopper,
+  ClipboardCopy,
+  Check,
+  MapPin,
 } from "lucide-react";
 
 const GOLD = "#d4a843";
@@ -210,7 +217,7 @@ function ETACircle({ status }: { status: string }) {
     ready: {
       min: 5,
       max: 15,
-      label: "On its way to you! 🛵",
+      label: "On its way to you",
       color: "#4ade80",
     },
   };
@@ -367,7 +374,6 @@ function RiderMap({ orderId }: { orderId: string }) {
       if (!mapRef.current) return;
 
       if (!mapObjRef.current) {
-        const CABANATUAN = L.latLng(15.4817, 120.9665);
         mapObjRef.current = L.map(mapRef.current, {
           center: [riderPos!.lat, riderPos!.lng],
           zoom: 16,
@@ -405,6 +411,8 @@ function RiderMap({ orderId }: { orderId: string }) {
         animate: true,
         duration: 1,
       });
+      setTimeout(() => mapObjRef.current?.invalidateSize(), 200);
+      setTimeout(() => mapObjRef.current?.invalidateSize(), 200);
     }
 
     function loadLeaflet() {
@@ -487,7 +495,8 @@ function RiderMap({ orderId }: { orderId: string }) {
           letterSpacing: "0.08em",
         }}
       >
-        ✓ RIDER HAS ARRIVED
+        <CheckCircle2 size={13} color="#4ade80" style={{ flexShrink: 0 }} />
+        RIDER HAS ARRIVED
       </div>
     );
   }
@@ -528,7 +537,10 @@ function RiderMap({ orderId }: { orderId: string }) {
         </span>
         <style>{`.rider-marker-icon{border-radius:50%;box-shadow:0 0 12px rgba(212,168,67,0.6);transition:all 0.8s ease;}`}</style>
       </div>
-      <div ref={mapRef} style={{ width: "100%", height: 260 }} />
+      <div
+        ref={mapRef}
+        style={{ width: "100%", height: "clamp(200px, 50vw, 320px)" }}
+      />
     </div>
   );
 }
@@ -619,6 +631,8 @@ function TrackContent() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        overflowX: "hidden",
+        width: "100%",
       }}
     >
       <div
@@ -628,6 +642,7 @@ function TrackContent() {
           display: "flex",
           flexDirection: "column",
           gap: 28,
+          minWidth: 0,
         }}
       >
         {/* Title */}
@@ -678,6 +693,8 @@ function TrackContent() {
               padding: "4px 4px 4px 16px",
               gap: 8,
               transition: "border-color 0.2s",
+              minWidth: 0,
+              width: "100%",
             }}
           >
             <Search
@@ -694,6 +711,7 @@ function TrackContent() {
               onBlur={() => setFocused(false)}
               style={{
                 flex: 1,
+                minWidth: 0,
                 background: "transparent",
                 border: "none",
                 outline: "none",
@@ -713,14 +731,15 @@ function TrackContent() {
                 color: orderNumber.trim() ? BG_DEEP : CREAM_MUTED,
                 border: "none",
                 borderRadius: 10,
-                padding: "10px 20px",
+                padding: "10px 14px",
                 fontFamily: "'Cinzel', serif",
                 fontSize: 12,
-                letterSpacing: "0.12em",
+                letterSpacing: "0.08em",
                 fontWeight: 700,
                 cursor: orderNumber.trim() ? "pointer" : "not-allowed",
                 transition: "all 0.18s",
                 whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               {loading ? "..." : "TRACK"}
@@ -817,7 +836,7 @@ function TrackContent() {
                     fontSize: 24,
                   }}
                 >
-                  🚫
+                  <Ban size={24} color="#f87171" />
                 </div>
                 <div>
                   <p
@@ -877,6 +896,7 @@ function TrackContent() {
                     display: "flex",
                     alignItems: "flex-start",
                     gap: 14,
+                    flexWrap: "wrap",
                   }}
                 >
                   <div
@@ -892,7 +912,7 @@ function TrackContent() {
                     <p
                       style={{
                         fontFamily: "'Cinzel', serif",
-                        fontSize: 22,
+                        fontSize: "clamp(16px, 5vw, 22px)",
                         fontWeight: 700,
                         color: statusCfg.color,
                         letterSpacing: "0.1em",
@@ -930,7 +950,31 @@ function TrackContent() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {order.type === "dine-in" ? "🍽 DINE IN" : "🛵 DELIVERY"}
+                    {order.type === "dine-in" ? (
+                      <>
+                        <UtensilsCrossed
+                          size={11}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 5,
+                          }}
+                        />
+                        DINE IN
+                      </>
+                    ) : (
+                      <>
+                        <Bike
+                          size={11}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 5,
+                          }}
+                        />
+                        DELIVERY
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -957,7 +1001,15 @@ function TrackContent() {
                       textAlign: "center",
                     }}
                   >
-                    <p style={{ fontSize: 28, marginBottom: 8 }}>🎉</p>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <PartyPopper size={28} color="#4ade80" />
+                    </div>
                     <p
                       style={{
                         color: "#4ade80",
@@ -1135,7 +1187,31 @@ function TrackContent() {
                       transition: "all 0.2s",
                     }}
                   >
-                    {copied ? "✓ COPIED" : "📋 COPY LINK"}
+                    {copied ? (
+                      <>
+                        <Check
+                          size={11}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 5,
+                          }}
+                        />
+                        COPIED
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardCopy
+                          size={11}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 5,
+                          }}
+                        />
+                        COPY LINK
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -1158,7 +1234,15 @@ function TrackContent() {
               gap: 6,
             }}
           >
-            ← PLACE AN ORDER
+            <MapPin
+              size={12}
+              style={{
+                display: "inline",
+                verticalAlign: "middle",
+                marginRight: 5,
+              }}
+            />
+            PLACE AN ORDER
           </Link>
         </div>
       </div>
@@ -1168,7 +1252,9 @@ function TrackContent() {
 
 export default function TrackPage() {
   return (
-    <div style={{ background: BG_DEEP, minHeight: "100svh" }}>
+    <div
+      style={{ background: BG_DEEP, minHeight: "100svh", overflowX: "hidden" }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }

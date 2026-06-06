@@ -1748,9 +1748,36 @@ function RiderTrackingButton({
         )}
       </button>
       {tracking && (
-        <p style={{ color: T.muted, fontSize: 11, textAlign: "center" }}>
-          Broadcasting your location · Customer can see you live
-        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ color: T.muted, fontSize: 11, textAlign: "center" }}>
+            Broadcasting your location · Customer can see you live
+          </p>
+          <button
+            onClick={async () => {
+              await stopTracking();
+              try {
+                await fetch(`/api/orders/${orderId}/location`, {
+                  method: "DELETE",
+                });
+              } catch {}
+            }}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              background: "rgba(74,222,128,0.12)",
+              border: "1px solid rgba(74,222,128,0.4)",
+              color: "#4ade80",
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "'Cinzel',serif",
+              letterSpacing: ".06em",
+            }}
+          >
+            📍 I'M HERE — ARRIVED AT CUSTOMER
+          </button>
+        </div>
       )}
       {error && (
         <p style={{ color: T.red, fontSize: 11, textAlign: "center" }}>
