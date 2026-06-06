@@ -31,6 +31,7 @@ interface Post {
   date: string;
   title: string;
   body: string;
+  image?: string;
   tilt?: number; // degrees, subtle card tilt
   size?: "sm" | "md" | "lg";
 }
@@ -212,6 +213,28 @@ function PostCard({
       }}
     >
       <PinDot color={post.pinColor ?? "gold"} />
+
+      {post.image && (
+        <div
+          style={{
+            margin: "0 -clamp(1.2rem, 2.5vw, 1.6rem) 0.75rem",
+            marginTop: "-clamp(1.6rem, 3vw, 2rem)",
+            overflow: "hidden",
+            borderBottom: `1px solid ${BR}`,
+          }}
+        >
+          <img
+            src={post.image}
+            alt={post.title}
+            style={{
+              width: "100%",
+              display: "block",
+              objectFit: "cover",
+              maxHeight: 180,
+            }}
+          />
+        </div>
+      )}
 
       {/* Tag + date row */}
       <div
@@ -468,6 +491,8 @@ function AdminModal({
   const [pinColor, setPinColor] = useState<PinColor>("gold");
   const [size, setSize] = useState<"sm" | "md" | "lg">("md");
   const [pinned, setPinned] = useState(false);
+  const [image, setImage] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const handleSubmit = () => {
     if (!title.trim() || !body.trim()) return;
@@ -477,7 +502,17 @@ function AdminModal({
       month: "long",
       year: "numeric",
     });
-    onPost({ tag, pinned, pinColor, date, title, body, tilt, size });
+    onPost({
+      tag,
+      pinned,
+      pinColor,
+      date,
+      title,
+      body,
+      image: image || undefined,
+      tilt,
+      size,
+    });
     onClose();
   };
 
@@ -673,9 +708,99 @@ function AdminModal({
           />
         </div>
 
+        {/* Image upload */}
+        <div style={{ marginBottom: "1rem" }}>
+          <span style={labelStyle}>Image (optional)</span>
+          {image && (
+            <div
+              style={{
+                position: "relative",
+                marginBottom: "0.5rem",
+                borderRadius: 4,
+                overflow: "hidden",
+                border: `1px solid ${BR_MED}`,
+              }}
+            >
+              <img
+                src={image}
+                alt="preview"
+                style={{
+                  width: "100%",
+                  maxHeight: 140,
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+              <button
+                onClick={() => setImage("")}
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  background: "rgba(0,0,0,0.6)",
+                  border: `1px solid ${BR_MED}`,
+                  color: GOLD,
+                  width: 26,
+                  height: 26,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  borderRadius: 2,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "9px 14px",
+              border: `1px dashed ${uploading ? ACCENT : BR_MED}`,
+              cursor: uploading ? "wait" : "pointer",
+              background: uploading ? "rgba(212,168,67,0.05)" : "transparent",
+              color: uploading ? ACCENT : GOLD_DIM,
+              fontSize: "0.75rem",
+            }}
+          >
+            {uploading
+              ? "Uploading…"
+              : image
+                ? "Replace image"
+                : "Upload image"}
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(true);
+                const fd = new FormData();
+                fd.append("file", file);
+                try {
+                  const res = await fetch("/api/upload", {
+                    method: "POST",
+                    body: fd,
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setImage(data.url);
+                  }
+                } catch {}
+                setUploading(false);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+
         <button
           onClick={handleSubmit}
-          disabled={!title.trim() || !body.trim()}
+          disabled={!title.trim() || !body.trim() || uploading}
           style={{
             width: "100%",
             fontFamily: YK,
@@ -1040,7 +1165,7 @@ export default function BulletinPage() {
           </section>
 
           {/* Partners */}
-          <section>
+          {/* <section>
             <SectionDivider label="Our Partners" />
             <p
               style={{
@@ -1067,7 +1192,7 @@ export default function BulletinPage() {
                 <PartnerCard key={p.id} partner={p} />
               ))}
             </div>
-          </section>
+          </section> */}
         </div>
 
         <Footer />

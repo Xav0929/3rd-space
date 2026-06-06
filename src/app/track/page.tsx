@@ -76,6 +76,7 @@ const STATUS_CONFIG: Record<
 };
 
 interface Order {
+  _id: string;
   orderNumber: string;
   type: string;
   status: string;
@@ -83,6 +84,7 @@ interface Order {
   total: number;
   createdAt: string;
   cancelReason?: string;
+  deliveryAddressDetails?: { lat?: number; lng?: number };
 }
 
 const DINE_STEPS = ["pending", "confirmed", "preparing", "ready", "completed"];
@@ -324,6 +326,209 @@ function ETACircle({ status }: { status: string }) {
           Estimated delivery time
         </p>
       </div>
+    </div>
+  );
+}
+
+// ── RIDER MAP ────────────────────────────────────────────────────────────────
+function RiderMap({ orderId }: { orderId: string }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapObjRef = useRef<any>(null);
+  const riderMarkerRef = useRef<any>(null);
+  const [riderPos, setRiderPos] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+  const [mapStatus, setMapStatus] = useState<"waiting" | "live" | "stopped">(
+    "waiting",
+  );
+
+  useEffect(() => {
+    const es = new EventSource(`/api/orders/${orderId}/location`);
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === "location") {
+          setRiderPos({ lat: data.lat, lng: data.lng });
+          setMapStatus("live");
+        } else if (data.type === "stopped") {
+          setMapStatus("stopped");
+        } else if (data.type === "waiting") {
+          setMapStatus("waiting");
+        }
+      } catch {}
+    };
+    return () => es.close();
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!riderPos) return;
+
+    function initMap(L: any) {
+      if (!mapRef.current) return;
+
+      if (!mapObjRef.current) {
+        const CABANATUAN = L.latLng(15.4817, 120.9665);
+        mapObjRef.current = L.map(mapRef.current, {
+          center: [riderPos!.lat, riderPos!.lng],
+          zoom: 16,
+          zoomControl: true,
+          attributionControl: false,
+          minZoom: 13,
+          maxZoom: 19,
+          maxBounds: L.latLngBounds(
+            L.latLng(15.35, 120.85),
+            L.latLng(15.62, 121.1),
+          ),
+          maxBoundsViscosity: 1.0,
+        });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+        }).addTo(mapObjRef.current);
+      }
+
+      const riderIcon = L.icon({
+        iconUrl: "/logo-map.png",
+        iconSize: [48, 48],
+        iconAnchor: [24, 24],
+        className: "rider-marker-icon",
+      });
+
+      if (!riderMarkerRef.current) {
+        riderMarkerRef.current = L.marker([riderPos!.lat, riderPos!.lng], {
+          icon: riderIcon,
+        }).addTo(mapObjRef.current);
+      } else {
+        riderMarkerRef.current.setLatLng([riderPos!.lat, riderPos!.lng]);
+      }
+
+      mapObjRef.current.panTo([riderPos!.lat, riderPos!.lng], {
+        animate: true,
+        duration: 1,
+      });
+    }
+
+    function loadLeaflet() {
+      if ((window as any).L) {
+        initMap((window as any).L);
+        return;
+      }
+
+      if (!document.querySelector('link[href*="leaflet"]')) {
+        const css = document.createElement("link");
+        css.rel = "stylesheet";
+        css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(css);
+      }
+
+      if (!document.querySelector('script[src*="leaflet"]')) {
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+        script.onload = () => initMap((window as any).L);
+        document.head.appendChild(script);
+      } else {
+        const check = setInterval(() => {
+          if ((window as any).L) {
+            clearInterval(check);
+            initMap((window as any).L);
+          }
+        }, 100);
+      }
+    }
+
+    loadLeaflet();
+  }, [riderPos]);
+
+  if (mapStatus === "waiting") {
+    return (
+      <div
+        style={{
+          padding: "18px 20px",
+          borderBottom: `1px solid ${BORDER}`,
+          background: "rgba(212,168,67,0.04)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          color: CREAM_MUTED,
+          fontSize: 12,
+          fontFamily: "'Cinzel', serif",
+          letterSpacing: "0.08em",
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: GOLD,
+            boxShadow: "0 0 6px rgba(212,168,67,0.6)",
+            animation: "pulse-rider 1.4s ease-in-out infinite",
+            flexShrink: 0,
+            display: "inline-block",
+          }}
+        />
+        RIDER IS BEING ASSIGNED
+        <style>{`@keyframes pulse-rider{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
+      </div>
+    );
+  }
+
+  if (mapStatus === "stopped") {
+    return (
+      <div
+        style={{
+          padding: "14px 20px",
+          borderBottom: `1px solid ${BORDER}`,
+          background: "rgba(74,222,128,0.06)",
+          textAlign: "center",
+          color: "#4ade80",
+          fontSize: 12,
+          fontFamily: "'Cinzel', serif",
+          letterSpacing: "0.08em",
+        }}
+      >
+        ✓ RIDER HAS ARRIVED
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ borderBottom: `1px solid ${BORDER}` }}>
+      <div
+        style={{
+          padding: "8px 16px",
+          background: "rgba(74,222,128,0.08)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          borderBottom: `1px solid ${BORDER}`,
+        }}
+      >
+        <span
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            background: "#4ade80",
+            boxShadow: "0 0 6px rgba(74,222,128,0.8)",
+            animation: "pulse-rider 1s ease-in-out infinite",
+            flexShrink: 0,
+            display: "inline-block",
+          }}
+        />
+        <span
+          style={{
+            color: "#4ade80",
+            fontSize: 11,
+            fontFamily: "'Cinzel', serif",
+            letterSpacing: "0.1em",
+          }}
+        >
+          LIVE — RIDER LOCATION
+        </span>
+        <style>{`.rider-marker-icon{border-radius:50%;box-shadow:0 0 12px rgba(212,168,67,0.6);transition:all 0.8s ease;}`}</style>
+      </div>
+      <div ref={mapRef} style={{ width: "100%", height: 260 }} />
     </div>
   );
 }
@@ -586,7 +791,6 @@ function TrackContent() {
           >
             <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-            {/* ── CANCELLED: single clean block, no header ── */}
             {isCancelled ? (
               <div
                 style={{
@@ -664,7 +868,7 @@ function TrackContent() {
               </div>
             ) : (
               <>
-                {/* Status header — only for non-cancelled */}
+                {/* Status header */}
                 <div
                   style={{
                     background: statusCfg.bg,
@@ -730,10 +934,18 @@ function TrackContent() {
                   </div>
                 </div>
 
-                {/* ETA ring — delivery only */}
-                {order.type === "delivery" && (
+                {/* ETA ring — delivery only, non-completed */}
+                {order.type === "delivery" && order.status !== "completed" && (
                   <ETACircle status={order.status} />
                 )}
+
+                {/* ── RIDER MAP — delivery only, while rider is out ── */}
+                {order.type === "delivery" &&
+                  order.status !== "pending" &&
+                  order.status !== "cancelled" &&
+                  order.status !== "completed" && (
+                    <RiderMap orderId={order._id} />
+                  )}
 
                 {/* Completed delivery message */}
                 {order.type === "delivery" && order.status === "completed" && (
@@ -776,7 +988,7 @@ function TrackContent() {
               </>
             )}
 
-            {/* Order items — always shown */}
+            {/* Order items */}
             <div style={{ padding: "18px 20px" }}>
               <p
                 style={{
@@ -904,13 +1116,7 @@ function TrackContent() {
                       })}
                     </>
                   ) : (
-                    `Placed ${new Date(order.createdAt).toLocaleString(
-                      "en-PH",
-                      {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      },
-                    )}`
+                    `Placed ${new Date(order.createdAt).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}`
                   )}
                 </p>
                 {order.type === "delivery" && !isCancelled && (

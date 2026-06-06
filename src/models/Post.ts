@@ -13,6 +13,7 @@ const PostSchema = new mongoose.Schema({
   body: { type: String, required: true },
   tilt: { type: Number, default: 0 },
   size: { type: String, enum: ["sm", "md", "lg"], default: "md" },
+  image: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
 });
 

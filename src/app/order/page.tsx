@@ -21,6 +21,13 @@ import {
   Edit3,
   AlertCircle,
   HelpCircle,
+  Armchair,
+  Users,
+  CheckCircle2,
+  Bike,
+  Radio,
+  Leaf,
+  Coffee,
 } from "lucide-react";
 
 /* ─── TOKENS ──────────────────────────────────────────────────────────────── */
@@ -35,6 +42,65 @@ const BR = "rgba(232,213,163,0.11)";
 const BRH = "rgba(212,168,67,0.45)";
 const ERR = "rgba(248,113,113,0.8)";
 
+/* ─── CUSTOMIZATION CONFIG ────────────────────────────────────────────────── */
+const MILK_SUBS = [
+  { label: "Regular Milk", price: 0 },
+  { label: "Oat Milk", price: 30 },
+  { label: "Almond Milk", price: 30 },
+  { label: "Soy Milk", price: 20 },
+];
+type CustomizationConfig = {
+  substitutions?: { label: string; price: number }[];
+  addons?: { label: string; price: number }[];
+};
+function getCategoryCustomizations(
+  category: string,
+): CustomizationConfig | null {
+  const c = category.toLowerCase().trim();
+  if (c.includes("3rd space")) return { substitutions: MILK_SUBS };
+  if (c.includes("appetizer") || c.includes("snack"))
+    return {
+      addons: [
+        { label: "Extra Sauce", price: 15 },
+        { label: "Extra Serving", price: 30 },
+      ],
+    };
+  if (c.includes("brain fuel")) return null;
+  if (c.includes("oat"))
+    return { addons: [{ label: "Add Espresso Shot", price: 35 }] };
+  if (c.includes("coffee")) return { substitutions: MILK_SUBS };
+  if (c.includes("flavored soda")) return null;
+  if (c.includes("house plate"))
+    return {
+      addons: [
+        { label: "Add Rice", price: 25 },
+        { label: "Add Egg", price: 15 },
+      ],
+    };
+  if (c.includes("matcha")) return { substitutions: MILK_SUBS };
+  if (c.includes("non")) return { substitutions: MILK_SUBS };
+  if (c.includes("noodle") || c.includes("soup"))
+    return {
+      addons: [
+        { label: "Add Egg", price: 15 },
+        { label: "Add Extra Toppings", price: 25 },
+      ],
+    };
+  if (c.includes("pasta"))
+    return { addons: [{ label: "Add Rice", price: 25 }] };
+  if (c.includes("savory"))
+    return {
+      addons: [
+        { label: "Add Sauce", price: 15 },
+        { label: "Add Egg", price: 15 },
+        { label: "Add Rice", price: 25 },
+      ],
+    };
+  if (c.includes("tea"))
+    return { addons: [{ label: "Add Espresso Shot", price: 35 }] };
+  return null;
+}
+
 /* ─── TYPES ───────────────────────────────────────────────────────────────── */
 interface MenuItem {
   _id: string;
@@ -45,8 +111,15 @@ interface MenuItem {
   image: string;
   available: boolean;
 }
+interface SelectedCustomization {
+  type: "substitution" | "addon";
+  label: string;
+  price: number;
+}
 interface CartItem extends MenuItem {
   quantity: number;
+  cartKey: string;
+  customizations: SelectedCustomization[];
 }
 interface Order {
   orderNumber: string;
@@ -249,6 +322,349 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ─── CUSTOMIZATION SHEET ─────────────────────────────────────────────────── */
+function CustomizationSheet({
+  item,
+  config,
+  onAdd,
+  onClose,
+}: {
+  item: MenuItem;
+  config: CustomizationConfig;
+  onAdd: (customizations: SelectedCustomization[]) => void;
+  onClose: () => void;
+}) {
+  const [selectedSub, setSelectedSub] = useState(
+    config.substitutions?.[0]?.label || "",
+  );
+  const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
+
+  const extraCost =
+    (config.substitutions?.find((s) => s.label === selectedSub)?.price || 0) +
+    Array.from(selectedAddons).reduce((sum, lbl) => {
+      return sum + (config.addons?.find((a) => a.label === lbl)?.price || 0);
+    }, 0);
+
+  const handleAdd = () => {
+    const result: SelectedCustomization[] = [];
+    if (config.substitutions) {
+      const sub = config.substitutions.find((s) => s.label === selectedSub);
+      if (sub) result.push({ type: "substitution", ...sub });
+    }
+    selectedAddons.forEach((lbl) => {
+      const a = config.addons?.find((x) => x.label === lbl);
+      if (a) result.push({ type: "addon", ...a });
+    });
+    onAdd(result);
+  };
+
+  const toggleAddon = (lbl: string) =>
+    setSelectedAddons((prev) => {
+      const next = new Set(prev);
+      next.has(lbl) ? next.delete(lbl) : next.add(lbl);
+      return next;
+    });
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,.6)",
+          backdropFilter: "blur(4px)",
+          zIndex: 60,
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "#111e11",
+          borderTop: `1px solid ${BR}`,
+          borderRadius: "20px 20px 0 0",
+          zIndex: 61,
+          padding: "0 0 env(safe-area-inset-bottom,0)",
+          maxHeight: "85svh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Handle */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            padding: "12px 0 4px",
+          }}
+        >
+          <div
+            style={{ width: 36, height: 4, borderRadius: 999, background: BR }}
+          />
+        </div>
+        {/* Header */}
+        <div
+          style={{
+            padding: "0 clamp(16px,4vw,20px) 14px",
+            borderBottom: `1px solid ${BR}`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: 15,
+                fontWeight: 700,
+                color: C,
+                letterSpacing: ".04em",
+              }}
+            >
+              {item.name}
+            </p>
+            <p
+              style={{
+                color: G,
+                fontFamily: "'Cinzel',serif",
+                fontSize: 14,
+                marginTop: 2,
+              }}
+            >
+              ₱{item.price}
+              {extraCost > 0 && (
+                <span style={{ color: CM, fontSize: 12 }}> + ₱{extraCost}</span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: CARD,
+              border: `1px solid ${BR}`,
+              borderRadius: 999,
+              width: 32,
+              height: 32,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: CM,
+              flexShrink: 0,
+              marginLeft: 12,
+              touchAction: "manipulation",
+            }}
+          >
+            <X size={13} />
+          </button>
+        </div>
+        {/* Options */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "14px clamp(16px,4vw,20px)",
+          }}
+        >
+          {config.substitutions && (
+            <div style={{ marginBottom: 18 }}>
+              <p
+                style={{
+                  color: CM,
+                  fontSize: 10,
+                  letterSpacing: ".14em",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 10,
+                }}
+              >
+                MILK / BASE
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {config.substitutions.map((s) => {
+                  const sel = selectedSub === s.label;
+                  return (
+                    <button
+                      key={s.label}
+                      onClick={() => setSelectedSub(s.label)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 14px",
+                        borderRadius: 10,
+                        border: `1.5px solid ${sel ? G : BR}`,
+                        background: sel ? GD : "transparent",
+                        cursor: "pointer",
+                        touchAction: "manipulation",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: 999,
+                            border: `2px solid ${sel ? G : CM}`,
+                            background: sel ? G : "transparent",
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {sel && (
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: 999,
+                                background: BG,
+                              }}
+                            />
+                          )}
+                        </div>
+                        <span style={{ color: sel ? C : CM, fontSize: 13 }}>
+                          {s.label}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          color: s.price > 0 ? G : CF,
+                          fontSize: 12,
+                          fontFamily: "'Cinzel',serif",
+                        }}
+                      >
+                        {s.price > 0 ? `+₱${s.price}` : "Free"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {config.addons && (
+            <div style={{ marginBottom: 18 }}>
+              <p
+                style={{
+                  color: CM,
+                  fontSize: 10,
+                  letterSpacing: ".14em",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 10,
+                }}
+              >
+                ADD-ONS
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {config.addons.map((a) => {
+                  const sel = selectedAddons.has(a.label);
+                  return (
+                    <button
+                      key={a.label}
+                      onClick={() => toggleAddon(a.label)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 14px",
+                        borderRadius: 10,
+                        border: `1.5px solid ${sel ? G : BR}`,
+                        background: sel ? GD : "transparent",
+                        cursor: "pointer",
+                        touchAction: "manipulation",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: 4,
+                            border: `2px solid ${sel ? G : CM}`,
+                            background: sel ? G : "transparent",
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all .15s",
+                          }}
+                        >
+                          {sel && <Check size={10} color={BG} />}
+                        </div>
+                        <span style={{ color: sel ? C : CM, fontSize: 13 }}>
+                          {a.label}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          color: G,
+                          fontSize: 12,
+                          fontFamily: "'Cinzel',serif",
+                        }}
+                      >
+                        +₱{a.price}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* CTA */}
+        <div
+          style={{
+            padding: "12px clamp(16px,4vw,20px) 16px",
+            borderTop: `1px solid ${BR}`,
+          }}
+        >
+          <button
+            onClick={handleAdd}
+            style={{
+              width: "100%",
+              background: G,
+              color: BG,
+              border: "none",
+              borderRadius: 12,
+              padding: "15px 16px",
+              fontFamily: "'Cinzel',serif",
+              fontSize: 13,
+              letterSpacing: ".12em",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              touchAction: "manipulation",
+            }}
+          >
+            <span>ADD TO CART</span>
+            <span>₱{item.price + extraCost}</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ─── MODE SELECT ─────────────────────────────────────────────────────────── */
 function ModeCard({ emoji, title, sub, onClick }: any) {
   const [hov, setHov] = useState(false);
@@ -264,6 +680,9 @@ function ModeCard({ emoji, title, sub, onClick }: any) {
         padding: "clamp(24px,5vw,38px) 20px",
         cursor: "pointer",
         textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
         transform: hov ? "translateY(-3px)" : "none",
         boxShadow: hov ? "0 12px 40px rgba(212,168,67,.12)" : "none",
         transition: "all .22s ease",
@@ -303,11 +722,12 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
   return (
     <div
       style={{
-        minHeight: "100svh",
+        height: "100svh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        overflowY: "auto",
         padding: "clamp(20px,5vw,40px) clamp(14px,4vw,24px)",
         background: `radial-gradient(ellipse at 55% 20%, rgba(212,168,67,.08) 0%, transparent 60%), ${BG}`,
       }}
@@ -357,20 +777,20 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
         {[
           {
             mode: "dine-in" as OrderType,
-            emoji: "🪑",
+            icon: <Armchair size={46} color={G} />,
             title: "DINE IN",
             sub: "Order at your table — pay cash or GCash",
           },
           {
             mode: "delivery" as OrderType,
-            emoji: "🛵",
+            icon: <Bike size={46} color={G} />,
             title: "DELIVERY",
             sub: "Delivered to your door — GCash only",
           },
-        ].map(({ mode, emoji, title, sub }) => (
+        ].map(({ mode, icon, title, sub }) => (
           <ModeCard
             key={mode}
-            emoji={emoji}
+            emoji={icon}
             title={title}
             sub={sub}
             onClick={() => onSelect(mode)}
@@ -405,7 +825,7 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
             whiteSpace: "nowrap",
           }}
         >
-          📡 TRACK AN EXISTING ORDER
+          <Radio size={12} /> TRACK AN EXISTING ORDER
         </a>
         <div style={{ flex: 1, height: 1, background: BR }} />
       </div>
@@ -440,14 +860,12 @@ function Btn32({ children, onClick, gold }: any) {
 /* ─── MENU CARD ───────────────────────────────────────────────────────────── */
 function MenuCard({
   item,
-  cartItem,
+  cartCount,
   onAdd,
-  onUpdate,
 }: {
   item: MenuItem;
-  cartItem?: CartItem;
+  cartCount: number;
   onAdd: () => void;
-  onUpdate: (q: number) => void;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -466,7 +884,7 @@ function MenuCard({
     >
       <div
         style={{
-          height: "clamp(120px,22vw,150px)",
+          height: "clamp(160px,28vw,200px)",
           background: "rgba(212,168,67,.07)",
           overflow: "hidden",
           display: "flex",
@@ -490,13 +908,13 @@ function MenuCard({
             }}
           />
         ) : (
-          <span style={{ fontSize: 28, opacity: 0.35 }}>☕</span>
+          <Coffee size={28} style={{ opacity: 0.35, color: CM }} />
         )}
       </div>
       <div
         style={{
           padding:
-            "clamp(10px,3vw,13px) clamp(12px,3vw,15px) clamp(12px,3vw,15px)",
+            "clamp(8px,2.5vw,13px) clamp(10px,2.5vw,15px) clamp(10px,2.5vw,15px)",
         }}
       >
         <p
@@ -542,37 +960,23 @@ function MenuCard({
           >
             ₱{item.price}
           </span>
-          {cartItem ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                background: "rgba(212,168,67,.12)",
-                border: `1px solid ${G}`,
-                borderRadius: 999,
-                padding: "2px 4px",
-              }}
-            >
-              <Btn32 onClick={() => onUpdate(cartItem.quantity - 1)}>
-                <Minus size={12} />
-              </Btn32>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {cartCount > 0 && (
               <span
                 style={{
-                  width: 22,
-                  textAlign: "center",
-                  color: C,
-                  fontWeight: 700,
-                  fontSize: 13,
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: 11,
+                  color: G,
+                  background: "rgba(212,168,67,.12)",
+                  border: `1px solid rgba(212,168,67,.3)`,
+                  borderRadius: 999,
+                  padding: "2px 9px",
+                  letterSpacing: ".04em",
                 }}
               >
-                {cartItem.quantity}
+                {cartCount} in cart
               </span>
-              <Btn32 gold onClick={() => onUpdate(cartItem.quantity + 1)}>
-                <Plus size={12} />
-              </Btn32>
-            </div>
-          ) : (
+            )}
             <button
               onClick={onAdd}
               style={{
@@ -587,11 +991,12 @@ function MenuCard({
                 alignItems: "center",
                 justifyContent: "center",
                 touchAction: "manipulation",
+                flexShrink: 0,
               }}
             >
               <Plus size={16} />
             </button>
-          )}
+          </div>
         </div>
       </div>
     </div>
@@ -701,7 +1106,7 @@ function CartDrawer({
           ) : (
             cart.map((item: CartItem) => (
               <div
-                key={item._id}
+                key={item.cartKey}
                 style={{
                   background: CARD,
                   border: `1px solid ${BR}`,
@@ -726,6 +1131,18 @@ function CartDrawer({
                   >
                     {item.name}
                   </p>
+                  {item.customizations && item.customizations.length > 0 && (
+                    <p
+                      style={{
+                        color: CF,
+                        fontSize: 10,
+                        marginBottom: 2,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {item.customizations.map((c) => c.label).join(" · ")}
+                    </p>
+                  )}
                   <p
                     style={{
                       color: G,
@@ -737,7 +1154,9 @@ function CartDrawer({
                   </p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Btn32 onClick={() => onUpdate(item._id, item.quantity - 1)}>
+                  <Btn32
+                    onClick={() => onUpdate(item.cartKey, item.quantity - 1)}
+                  >
                     <Minus size={11} />
                   </Btn32>
                   <span
@@ -753,12 +1172,12 @@ function CartDrawer({
                   </span>
                   <Btn32
                     gold
-                    onClick={() => onUpdate(item._id, item.quantity + 1)}
+                    onClick={() => onUpdate(item.cartKey, item.quantity + 1)}
                   >
                     <Plus size={11} />
                   </Btn32>
                   <button
-                    onClick={() => onRemove(item._id)}
+                    onClick={() => onRemove(item.cartKey)}
                     style={{
                       marginLeft: 4,
                       width: 30,
@@ -846,13 +1265,34 @@ function MenuScreen({
 }: any) {
   const categories = Array.from(
     new Set(menuItems.map((i: MenuItem) => i.category)),
-  ) as string[];
+  ).filter((cat) => {
+    const c = (cat as string).toLowerCase();
+    return !c.includes("add-on") && !c.includes("substitut");
+  }) as string[];
+
+  const visibleMenuItems = menuItems.filter((i: MenuItem) => {
+    const c = i.category.toLowerCase();
+    return !c.includes("add-on") && !c.includes("substitut");
+  });
 
   const [active, setActive] = useState(categories[0] || "");
   const [search, setSearch] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
+  const [customizingConfig, setCustomizingConfig] =
+    useState<CustomizationConfig | null>(null);
+
+  const handleAddToCartWithCustomization = (item: MenuItem) => {
+    const config = getCategoryCustomizations(item.category);
+    if (config) {
+      setCustomizingItem(item);
+      setCustomizingConfig(config);
+    } else {
+      onAddToCart(item, []);
+    }
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -869,7 +1309,7 @@ function MenuScreen({
 
   const searchResults =
     search.trim() !== ""
-      ? menuItems.filter(
+      ? visibleMenuItems.filter(
           (i: MenuItem) =>
             i.name.toLowerCase().includes(search.toLowerCase()) ||
             i.description.toLowerCase().includes(search.toLowerCase()),
@@ -1151,7 +1591,7 @@ function MenuScreen({
                       gap: 8,
                     }}
                   >
-                    <div style={{ fontSize: 40 }}>🍃</div>
+                    <Leaf size={40} style={{ opacity: 0.5, color: CM }} />
                     <p style={{ fontSize: 14 }}>No items match your search</p>
                   </div>
                 ) : (
@@ -1164,16 +1604,15 @@ function MenuScreen({
                     }}
                   >
                     {searchResults.map((item: MenuItem) => {
-                      const ci = cart.find((c: CartItem) => c._id === item._id);
+                      const count = cart
+                        .filter((c: CartItem) => c._id === item._id)
+                        .reduce((s: number, c: CartItem) => s + c.quantity, 0);
                       return (
                         <MenuCard
                           key={item._id}
                           item={item}
-                          cartItem={ci}
-                          onAdd={() => onAddToCart(item)}
-                          onUpdate={(qty: number) =>
-                            onUpdateCart(item._id, qty)
-                          }
+                          cartCount={count}
+                          onAdd={() => handleAddToCartWithCustomization(item)}
                         />
                       );
                     })}
@@ -1185,7 +1624,7 @@ function MenuScreen({
             {/* Continuous category sections */}
             {!searchResults &&
               categories.map((cat) => {
-                const items = menuItems.filter(
+                const items = visibleMenuItems.filter(
                   (i: MenuItem) => i.category === cat,
                 );
                 return (
@@ -1235,18 +1674,18 @@ function MenuScreen({
                       }}
                     >
                       {items.map((item: MenuItem) => {
-                        const ci = cart.find(
-                          (c: CartItem) => c._id === item._id,
-                        );
+                        const count = cart
+                          .filter((c: CartItem) => c._id === item._id)
+                          .reduce(
+                            (s: number, c: CartItem) => s + c.quantity,
+                            0,
+                          );
                         return (
                           <MenuCard
                             key={item._id}
                             item={item}
-                            cartItem={ci}
-                            onAdd={() => onAddToCart(item)}
-                            onUpdate={(qty: number) =>
-                              onUpdateCart(item._id, qty)
-                            }
+                            cartCount={count}
+                            onAdd={() => handleAddToCartWithCustomization(item)}
                           />
                         );
                       })}
@@ -1317,6 +1756,22 @@ function MenuScreen({
         }}
         cartTotal={total}
       />
+
+      {customizingItem && customizingConfig && (
+        <CustomizationSheet
+          item={customizingItem}
+          config={customizingConfig}
+          onClose={() => {
+            setCustomizingItem(null);
+            setCustomizingConfig(null);
+          }}
+          onAdd={(customizations) => {
+            onAddToCart(customizingItem, customizations);
+            setCustomizingItem(null);
+            setCustomizingConfig(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -2014,7 +2469,10 @@ function TablePicker({
           >
             {[
               { color: G, label: "Available" },
-              { color: "rgba(248,113,113,.7)", label: "Occupied" },
+              {
+                color: "rgba(248,113,113,.7)",
+                label: "Occupied — tap to join",
+              },
             ].map((l) => (
               <div
                 key={l.label}
@@ -2043,7 +2501,7 @@ function TablePicker({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
+              gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
               gap: 8,
             }}
           >
@@ -2053,10 +2511,7 @@ function TablePicker({
               return (
                 <button
                   key={t}
-                  onClick={() => {
-                    if (!occupied) onChange(t);
-                  }}
-                  disabled={occupied}
+                  onClick={() => onChange(t)}
                   style={{
                     aspectRatio: "1",
                     borderRadius: 12,
@@ -2064,7 +2519,7 @@ function TablePicker({
                       isSelected
                         ? G
                         : occupied
-                          ? "rgba(248,113,113,.3)"
+                          ? "rgba(248,113,113,.5)"
                           : "rgba(232,213,163,.15)"
                     }`,
                     background: isSelected
@@ -2072,7 +2527,7 @@ function TablePicker({
                       : occupied
                         ? "rgba(248,113,113,.07)"
                         : "rgba(255,255,255,.03)",
-                    cursor: occupied ? "not-allowed" : "pointer",
+                    cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -2083,8 +2538,20 @@ function TablePicker({
                     padding: 8,
                   }}
                 >
-                  <span style={{ fontSize: 18 }}>
-                    {occupied ? "🔴" : isSelected ? "✅" : "🪑"}
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {isSelected ? (
+                      <CheckCircle2 size={18} color={G} />
+                    ) : occupied ? (
+                      <Users size={18} color="rgba(248,113,113,.8)" />
+                    ) : (
+                      <Armchair size={18} color={CM} />
+                    )}
                   </span>
                   <span
                     style={{
@@ -2094,7 +2561,7 @@ function TablePicker({
                       color: isSelected
                         ? G
                         : occupied
-                          ? "rgba(248,113,113,.6)"
+                          ? "rgba(248,113,113,.8)"
                           : CM,
                       letterSpacing: ".04em",
                     }}
@@ -2105,14 +2572,14 @@ function TablePicker({
                     style={{
                       fontSize: 9,
                       color: occupied
-                        ? "rgba(248,113,113,.5)"
+                        ? "rgba(248,113,113,.6)"
                         : isSelected
                           ? G
                           : "rgba(232,213,163,.3)",
                       letterSpacing: ".06em",
                     }}
                   >
-                    {occupied ? "TAKEN" : isSelected ? "SELECTED" : "FREE"}
+                    {occupied ? "JOIN" : isSelected ? "SELECTED" : "FREE"}
                   </span>
                 </button>
               );
@@ -2120,24 +2587,45 @@ function TablePicker({
           </div>
 
           {/* Selected indicator */}
-          {selected && !occupiedTables.has(selected) && (
+          {selected && (
             <div
               style={{
                 marginTop: 12,
                 padding: "10px 14px",
-                background: GD,
-                border: `1px solid ${G}`,
+                background: occupiedTables.has(selected)
+                  ? "rgba(248,113,113,.07)"
+                  : GD,
+                border: `1px solid ${occupiedTables.has(selected) ? "rgba(248,113,113,.4)" : G}`,
                 borderRadius: 10,
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 fontSize: 13,
-                color: G,
+                color: occupiedTables.has(selected)
+                  ? "rgba(248,113,113,.9)"
+                  : G,
                 fontFamily: "'Cinzel',serif",
                 letterSpacing: ".06em",
               }}
             >
-              🪑 Table {selected} selected
+              {occupiedTables.has(selected) ? (
+                <>
+                  <Users size={14} style={{ marginRight: 6, flexShrink: 0 }} />{" "}
+                  Joining Table{" "}
+                </>
+              ) : (
+                <>
+                  <Armchair
+                    size={14}
+                    style={{ marginRight: 6, flexShrink: 0 }}
+                  />{" "}
+                  Table{" "}
+                </>
+              )}
+              {selected}
+              {occupiedTables.has(selected)
+                ? " — staff will seat you"
+                : " selected"}
             </div>
           )}
         </>
@@ -2154,6 +2642,12 @@ function CheckoutScreen({
   onFormChange,
   onNext,
   onBack,
+  voucherCode,
+  setVoucherCode,
+  voucherDiscount,
+  setVoucherDiscount,
+  voucherType,
+  setVoucherType,
 }: {
   cart: CartItem[];
   orderType: OrderType;
@@ -2161,9 +2655,68 @@ function CheckoutScreen({
   onFormChange: (f: string, v: any) => void;
   onNext: () => void;
   onBack: () => void;
+  voucherCode: string;
+  setVoucherCode: (v: string) => void;
+  voucherDiscount: number;
+  setVoucherDiscount: (v: number) => void;
+  voucherType: "drink" | "food" | null;
+  setVoucherType: (v: "drink" | "food" | null) => void;
 }) {
-  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const [phoneTouched, setPhoneTouched] = useState(false);
+  const [voucherInput, setVoucherInput] = useState(voucherCode);
+  const [voucherChecking, setVoucherChecking] = useState(false);
+  const [voucherResult, setVoucherResult] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(voucherCode ? { ok: true, msg: `✓ Voucher applied` } : null);
+
+  const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const discountedTotal = Math.max(0, rawTotal - voucherDiscount);
+  const total = discountedTotal;
+
+  async function applyVoucher() {
+    if (!voucherInput.trim()) return;
+    setVoucherChecking(true);
+    setVoucherResult(null);
+    try {
+      const res = await fetch("/api/vouchers/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: voucherInput.trim().toUpperCase(),
+          dryRun: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const pct = data.type === "drink" ? 0.1 : 0.05;
+        const disc = parseFloat((rawTotal * pct).toFixed(2));
+        setVoucherCode(voucherInput.trim().toUpperCase());
+        setVoucherDiscount(disc);
+        setVoucherType(data.type);
+        setVoucherResult({
+          ok: true,
+          msg: `✓ ${data.type === "drink" ? "10% drink" : "5% food"} voucher — saves ₱${disc.toFixed(2)}`,
+        });
+      } else {
+        setVoucherCode("");
+        setVoucherDiscount(0);
+        setVoucherType(null);
+        setVoucherResult({ ok: false, msg: data.error });
+      }
+    } catch {
+      setVoucherResult({ ok: false, msg: "Network error." });
+    }
+    setVoucherChecking(false);
+  }
+
+  function removeVoucher() {
+    setVoucherInput("");
+    setVoucherCode("");
+    setVoucherDiscount(0);
+    setVoucherType(null);
+    setVoucherResult(null);
+  }
 
   const handlePhone = (raw: string) => {
     const digits = normalizePHPhone(raw);
@@ -2206,7 +2759,7 @@ function CheckoutScreen({
           padding: `8px clamp(12px,4vw,16px) 32px`,
         }}
       >
-        <div style={{ maxWidth: 520, margin: "0 auto" }}>
+        <div style={{ maxWidth: 520, margin: "0 auto", width: "100%" }}>
           <SectionTitle>Order Summary</SectionTitle>
           <div
             style={{
@@ -2219,7 +2772,7 @@ function CheckoutScreen({
           >
             {cart.map((item) => (
               <div
-                key={item._id}
+                key={item.cartKey}
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -2228,22 +2781,28 @@ function CheckoutScreen({
                   gap: 12,
                 }}
               >
-                <span
-                  style={{
-                    color: CM,
-                    fontSize: 13,
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {item.name}{" "}
-                  <span style={{ color: CF, fontSize: 12 }}>
-                    ×{item.quantity}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span
+                    style={{
+                      color: CM,
+                      fontSize: 13,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      display: "block",
+                    }}
+                  >
+                    {item.name}{" "}
+                    <span style={{ color: CF, fontSize: 12 }}>
+                      ×{item.quantity}
+                    </span>
                   </span>
-                </span>
+                  {item.customizations && item.customizations.length > 0 && (
+                    <span style={{ color: CF, fontSize: 10, lineHeight: 1.4 }}>
+                      {item.customizations.map((c) => c.label).join(" · ")}
+                    </span>
+                  )}
+                </div>
                 <span
                   style={{
                     color: C,
@@ -2351,7 +2910,11 @@ function CheckoutScreen({
                         zIndex: 1,
                       }}
                     >
-                      <span style={{ fontSize: 14 }}>🇵🇭</span>
+                      <span
+                        style={{ fontSize: 11, fontWeight: 700, color: CM }}
+                      >
+                        PH
+                      </span>
                       <span style={{ color: CM, fontSize: 13 }}>+63</span>
                       <div style={{ width: 1, height: 14, background: BR }} />
                     </div>
@@ -2423,6 +2986,125 @@ function CheckoutScreen({
                 </div>
               </>
             )}
+            {/* Voucher code — dine-in only */}
+            {orderType === "dine-in" && (
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    color: CM,
+                    fontSize: 10,
+                    letterSpacing: ".1em",
+                    marginBottom: 6,
+                    fontFamily: "'Cinzel',serif",
+                  }}
+                >
+                  VOUCHER CODE (OPTIONAL)
+                </label>
+                {voucherDiscount > 0 ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "10px 14px",
+                      background: "rgba(74,222,128,.08)",
+                      border: "1px solid rgba(74,222,128,.3)",
+                      borderRadius: 8,
+                    }}
+                  >
+                    <span
+                      style={{
+                        flex: 1,
+                        color: "#4ade80",
+                        fontSize: 13,
+                        fontFamily: "'Cinzel',serif",
+                        letterSpacing: ".08em",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {voucherCode}
+                    </span>
+                    <span style={{ color: "#4ade80", fontSize: 12 }}>
+                      {voucherResult?.msg}
+                    </span>
+                    <button
+                      onClick={removeVoucher}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: CM,
+                        display: "flex",
+                        padding: 4,
+                      }}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      width: "100%",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <input
+                      value={voucherInput}
+                      onChange={(e) =>
+                        setVoucherInput(e.target.value.toUpperCase())
+                      }
+                      onKeyDown={(e) => e.key === "Enter" && applyVoucher()}
+                      placeholder="e.g. DRK-4X9K"
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        background: "rgba(255,255,255,.03)",
+                        border: `1px solid ${BR}`,
+                        borderRadius: 8,
+                        padding: "12px 12px",
+                        color: C,
+                        fontSize: 16,
+                        outline: "none",
+                        fontFamily: "'Cinzel',serif",
+                        letterSpacing: ".08em",
+                        boxSizing: "border-box" as const,
+                      }}
+                    />
+                    <button
+                      onClick={applyVoucher}
+                      disabled={voucherChecking || !voucherInput.trim()}
+                      style={{
+                        flexShrink: 0,
+                        padding: "10px 14px",
+                        background: voucherInput.trim()
+                          ? G
+                          : "rgba(212,168,67,.2)",
+                        border: "none",
+                        borderRadius: 8,
+                        color: voucherInput.trim() ? BG : CM,
+                        fontFamily: "'Cinzel',serif",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".08em",
+                        cursor: voucherInput.trim() ? "pointer" : "not-allowed",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {voucherChecking ? "…" : "APPLY"}
+                    </button>
+                  </div>
+                )}
+                {voucherResult && !voucherResult.ok && (
+                  <p style={{ color: ERR, fontSize: 12, marginTop: 6 }}>
+                    {voucherResult.msg}
+                  </p>
+                )}
+              </div>
+            )}
+
             <InputField
               label="Special Requests (optional)"
               placeholder="Allergies, preferences, extra instructions…"
@@ -2471,6 +3153,8 @@ function PaymentScreen({
   submitting,
   onBack,
   form,
+  voucherDiscount,
+  voucherCode,
 }: {
   cart: CartItem[];
   orderType: OrderType;
@@ -2481,8 +3165,11 @@ function PaymentScreen({
   submitting: boolean;
   onBack: () => void;
   form: any;
+  voucherDiscount?: number;
+  voucherCode?: string;
 }) {
-  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const total = Math.max(0, rawTotal - (voucherDiscount || 0));
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
@@ -2611,8 +3298,8 @@ function PaymentScreen({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: "clamp(8px,2vw,10px)",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "clamp(6px,2vw,10px)",
                   marginBottom: 18,
                 }}
               >
@@ -2655,7 +3342,7 @@ function PaymentScreen({
                         }
                       }}
                       style={{
-                        padding: "clamp(10px,3vw,14px) 6px",
+                        padding: "clamp(8px,2.5vw,14px) 4px",
                         borderRadius: 14,
                         border: `1.5px solid ${a ? G : BR}`,
                         background: a ? GD : CARD,
@@ -2663,7 +3350,7 @@ function PaymentScreen({
                         textAlign: "center",
                         transition: "all .18s",
                         touchAction: "manipulation",
-                        minHeight: 90,
+                        minHeight: "clamp(80px,22vw,90px)",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
@@ -2715,7 +3402,14 @@ function PaymentScreen({
                 lineHeight: 1.6,
               }}
             >
-              🛵{" "}
+              <Bike
+                size={13}
+                style={{
+                  display: "inline",
+                  verticalAlign: "middle",
+                  marginRight: 5,
+                }}
+              />
               <strong style={{ color: "#c4b5fd" }}>
                 Delivery requires GCash payment.
               </strong>{" "}
@@ -3882,6 +4576,9 @@ export default function OrderPage() {
   const [paymentMethod, setPaymentMethod] = useState<PayMethod>("pay-later");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [receiptKey, setReceiptKey] = useState("");
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
+  const [voucherType, setVoucherType] = useState<"drink" | "food" | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<Order | null>(null);
   const [form, setForm] = useState<any>({
@@ -3905,21 +4602,35 @@ export default function OrderPage() {
     }
   }
 
-  function addToCart(item: MenuItem) {
+  function addToCart(
+    item: MenuItem,
+    customizations: SelectedCustomization[] = [],
+  ) {
+    const cartKey = item._id + JSON.stringify(customizations);
+    const extraPrice = customizations.reduce((s, c) => s + c.price, 0);
     setCart((p) => {
-      const ex = p.find((c) => c._id === item._id);
+      const ex = p.find((c) => c.cartKey === cartKey);
       if (ex)
         return p.map((c) =>
-          c._id === item._id ? { ...c, quantity: c.quantity + 1 } : c,
+          c.cartKey === cartKey ? { ...c, quantity: c.quantity + 1 } : c,
         );
-      return [...p, { ...item, quantity: 1 }];
+      return [
+        ...p,
+        {
+          ...item,
+          price: item.price + extraPrice,
+          quantity: 1,
+          cartKey,
+          customizations,
+        },
+      ];
     });
   }
   function updateCart(id: string, qty: number) {
-    if (qty <= 0) setCart((p) => p.filter((c) => c._id !== id));
+    if (qty <= 0) setCart((p) => p.filter((c) => c.cartKey !== id));
     else
       setCart((p) =>
-        p.map((c) => (c._id === id ? { ...c, quantity: qty } : c)),
+        p.map((c) => (c.cartKey !== id ? c : { ...c, quantity: qty })),
       );
   }
   function changeForm(f: string, v: any) {
@@ -3929,7 +4640,8 @@ export default function OrderPage() {
   async function submitOrder() {
     try {
       setSubmitting(true);
-      const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+      const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+      const total = Math.max(0, rawTotal - voucherDiscount);
       const eff: PayMethod = orderType === "delivery" ? "gcash" : paymentMethod;
       const addr = form.deliveryAddress || {};
       const addrStr = [
@@ -3948,6 +4660,9 @@ export default function OrderPage() {
           name: i.name,
           price: i.price,
           quantity: i.quantity,
+          customizations: i.customizations?.length
+            ? i.customizations
+            : undefined,
         })),
         total,
         notes: form.notes || undefined,
@@ -3970,6 +4685,7 @@ export default function OrderPage() {
           payload.receiptKey = receiptKey;
         }
       }
+      if (voucherCode) payload.voucherCode = voucherCode;
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3977,7 +4693,12 @@ export default function OrderPage() {
       });
       if (!res.ok) throw new Error("Order failed");
       const data = await res.json();
-      setForm((p: any) => ({ ...p, _total: total.toFixed(2) }));
+      setForm((p: any) => ({
+        ...p,
+        _total: total.toFixed(2),
+        _rawTotal: rawTotal.toFixed(2),
+        _voucherDiscount: voucherDiscount,
+      }));
       setConfirmed({ orderNumber: data.orderNumber, type: orderType });
       setStep("confirmed");
       setCart([]);
@@ -4016,6 +4737,9 @@ export default function OrderPage() {
       notes: "",
     });
     setConfirmed(null);
+    setVoucherCode("");
+    setVoucherDiscount(0);
+    setVoucherType(null);
   }
 
   return (
@@ -4051,8 +4775,11 @@ export default function OrderPage() {
         <MenuScreen
           menuItems={menuItems}
           cart={cart}
-          onAddToCart={addToCart}
-          onUpdateCart={updateCart}
+          onAddToCart={(
+            item: MenuItem,
+            customizations: SelectedCustomization[],
+          ) => addToCart(item, customizations)}
+          onUpdateCart={(id: string, qty: number) => updateCart(id, qty)}
           onRemoveFromCart={(id: string) => updateCart(id, 0)}
           onCheckout={() => setStep("checkout")}
           onBack={back}
@@ -4066,6 +4793,12 @@ export default function OrderPage() {
           onFormChange={changeForm}
           onNext={() => setStep("payment")}
           onBack={back}
+          voucherCode={voucherCode}
+          setVoucherCode={setVoucherCode}
+          voucherDiscount={voucherDiscount}
+          setVoucherDiscount={setVoucherDiscount}
+          voucherType={voucherType}
+          setVoucherType={setVoucherType}
         />
       )}
       {step === "payment" && (
@@ -4082,6 +4815,8 @@ export default function OrderPage() {
           submitting={submitting}
           onBack={back}
           form={form}
+          voucherDiscount={voucherDiscount}
+          voucherCode={voucherCode}
         />
       )}
       {step === "confirmed" && confirmed && (

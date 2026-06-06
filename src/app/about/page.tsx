@@ -60,30 +60,21 @@ function FadeBlock({
 // ── Team data — edit names/roles/quotes here ──
 const TEAM = [
   {
-    initials: "FF",
-    name: "France Falram",
-    role: "Founder & Owner",
+    initials: "F",
+    name: "France",
+    role: "Curator",
     tag: "The Visionary",
     quote:
       "I didn't want to open a café. I wanted to open a feeling — and put a roof over it.",
     image: "/profile-france.png",
   },
   {
-    initials: "MA",
-    name: "Maria Andres",
-    role: "Co-Owner & Operations",
-    tag: "The Backbone",
+    initials: "M",
+    name: "Mai",
+    role: "Curator",
+    tag: "The Heart",
     quote:
-      "Every detail you don't notice — that's me. The comfort here doesn't happen by accident.",
-    image: null,
-  },
-  {
-    initials: "RG",
-    name: "Rico Garcia",
-    role: "Partner & Creative Director",
-    tag: "The Aesthetic",
-    quote:
-      "The space itself is the product. I obsess over every corner so you don't have to think about it — you just feel it.",
+      "Every person who walks in deserves to feel like they belong here. That's not a policy — that's the whole point.",
     image: null,
   },
 ];
@@ -626,8 +617,7 @@ export default function AboutPage() {
                     fontStyle: "italic",
                   }}
                 >
-                  "The food and drinks — they're the bonus. What I really wanted
-                  to give people was a reason to stay."
+                  "Every great community begins with a place to gather."
                 </p>
                 <cite
                   style={{
@@ -641,7 +631,7 @@ export default function AboutPage() {
                     fontStyle: "normal",
                   }}
                 >
-                  — The Founder
+                  — France & Mai, Curators
                 </cite>
               </blockquote>
             </FadeBlock>
@@ -662,11 +652,10 @@ export default function AboutPage() {
                     color: "rgba(232,213,163,0.5)",
                   }}
                 >
-                  It started the way most honest things do — with a feeling.
-                  There were already enough cafés. Enough places that served
-                  good espresso and moved you along. What was missing was
-                  somewhere you could{" "}
-                  <span style={{ color: "#e8d5a3" }}>actually land</span>.
+                  3rd Space was created from a simple belief — everyone deserves
+                  a place between home and work where they can slow down,
+                  connect, create, and{" "}
+                  <span style={{ color: "#e8d5a3" }}>belong</span>.
                 </p>
                 <p
                   style={{
@@ -676,11 +665,9 @@ export default function AboutPage() {
                     color: "rgba(232,213,163,0.5)",
                   }}
                 >
-                  The founder had watched it happen too many times — people
-                  rushing, people eating standing up, people apologizing for
-                  sitting too long. He wanted to build the opposite of that. A
-                  place where time moved differently. Where the chair was yours
-                  for as long as you needed it.
+                  France and Mai built this not as a café, but as a community. A
+                  place where conversations begin, ideas grow, friendships are
+                  formed, and strangers become familiar faces.
                 </p>
                 <p
                   style={{
@@ -690,9 +677,9 @@ export default function AboutPage() {
                     color: "rgba(232,213,163,0.5)",
                   }}
                 >
-                  The name came easy.{" "}
+                  The name came naturally.{" "}
                   <span style={{ color: "#e8d5a3" }}>3rd Space</span> — not
-                  home, not work. The space in between where you go to remember
+                  home, not work. The place in between where you go to remember
                   who you are outside of both.
                 </p>
               </div>
@@ -941,9 +928,9 @@ export default function AboutPage() {
                 >
                   {[
                     { num: "500+", label: "Members in our community" },
-                    { num: "3 yrs", label: "Of building this feeling" },
+                    { num: "6 mos", label: "Of building this feeling" },
                     {
-                      num: "50+",
+                      num: "10+",
                       label: "Events that brought people together",
                     },
                     { num: "9am–12am", label: "Every single day, we're here" },
@@ -1142,11 +1129,35 @@ export default function AboutPage() {
                   style={{ display: "flex", flexDirection: "column", gap: "0" }}
                 >
                   {[
-                    { year: "2022", label: "Opened our doors in Marikina" },
-                    { year: "2023", label: "First 100 community members" },
-                    { year: "2023", label: "Best New Café — Local Picks PH" },
-                    { year: "2024", label: "50th community event hosted" },
-                    { year: "2025", label: "Featured in Nolisoli & Pepper.ph" },
+                    {
+                      year: "Oct 2025",
+                      label:
+                        "The Idea — 3rd Space was born from a vision of community first",
+                    },
+                    {
+                      year: "Nov 2025",
+                      label:
+                        "The Beginning — We opened our doors and served our first cups",
+                    },
+                    {
+                      year: "Dec 2025",
+                      label:
+                        "Building Connections — First gatherings and community events",
+                    },
+                    {
+                      year: "Apr 2026",
+                      label:
+                        "Creating Experiences — Tarot Thursday, Film Friday, Sober Saturday",
+                    },
+                    {
+                      year: "May 2026",
+                      label: "Growing Together — A café became a community",
+                    },
+                    {
+                      year: "Today",
+                      label:
+                        "The Story Continues — every cup shared adds another page",
+                    },
                   ].map((item, i) => (
                     <div
                       key={i}
@@ -1396,7 +1407,7 @@ export default function AboutPage() {
                 textTransform: "uppercase",
               }}
             >
-              3rd Space · Est. 2022
+              3rd Space · Est. 2025
             </span>
             <div
               style={{

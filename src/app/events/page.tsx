@@ -58,19 +58,11 @@ const EVENTS = [
 ];
 
 export default function EventsPage() {
-  const [hovered, setHovered] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 80);
     return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    const fn = (e: MouseEvent) => setMouse({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", fn);
-    return () => window.removeEventListener("mousemove", fn);
   }, []);
 
   return (
@@ -294,24 +286,11 @@ export default function EventsPage() {
           position: "relative",
         }}
       >
-        {/* Mouse shine overlay */}
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            pointerEvents: "none",
-            zIndex: 10,
-            background: `radial-gradient(600px circle at ${mouse.x}px ${mouse.y}px, rgba(255,255,255,0.055), transparent 60%)`,
-            transition: "background 0.1s ease",
-          }}
-        />
         {EVENTS.map((event, i) => (
           <Link
             key={event.id}
             href={event.href}
             className={`panel${i === 0 ? " first-active" : ""}`}
-            onMouseEnter={() => setHovered(event.id)}
-            onMouseLeave={() => setHovered(null)}
           >
             <img src={event.image} alt={event.label} className="panel-img" />
 

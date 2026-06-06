@@ -25,6 +25,13 @@ import {
   EyeOff,
   ImageIcon,
   Newspaper,
+  Banknote,
+  MapPin,
+  Check,
+  Armchair,
+  Bike,
+  HelpCircle,
+  Coffee,
 } from "lucide-react";
 
 const T = {
@@ -69,6 +76,7 @@ interface Post {
   body: string;
   tilt?: number;
   size?: "sm" | "md" | "lg";
+  image?: string;
 }
 
 interface Partner {
@@ -125,7 +133,14 @@ type MenuItem = {
   image: string;
   available: boolean;
 };
-type Tab = "orders" | "menu" | "analytics" | "crew" | "board" | "accounts";
+type Tab =
+  | "orders"
+  | "menu"
+  | "analytics"
+  | "crew"
+  | "board"
+  | "vouchers"
+  | "accounts";
 type Role = "admin" | "staff" | null;
 
 type Account = {
@@ -315,6 +330,27 @@ function BoardPostCard({
       }}
     >
       <PinDot color={post.pinColor ?? "gold"} />
+      {post.image && (
+        <div
+          style={{
+            margin: "0 -clamp(1.2rem, 2.5vw, 1.6rem) 0.75rem",
+            marginTop: "-clamp(1.6rem, 3vw, 2rem)",
+            overflow: "hidden",
+            borderBottom: `1px solid ${T.border}`,
+          }}
+        >
+          <img
+            src={post.image}
+            alt={post.title}
+            style={{
+              width: "100%",
+              display: "block",
+              objectFit: "cover",
+              maxHeight: 180,
+            }}
+          />
+        </div>
+      )}
       <div
         style={{
           display: "flex",
@@ -371,6 +407,7 @@ function BoardPostCard({
       >
         {post.body}
       </p>
+
       {isAdmin && onDelete && (
         <button
           onClick={() => onDelete(post.id)}
@@ -488,6 +525,8 @@ function BoardPostModal({
   const [pinColor, setPinColor] = useState<PinColor>("gold");
   const [size, setSize] = useState<"sm" | "md" | "lg">("md");
   const [pinned, setPinned] = useState(false);
+  const [image, setImage] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const handleSubmit = () => {
     if (!title.trim() || !body.trim()) return;
@@ -496,7 +535,17 @@ function BoardPostModal({
       month: "long",
       year: "numeric",
     });
-    onPost({ tag, pinned, pinColor, date, title, body, tilt, size });
+    onPost({
+      tag,
+      pinned,
+      pinColor,
+      date,
+      title,
+      body,
+      image: image || undefined,
+      tilt,
+      size,
+    });
     onClose();
   };
 
@@ -686,9 +735,115 @@ function BoardPostModal({
             style={{ ...inputStyle, resize: "vertical" }}
           />
         </div>
+        {/* Image upload */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: "0.68rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase" as const,
+              display: "block",
+              marginBottom: "0.4rem",
+            }}
+          >
+            Image (optional)
+          </label>
+          {image && (
+            <div
+              style={{
+                position: "relative",
+                marginBottom: "0.5rem",
+                borderRadius: 8,
+                overflow: "hidden",
+                border: `1px solid ${T.borderH}`,
+              }}
+            >
+              <img
+                src={image}
+                alt="preview"
+                style={{
+                  width: "100%",
+                  maxHeight: 140,
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+              <button
+                onClick={() => setImage("")}
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  background: "rgba(0,0,0,0.6)",
+                  border: `1px solid ${T.border}`,
+                  color: T.cream,
+                  width: 26,
+                  height: 26,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 4,
+                }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "10px 14px",
+              border: `1px dashed ${uploading ? T.gold : T.borderH}`,
+              borderRadius: 8,
+              cursor: uploading ? "wait" : "pointer",
+              background: uploading
+                ? "rgba(212,168,67,0.06)"
+                : "rgba(212,168,67,0.03)",
+              color: uploading ? T.gold : T.muted,
+              fontSize: 12,
+            }}
+          >
+            {uploading
+              ? "Uploading…"
+              : image
+                ? "Replace image"
+                : "Upload image"}
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(true);
+                const fd = new FormData();
+                fd.append("file", file);
+                try {
+                  const res = await fetch("/api/upload", {
+                    method: "POST",
+                    body: fd,
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setImage(data.url);
+                  }
+                } catch {}
+                setUploading(false);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+
         <button
           onClick={handleSubmit}
-          disabled={!title.trim() || !body.trim()}
+          disabled={!title.trim() || !body.trim() || uploading}
           style={{
             width: "100%",
             fontFamily: "'Cinzel',serif",
@@ -933,8 +1088,18 @@ function ConfirmModal({
           boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
         }}
       >
-        <div style={{ fontSize: 40, marginBottom: 16 }}>
-          {danger ? "🗑️" : "⚠️"}
+        <div
+          style={{
+            marginBottom: 16,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          {danger ? (
+            <Trash2 size={36} color={T.red} />
+          ) : (
+            <AlertCircle size={36} color={T.gold} />
+          )}
         </div>
         <p
           style={{
@@ -1455,10 +1620,144 @@ function DeliveryMapPanel({
               padding: "4px 10px",
             }}
           >
-            📍 Open in Google Maps
+            <MapPin
+              size={11}
+              style={{
+                display: "inline",
+                verticalAlign: "middle",
+                marginRight: 4,
+              }}
+            />{" "}
+            Open in Google Maps
           </a>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── RIDER TRACKING BUTTON ────────────────────────────────────────────────────
+// Paste this component somewhere ABOVE the OrderCard function in dashboard/page.tsx
+
+function RiderTrackingButton({
+  orderId,
+  orderNumber,
+}: {
+  orderId: string;
+  orderNumber: string;
+}) {
+  const [tracking, setTracking] = useState(false);
+  const [error, setError] = useState("");
+  const watchIdRef = useRef<number | null>(null);
+
+  const pushLocation = async (lat: number, lng: number) => {
+    try {
+      await fetch(`/api/orders/${orderId}/location`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat, lng }),
+      });
+    } catch {}
+  };
+
+  function startTracking() {
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported on this device.");
+      return;
+    }
+    setError("");
+    setTracking(true);
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => pushLocation(pos.coords.latitude, pos.coords.longitude),
+      (err) => {
+        setError(err.message);
+        setTracking(false);
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 },
+    );
+  }
+
+  async function stopTracking() {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setTracking(false);
+    try {
+      await fetch(`/api/orders/${orderId}/location`, { method: "DELETE" });
+    } catch {}
+  }
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        marginBottom: 8,
+      }}
+    >
+      <button
+        onClick={tracking ? stopTracking : startTracking}
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          background: tracking
+            ? "rgba(239,68,68,0.12)"
+            : "rgba(212,168,67,0.12)",
+          border: `1px solid ${tracking ? "rgba(239,68,68,0.4)" : "rgba(212,168,67,0.4)"}`,
+          color: tracking ? T.red : T.gold,
+          borderRadius: 8,
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: "pointer",
+          fontFamily: "'Cinzel',serif",
+          letterSpacing: ".06em",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
+      >
+        {tracking ? (
+          <>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: T.red,
+                boxShadow: "0 0 6px rgba(239,68,68,0.8)",
+                animation: "pulse-track 1s ease-in-out infinite",
+                flexShrink: 0,
+              }}
+            />
+            STOP TRACKING · #{orderNumber}
+          </>
+        ) : (
+          <>📍 START RIDER TRACKING</>
+        )}
+      </button>
+      {tracking && (
+        <p style={{ color: T.muted, fontSize: 11, textAlign: "center" }}>
+          Broadcasting your location · Customer can see you live
+        </p>
+      )}
+      {error && (
+        <p style={{ color: T.red, fontSize: 11, textAlign: "center" }}>
+          {error}
+        </p>
+      )}
+      <style>{`@keyframes pulse-track{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
   );
 }
@@ -1588,7 +1887,31 @@ function OrderCard({
                   borderRadius: 4,
                 }}
               >
-                {order.type === "delivery" ? "🚚 Delivery" : "🪑 Dine-in"}
+                {order.type === "delivery" ? (
+                  <>
+                    <Bike
+                      size={11}
+                      style={{
+                        display: "inline",
+                        verticalAlign: "middle",
+                        marginRight: 4,
+                      }}
+                    />{" "}
+                    Delivery
+                  </>
+                ) : (
+                  <>
+                    <Armchair
+                      size={11}
+                      style={{
+                        display: "inline",
+                        verticalAlign: "middle",
+                        marginRight: 4,
+                      }}
+                    />{" "}
+                    Dine-in
+                  </>
+                )}
               </span>
               {order.paymentStatus === "pending" && (
                 <span
@@ -1601,7 +1924,15 @@ function OrderCard({
                     borderRadius: 4,
                   }}
                 >
-                  ⏳ Unpaid
+                  <Clock
+                    size={10}
+                    style={{
+                      display: "inline",
+                      verticalAlign: "middle",
+                      marginRight: 4,
+                    }}
+                  />
+                  Unpaid
                 </span>
               )}
               {order.waiterName && (
@@ -1616,7 +1947,15 @@ function OrderCard({
                     fontWeight: 600,
                   }}
                 >
-                  👤 {order.waiterName}
+                  <Users
+                    size={10}
+                    style={{
+                      display: "inline",
+                      verticalAlign: "middle",
+                      marginRight: 4,
+                    }}
+                  />
+                  {order.waiterName}
                 </span>
               )}
             </div>
@@ -1635,12 +1974,12 @@ function OrderCard({
                 flexWrap: "wrap",
               }}
             >
-              {order.items.map((it) => {
+              {order.items.map((it, idx) => {
                 const img = menuItems.find((m) => m.name === it.name)?.image;
                 if (!img) return null;
                 return (
                   <div
-                    key={it.name}
+                    key={`${it.name}-${idx}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setReceiptSrc(img);
@@ -1825,7 +2164,15 @@ function OrderCard({
                       gap: 5,
                     }}
                   >
-                    🪑 Table {order.tableNumber}
+                    <Armchair
+                      size={11}
+                      style={{
+                        display: "inline",
+                        verticalAlign: "middle",
+                        marginRight: 4,
+                      }}
+                    />
+                    Table {order.tableNumber}
                   </span>
                 </div>
               )}
@@ -2075,7 +2422,17 @@ function OrderCard({
                     }}
                   >
                     {order.paymentMethod === "cash" ? (
-                      "💵 Cash"
+                      <>
+                        <Banknote
+                          size={11}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 4,
+                          }}
+                        />
+                        Cash
+                      </>
                     ) : (
                       <>
                         <img
@@ -2107,7 +2464,15 @@ function OrderCard({
                       border: `1px solid ${T.border}`,
                     }}
                   >
-                    ❓ Method unknown
+                    <HelpCircle
+                      size={10}
+                      style={{
+                        display: "inline",
+                        verticalAlign: "middle",
+                        marginRight: 4,
+                      }}
+                    />
+                    Method unknown
                   </span>
                 )}
 
@@ -2153,7 +2518,15 @@ function OrderCard({
                           gap: 5,
                         }}
                       >
-                        ✗ Reject Receipt
+                        <X
+                          size={12}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 4,
+                          }}
+                        />
+                        Reject Receipt
                       </button>
                     )}
                   </>
@@ -2183,7 +2556,6 @@ function OrderCard({
                             key={m}
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Only sets the method — does NOT mark as paid
                               onSetPaymentMethod(order._id, m);
                             }}
                             style={{
@@ -2203,21 +2575,27 @@ function OrderCard({
                               color: m === "cash" ? T.green : T.gold,
                               fontWeight: 700,
                               fontSize: 12,
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 4,
                             }}
                           >
                             {m === "cash" ? (
-                              "💵 Set Cash"
+                              <>
+                                <Banknote size={15} />
+                                Set Cash
+                              </>
                             ) : (
                               <>
                                 <img
                                   src="/images/gcash.png"
                                   alt="GCash"
                                   style={{
-                                    width: 13,
-                                    height: 13,
+                                    width: 15,
+                                    height: 15,
                                     objectFit: "contain",
-                                    verticalAlign: "middle",
-                                    marginRight: 4,
+                                    display: "block",
                                   }}
                                 />
                                 Set GCash
@@ -2267,7 +2645,15 @@ function OrderCard({
                           letterSpacing: ".06em",
                         }}
                       >
-                        ✓ CONFIRM PAYMENT RECEIVED
+                        <Check
+                          size={13}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 6,
+                          }}
+                        />
+                        CONFIRM PAYMENT RECEIVED
                       </button>
                     </div>
                   )}
@@ -2301,6 +2687,16 @@ function OrderCard({
                 </div>
               )}
             </div>
+
+            {/* ── RIDER TRACKING ── */}
+            {order.type === "delivery" &&
+              order.status !== "completed" &&
+              order.status !== "cancelled" && (
+                <RiderTrackingButton
+                  orderId={order._id}
+                  orderNumber={order.orderNumber}
+                />
+              )}
 
             {/* ── STATUS ACTIONS ── */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2392,6 +2788,28 @@ function MenuItemForm({
   const [err, setErr] = useState("");
   const set = (k: keyof MenuItem, v: any) => setForm((p) => ({ ...p, [k]: v }));
   const valid = !!(form.name?.trim() && form.price && form.category?.trim());
+
+  useEffect(() => {
+    const handler = async (e: ClipboardEvent) => {
+      const file = Array.from(e.clipboardData?.items || [])
+        .find((i) => i.type.startsWith("image/"))
+        ?.getAsFile();
+      if (!file) return;
+      setUploading(true);
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          set("image", data.url);
+        }
+      } catch {}
+      setUploading(false);
+    };
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
+  }, []);
   const w = useWindowWidth();
   const isMobile = w < 600;
 
@@ -2605,7 +3023,7 @@ function MenuItemForm({
                 ? "Uploading…"
                 : form.image
                   ? "Replace image"
-                  : "Upload image"}
+                  : "Upload image or paste (Ctrl+V)"}
             </span>
             <input
               type="file"
@@ -2720,8 +3138,10 @@ function MenuTab({
 
   async function saveItem(data: Partial<MenuItem>): Promise<boolean> {
     const isEdit = !!editItem;
-    const url = isEdit ? `/api/menu/${editItem!._id}` : "/api/menu";
-    const method = isEdit ? "PATCH" : "POST";
+    const isHardcoded = isEdit && !editItem!._id.match(/^[a-f\d]{24}$/i);
+    const url =
+      isEdit && !isHardcoded ? `/api/menu/${editItem!._id}` : "/api/menu";
+    const method = isEdit && !isHardcoded ? "PATCH" : "POST";
 
     try {
       const res = await fetch(url, {
@@ -2743,7 +3163,7 @@ function MenuTab({
 
       if (isEdit) {
         setLocalItems((prev) =>
-          prev.map((i) => (i._id === saved._id ? saved : i)),
+          prev.map((i) => (i._id === editItem!._id ? saved : i)),
         );
       } else {
         setLocalItems((prev) => [...prev, saved]);
@@ -2782,7 +3202,14 @@ function MenuTab({
   }
 
   async function toggleAvail(item: MenuItem) {
+    const isHardcoded = !item._id.match(/^[a-f\d]{24}$/i);
     const newVal = !item.available;
+    if (isHardcoded) {
+      setLocalItems((prev) =>
+        prev.map((i) => (i._id === item._id ? { ...i, available: newVal } : i)),
+      );
+      return;
+    }
     setLocalItems((prev) =>
       prev.map((i) => (i._id === item._id ? { ...i, available: newVal } : i)),
     );
@@ -3293,7 +3720,15 @@ function AnalyticsTab({ orders }: { orders: Order[] }) {
                     }}
                   >
                     <span style={{ color: T.muted, fontSize: 12 }}>
-                      👤 {name}
+                      <Users
+                        size={11}
+                        style={{
+                          display: "inline",
+                          verticalAlign: "middle",
+                          marginRight: 4,
+                        }}
+                      />
+                      {name}
                     </span>
                     <span
                       style={{ color: T.cream, fontSize: 12, fontWeight: 600 }}
@@ -3351,13 +3786,13 @@ function AnalyticsTab({ orders }: { orders: Order[] }) {
               label: "Dine-In",
               count: dineInCount,
               color: T.green,
-              emoji: "🪑",
+              icon: <Armchair size={24} />,
             },
             {
               label: "Delivery",
               count: deliveryCount,
               color: T.gold,
-              emoji: "🚚",
+              icon: <Bike size={24} />,
             },
           ].map((s) => (
             <div
@@ -3371,7 +3806,16 @@ function AnalyticsTab({ orders }: { orders: Order[] }) {
                 textAlign: "center",
               }}
             >
-              <p style={{ fontSize: 24, marginBottom: 6 }}>{s.emoji}</p>
+              <div
+                style={{
+                  marginBottom: 6,
+                  color: s.color,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                {s.icon}
+              </div>
               <p
                 style={{
                   fontFamily: "'Cinzel',serif",
@@ -4458,40 +4902,31 @@ function CrewTab({
                         fontWeight: 700,
                         fontFamily: "'Cinzel',serif",
                         letterSpacing: ".06em",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 4,
                       }}
                     >
                       {m === "cash" ? (
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 3,
-                          }}
-                        >
-                          <span>💵</span>
+                        <>
+                          <Banknote size={15} />
                           CASH
-                        </span>
+                        </>
                       ) : (
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 3,
-                          }}
-                        >
+                        <>
                           <img
                             src="/images/gcash.png"
                             alt="GCash"
                             style={{
-                              width: 14,
-                              height: 14,
+                              width: 15,
+                              height: 15,
                               objectFit: "contain",
+                              display: "block",
                             }}
                           />
                           GCASH
-                        </span>
+                        </>
                       )}
                     </button>
                   );
@@ -4959,9 +5394,31 @@ function CrewTab({
                             fontWeight: 600,
                           }}
                         >
-                          {o.paymentStatus === "confirmed"
-                            ? "✓ Paid"
-                            : "⏳ Unpaid"}
+                          {o.paymentStatus === "confirmed" ? (
+                            <>
+                              <Check
+                                size={10}
+                                style={{
+                                  display: "inline",
+                                  verticalAlign: "middle",
+                                  marginRight: 3,
+                                }}
+                              />
+                              Paid
+                            </>
+                          ) : (
+                            <>
+                              <Clock
+                                size={10}
+                                style={{
+                                  display: "inline",
+                                  verticalAlign: "middle",
+                                  marginRight: 3,
+                                }}
+                              />
+                              Unpaid
+                            </>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -5054,6 +5511,394 @@ function CrewTab({
         </div>
       </div>
     </>
+  );
+}
+
+// ── VOUCHERS ADMIN TAB ────────────────────────────────────────────────────────
+function VouchersAdminTab() {
+  const [data, setData] = useState<{
+    drinkRemaining: number;
+    foodRemaining: number;
+    todayRedemptions: {
+      _id: string;
+      type: string;
+      customerName: string;
+      redeemedAt: string;
+      code?: string;
+      used?: boolean;
+    }[];
+    allCodes: {
+      _id: string;
+      type: string;
+      customerName: string;
+      redeemedAt: string;
+      code?: string;
+      used?: boolean;
+    }[];
+  } | null>(null);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyResult, setVerifyResult] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
+  const [verifying, setVerifying] = useState(false);
+
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
+
+  async function fetchVouchers() {
+    fetch("/api/vouchers")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => {});
+  }
+
+  async function handleVerify() {
+    if (!verifyCode.trim()) return;
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const res = await fetch("/api/vouchers/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: verifyCode.trim().toUpperCase() }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setVerifyResult({
+          ok: true,
+          msg: `✓ Valid! ${result.type === "drink" ? "🥤 Drink" : "🍽 Food"} voucher for ${result.customerName}. Marked as used.`,
+        });
+        setVerifyCode("");
+        fetchVouchers();
+      } else {
+        setVerifyResult({ ok: false, msg: result.error });
+      }
+    } catch {
+      setVerifyResult({ ok: false, msg: "Network error." });
+    }
+    setVerifying(false);
+  }
+
+  if (!data)
+    return (
+      <div style={{ color: T.muted, fontSize: 13, padding: 20 }}>Loading…</div>
+    );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* VERIFY BLOCK */}
+      <div
+        style={{
+          background: T.bgCard,
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 14,
+          padding: 20,
+        }}
+      >
+        <p
+          style={{
+            color: T.gold,
+            fontSize: 11,
+            letterSpacing: ".15em",
+            textTransform: "uppercase",
+            fontFamily: "'Cinzel',serif",
+            marginBottom: 12,
+          }}
+        >
+          ◆ Verify Voucher Code
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            value={verifyCode}
+            onChange={(e) => setVerifyCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && handleVerify()}
+            placeholder="e.g. DRK-4X9K"
+            style={{
+              flex: 1,
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 8,
+              padding: "10px 14px",
+              color: T.cream,
+              fontSize: 16,
+              fontFamily: "'Cinzel',serif",
+              letterSpacing: "0.1em",
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={handleVerify}
+            disabled={verifying || !verifyCode.trim()}
+            style={{
+              padding: "10px 20px",
+              background: verifyCode.trim() ? T.gold : "rgba(212,168,67,0.2)",
+              border: "none",
+              borderRadius: 8,
+              color: verifyCode.trim() ? "#0a0f0a" : T.muted,
+              fontFamily: "'Cinzel',serif",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".1em",
+              cursor: verifyCode.trim() ? "pointer" : "not-allowed",
+            }}
+          >
+            {verifying ? "CHECKING…" : "VERIFY"}
+          </button>
+        </div>
+        {verifyResult && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "10px 14px",
+              borderRadius: 8,
+              background: verifyResult.ok
+                ? "rgba(34,197,94,0.08)"
+                : "rgba(239,68,68,0.08)",
+              border: `1px solid ${verifyResult.ok ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+              color: verifyResult.ok ? T.green : T.red,
+              fontSize: 13,
+            }}
+          >
+            {verifyResult.msg}
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {[
+          {
+            label: "Drink Vouchers Left",
+            value: data.drinkRemaining,
+            color: T.gold,
+          },
+          {
+            label: "Food Vouchers Left",
+            value: data.foodRemaining,
+            color: T.green,
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            style={{
+              background: T.bgCard,
+              border: `1px solid ${T.border}`,
+              borderRadius: 12,
+              padding: "16px 18px",
+            }}
+          >
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".1em",
+                textTransform: "uppercase",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 8,
+              }}
+            >
+              {s.label}
+            </p>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: 28,
+                fontWeight: 700,
+                color: s.color,
+              }}
+            >
+              {s.value}
+              <span style={{ fontSize: 14, color: T.muted }}>/5</span>
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          background: T.bgCard,
+          border: `1px solid ${T.border}`,
+          borderRadius: 14,
+          padding: 20,
+        }}
+      >
+        <p
+          style={{
+            color: T.gold,
+            fontSize: 11,
+            letterSpacing: ".15em",
+            textTransform: "uppercase",
+            fontFamily: "'Cinzel',serif",
+            marginBottom: 16,
+          }}
+        >
+          ◆ All Codes Today — {data.allCodes?.length || 0}
+        </p>
+        {!data.allCodes || data.allCodes.length === 0 ? (
+          <p style={{ color: T.faint, fontSize: 13 }}>
+            No codes claimed today.
+          </p>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              marginBottom: 20,
+            }}
+          >
+            {data.allCodes.map((r) => (
+              <div
+                key={r._id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  background: "rgba(255,255,255,0.02)",
+                  border: `1px solid ${r.used ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)"}`,
+                  borderRadius: 8,
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: r.type === "drink" ? T.gold : T.green,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {r.type === "drink" ? "🥤 Drink" : "🍽 Food"}
+                  </span>
+                  <span
+                    style={{ fontSize: 13, color: T.cream, fontWeight: 600 }}
+                  >
+                    {r.customerName || "—"}
+                  </span>
+                  {r.code && (
+                    <span
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: T.gold,
+                        background: "rgba(212,168,67,0.1)",
+                        border: "1px solid rgba(212,168,67,0.3)",
+                        padding: "2px 10px",
+                        borderRadius: 4,
+                        letterSpacing: "0.1em",
+                      }}
+                    >
+                      {r.code}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "3px 10px",
+                      borderRadius: 4,
+                      color: r.used ? T.red : T.green,
+                      background: r.used
+                        ? "rgba(239,68,68,0.08)"
+                        : "rgba(34,197,94,0.08)",
+                      border: `1px solid ${r.used ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)"}`,
+                    }}
+                  >
+                    {r.used ? "✗ Used" : "✓ Active"}
+                  </span>
+                  <span style={{ fontSize: 11, color: T.muted }}>
+                    {ago(r.redeemedAt)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <p
+          style={{
+            color: T.gold,
+            fontSize: 11,
+            letterSpacing: ".15em",
+            textTransform: "uppercase",
+            fontFamily: "'Cinzel',serif",
+            marginBottom: 16,
+          }}
+        >
+          ◆ Today&apos;s Claims — {data.todayRedemptions.length}
+        </p>
+        {data.todayRedemptions.length === 0 ? (
+          <p style={{ color: T.faint, fontSize: 13 }}>No claims today yet.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {data.todayRedemptions.map((r) => (
+              <div
+                key={r._id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  background: "rgba(255,255,255,0.02)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: r.type === "drink" ? T.gold : T.green,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {r.type === "drink" ? "🥤 Drink" : "🍽 Food"} Voucher
+                  </span>
+                  <span
+                    style={{ fontSize: 13, color: T.cream, fontWeight: 600 }}
+                  >
+                    {r.customerName || "—"}
+                  </span>
+                  {r.code && (
+                    <span
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: T.gold,
+                        background: "rgba(212,168,67,0.1)",
+                        border: "1px solid rgba(212,168,67,0.3)",
+                        padding: "2px 10px",
+                        borderRadius: 4,
+                        letterSpacing: "0.1em",
+                      }}
+                    >
+                      {r.code}
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 11, color: T.muted }}>
+                  {ago(r.redeemedAt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -5585,6 +6430,12 @@ export default function AdminDashboard() {
       adminOnly: true,
     },
     {
+      id: "vouchers",
+      label: "Vouchers",
+      icon: <QrCode size={15} />,
+      adminOnly: true,
+    },
+    {
       id: "accounts",
       label: "Accounts",
       icon: <Users size={15} />,
@@ -5841,6 +6692,49 @@ export default function AdminDashboard() {
               >
                 ◆ Active — {activeOrders.length}
               </p>
+              {/* Table grouping indicator */}
+              {(() => {
+                const tableMap: Record<string, number> = {};
+                activeOrders.forEach((o) => {
+                  if (o.tableNumber)
+                    tableMap[o.tableNumber] =
+                      (tableMap[o.tableNumber] || 0) + 1;
+                });
+                const sharedTables = Object.entries(tableMap).filter(
+                  ([, count]) => count > 1,
+                );
+                if (sharedTables.length === 0) return null;
+                return (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                      marginBottom: 12,
+                    }}
+                  >
+                    {sharedTables.map(([table, count]) => (
+                      <div
+                        key={table}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "5px 12px",
+                          background: "rgba(248,113,113,0.08)",
+                          border: "1px solid rgba(248,113,113,0.3)",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          color: "#f87171",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <Users size={13} /> Table {table} — {count} groups
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
               {activeOrders.length === 0 ? (
                 <div
                   style={{
@@ -5921,6 +6815,8 @@ export default function AdminDashboard() {
           <AnalyticsTab orders={orders} />
         ) : tab === "board" ? (
           <BoardTab posts={posts} setPosts={setPosts} />
+        ) : tab === "vouchers" ? (
+          <VouchersAdminTab />
         ) : (
           <AccountsTab />
         )}

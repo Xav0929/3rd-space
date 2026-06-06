@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
@@ -81,11 +81,9 @@ const VOUCHERS = [
     alt: "Drink Voucher – 10% Off",
     title: "DRINK VOUCHER",
     discount: "10% OFF",
-    code: "3RD-DRINK10",
     description:
       "Valid on all drinks. Dine-in only. Present at counter before ordering.",
     validUntil: "Dec 31, 2025",
-    color: "#1a4a2e",
   },
   {
     id: "food",
@@ -93,23 +91,67 @@ const VOUCHERS = [
     alt: "Food Voucher – 5% Off",
     title: "FOOD VOUCHER",
     discount: "5% OFF",
-    code: "3RD-FOOD5",
     description:
       "Valid on all food items. Dine-in only. Cannot be combined with other vouchers.",
     validUntil: "Dec 31, 2025",
-    color: "#1a4a2e",
   },
 ];
 
-function VoucherCard({ voucher }: { voucher: (typeof VOUCHERS)[0] }) {
-  const [copied, setCopied] = useState(false);
-  const [hovered, setHovered] = useState(false);
+type ClaimState = {
+  loading: boolean;
+  result: { ok: boolean; msg: string; code?: string } | null;
+  claimed: boolean;
+};
 
-  const copy = () => {
-    navigator.clipboard.writeText(voucher.code).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+function VoucherCard({
+  voucher,
+  remaining,
+  total,
+  onClaim,
+}: {
+  voucher: (typeof VOUCHERS)[0];
+  remaining: number;
+  total: number;
+  onClaim: (
+    type: string,
+    name: string,
+  ) => Promise<{ ok: boolean; msg: string; code?: string }>;
+}) {
+  const [name, setName] = useState("");
+  const storageKey = `claimed_${voucher.id}_${new Date().toISOString().slice(0, 10)}`;
+  const [state, setState] = useState<ClaimState>({
+    loading: false,
+    result: null,
+    claimed: false,
+  });
+
+  useEffect(() => {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const storedData = JSON.parse(stored);
+      setState({
+        loading: false,
+        result: { ok: true, msg: storedData.msg, code: storedData.code },
+        claimed: true,
+      });
+    }
+  }, [storageKey]);
+  const [hovered, setHovered] = useState(false);
+  const soldOut = remaining <= 0;
+  const pct = ((total - remaining) / total) * 100;
+
+  async function handleClaim() {
+    if (!name.trim() || state.loading || state.claimed || soldOut) return;
+    setState((p) => ({ ...p, loading: true, result: null }));
+    const result = await onClaim(voucher.id, name.trim());
+    if (result.ok) {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ msg: result.msg, code: result.code }),
+      );
+    }
+    setState({ loading: false, result, claimed: result.ok });
+  }
 
   return (
     <div
@@ -123,7 +165,7 @@ function VoucherCard({ voucher }: { voucher: (typeof VOUCHERS)[0] }) {
         transform: hovered ? "translateY(-6px)" : "translateY(0)",
       }}
     >
-      {/* Actual voucher image */}
+      {/* Voucher image */}
       <div
         style={{
           position: "relative",
@@ -134,6 +176,7 @@ function VoucherCard({ voucher }: { voucher: (typeof VOUCHERS)[0] }) {
             ? "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,168,67,0.3)"
             : "0 8px 30px rgba(0,0,0,0.5)",
           transition: "box-shadow 0.3s",
+          opacity: soldOut ? 0.5 : 1,
         }}
       >
         <img
@@ -141,86 +184,286 @@ function VoucherCard({ voucher }: { voucher: (typeof VOUCHERS)[0] }) {
           alt={voucher.alt}
           style={{ width: "100%", display: "block", objectFit: "contain" }}
         />
+        {soldOut && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(10,18,10,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: YK,
+                fontWeight: 700,
+                fontSize: 22,
+                letterSpacing: "0.2em",
+                color: "rgba(232,213,163,0.5)",
+                textTransform: "uppercase",
+                border: "2px solid rgba(232,213,163,0.3)",
+                padding: "6px 20px",
+              }}
+            >
+              SOLD OUT
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Code row below the image */}
+      {/* Slots bar */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "0.75rem",
           background: "rgba(15,26,15,0.9)",
-          border: "1px solid rgba(232,213,163,0.12)",
+          border: "1px solid rgba(232,213,163,0.1)",
           padding: "0.85rem 1.1rem",
         }}
       >
-        <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "0.5rem",
+          }}
+        >
           <p
             style={{
               fontFamily: DM,
-              fontSize: 9,
-              letterSpacing: "0.25em",
-              color: "rgba(232,213,163,0.35)",
-              textTransform: "uppercase",
-              margin: "0 0 3px",
-            }}
-          >
-            Voucher Code
-          </p>
-          <p
-            style={{
-              fontFamily: YK,
-              fontWeight: 700,
-              fontSize: 17,
+              fontSize: 10,
               letterSpacing: "0.2em",
-              color: "#e8d5a3",
+              color: "rgba(232,213,163,0.4)",
               textTransform: "uppercase",
               margin: 0,
             }}
           >
-            {voucher.code}
+            Daily Slots
+          </p>
+          <p
+            style={{
+              fontFamily: YK,
+              fontSize: 14,
+              fontWeight: 700,
+              color: remaining > 0 ? "#d4a843" : "rgba(232,213,163,0.3)",
+              margin: 0,
+            }}
+          >
+            {remaining}/{total} left
+          </p>
+        </div>
+        <div
+          style={{
+            height: 4,
+            background: "rgba(232,213,163,0.08)",
+            borderRadius: 2,
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              borderRadius: 2,
+              width: `${pct}%`,
+              background: pct >= 100 ? "rgba(239,68,68,0.6)" : "#d4a843",
+              transition: "width 0.5s ease",
+            }}
+          />
+        </div>
+        <p
+          style={{
+            fontFamily: DM,
+            fontSize: 10,
+            color: "rgba(232,213,163,0.25)",
+            margin: "0.4rem 0 0",
+            letterSpacing: "0.1em",
+          }}
+        >
+          Resets daily at midnight · Dine-in only
+        </p>
+      </div>
+
+      {/* Claim form */}
+      {!state.claimed ? (
+        <div
+          style={{
+            border: "1px solid rgba(212,168,67,0.15)",
+            padding: "1.25rem",
+            background: "rgba(212,168,67,0.02)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: YK,
+              fontWeight: 700,
+              fontSize: 14,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "#e8d5a3",
+              margin: 0,
+            }}
+          >
+            Claim {voucher.title}
+          </p>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleClaim()}
+            placeholder="Enter your name"
+            disabled={soldOut || state.loading}
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(232,213,163,0.2)",
+              color: "#e8d5a3",
+              fontFamily: DM,
+              fontSize: 14,
+              padding: "0.7rem 1rem",
+              outline: "none",
+              width: "100%",
+              boxSizing: "border-box" as const,
+              opacity: soldOut ? 0.4 : 1,
+            }}
+          />
+          <button
+            onClick={handleClaim}
+            disabled={soldOut || state.loading || !name.trim()}
+            style={{
+              fontFamily: YK,
+              fontWeight: 700,
+              fontSize: 13,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              padding: "0.75rem 1.5rem",
+              background:
+                soldOut || !name.trim() ? "rgba(212,168,67,0.15)" : "#d4a843",
+              color:
+                soldOut || !name.trim() ? "rgba(232,213,163,0.3)" : "#0f1a0f",
+              border: "none",
+              cursor: soldOut || !name.trim() ? "not-allowed" : "pointer",
+              width: "100%",
+              transition: "all 0.2s",
+            }}
+          >
+            {state.loading
+              ? "CLAIMING…"
+              : soldOut
+                ? "SOLD OUT TODAY"
+                : "CLAIM VOUCHER"}
+          </button>
+          {state.result && !state.result.ok && (
+            <div
+              style={{
+                padding: "0.65rem 0.9rem",
+                background: "rgba(239,68,68,0.07)",
+                border: "1px solid rgba(239,68,68,0.25)",
+                color: "#ef4444",
+                fontFamily: DM,
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              {state.result.msg}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Success state */
+        <div
+          style={{
+            border: "1px solid rgba(126,200,160,0.3)",
+            padding: "1.5rem",
+            background: "rgba(126,200,160,0.05)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 32, marginBottom: "0.5rem" }}>✓</div>
+          <p
+            style={{
+              fontFamily: YK,
+              fontWeight: 700,
+              fontSize: 16,
+              letterSpacing: "0.08em",
+              color: "#7ec8a0",
+              margin: "0 0 0.5rem",
+              textTransform: "uppercase",
+            }}
+          >
+            Voucher Claimed!
           </p>
           <p
             style={{
               fontFamily: DM,
-              fontSize: 9,
-              letterSpacing: "0.15em",
-              color: "rgba(232,213,163,0.25)",
-              textTransform: "uppercase",
-              margin: "4px 0 0",
+              fontSize: 13,
+              color: "rgba(126,200,160,0.8)",
+              lineHeight: 1.6,
+              margin: "0 0 1rem",
             }}
           >
-            Valid until {voucher.validUntil}
+            {state.result?.msg}
           </p>
+          <div
+            style={{
+              margin: "0 0 1rem",
+              padding: "1rem",
+              background: "rgba(212,168,67,0.06)",
+              border: "1px solid rgba(212,168,67,0.3)",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: DM,
+                fontSize: 10,
+                color: "rgba(232,213,163,0.4)",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                margin: "0 0 0.4rem",
+              }}
+            >
+              Your Voucher Code
+            </p>
+            <p
+              style={{
+                fontFamily: YK,
+                fontWeight: 700,
+                fontSize: 28,
+                letterSpacing: "0.15em",
+                color: "#d4a843",
+                margin: 0,
+              }}
+            >
+              {state.result?.code}
+            </p>
+          </div>
+          <div
+            style={{
+              padding: "0.75rem",
+              background: "rgba(232,213,163,0.04)",
+              border: "1px solid rgba(232,213,163,0.1)",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: DM,
+                fontSize: 11,
+                color: "rgba(232,213,163,0.4)",
+                margin: 0,
+                letterSpacing: "0.1em",
+              }}
+            >
+              TELL STAFF THIS CODE WHEN ORDERING
+            </p>
+          </div>
         </div>
-        <button
-          onClick={copy}
-          style={{
-            fontFamily: YK,
-            fontWeight: 700,
-            fontSize: 12,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            padding: "8px 18px",
-            background: copied ? "#d4a843" : "transparent",
-            color: copied ? "#0f1a0f" : "rgba(232,213,163,0.7)",
-            border: `1px solid ${copied ? "#d4a843" : "rgba(232,213,163,0.25)"}`,
-            cursor: "pointer",
-            transition: "all 0.2s",
-            flexShrink: 0,
-          }}
-        >
-          {copied ? "✓ COPIED!" : "COPY CODE"}
-        </button>
-      </div>
+      )}
 
-      {/* Terms line */}
+      {/* Terms */}
       <p
         style={{
           fontFamily: DM,
           fontSize: 11,
-          color: "rgba(232,213,163,0.35)",
+          color: "rgba(232,213,163,0.3)",
           lineHeight: 1.6,
           margin: 0,
         }}
@@ -239,7 +482,6 @@ function TaskRow({
   onToggle: (id: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
-
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -350,7 +592,42 @@ function TaskRow({
 
 export default function VouchersPage() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-  const [activeTab, setActiveTab] = useState<"vouchers" | "earn">("vouchers");
+  const [activeTab] = useState<"vouchers" | "earn">("vouchers");
+  const [remaining, setRemaining] = useState({ drink: 5, food: 5 });
+  const [total] = useState({ drink: 5, food: 5 });
+
+  useEffect(() => {
+    fetch("/api/vouchers")
+      .then((r) => r.json())
+      .then((d) =>
+        setRemaining({ drink: d.drinkRemaining, food: d.foodRemaining }),
+      )
+      .catch(() => {});
+  }, []);
+
+  async function handleClaim(
+    type: string,
+    name: string,
+  ): Promise<{ ok: boolean; msg: string; code?: string }> {
+    try {
+      const res = await fetch("/api/vouchers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, customerName: name }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRemaining((p) => ({
+          ...p,
+          [type]: p[type as "drink" | "food"] - 1,
+        }));
+        return { ok: true, msg: data.message, code: data.code };
+      }
+      return { ok: false, msg: data.error };
+    } catch {
+      return { ok: false, msg: "Network error. Try again." };
+    }
+  }
 
   const completedCount = tasks.filter((t) => t.done).length;
   const totalCredits = tasks
@@ -359,28 +636,25 @@ export default function VouchersPage() {
       const match = t.reward.match(/₱(\d+)/);
       return sum + (match ? parseInt(match[1]) : 0);
     }, 0);
-
-  const toggleTask = (id: string) => {
+  const toggleTask = (id: string) =>
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
     );
-  };
 
   return (
     <>
       <style>{`
         .vouchers-page * { box-sizing: border-box; }
         .tab-btn { transition: all 0.2s; }
-        @media (max-width: 640px) {
-          .vouchers-grid { grid-template-columns: 1fr !important; }
-        }
+        @media (max-width: 640px) { .vouchers-grid { grid-template-columns: 1fr !important; } }
+        input::placeholder { color: rgba(232,213,163,0.25) !important; }
+        input:focus { border-color: rgba(212,168,67,0.5) !important; }
       `}</style>
 
       <div
         className="vouchers-page"
         style={{ minHeight: "100vh", background: "#0a120a", color: "#e8d5a3" }}
       >
-        {/* Subtle grid overlay */}
         <div
           style={{
             position: "fixed",
@@ -406,7 +680,6 @@ export default function VouchersPage() {
             paddingBottom: "4rem",
           }}
         >
-          {/* Back link */}
           <Link
             href="/"
             style={{
@@ -432,7 +705,6 @@ export default function VouchersPage() {
             ← Back to Home
           </Link>
 
-          {/* Page header */}
           <div style={{ marginBottom: "3rem" }}>
             <p
               style={{
@@ -475,13 +747,12 @@ export default function VouchersPage() {
                 margin: 0,
               }}
             >
-              Collect vouchers by completing tasks, following us on social
-              media, or spending in-store. Show the code at the counter to
-              redeem your discount.
+              Claim your daily voucher below — 5 drink and 5 food vouchers
+              available every day. Enter your name and claim before they run
+              out. Dine-in only.
             </p>
           </div>
 
-          {/* Progress bar */}
           {completedCount > 0 && (
             <div
               style={{
@@ -556,47 +827,6 @@ export default function VouchersPage() {
             </div>
           )}
 
-          {/* Tab switcher */}
-          <div
-            style={{
-              display: "flex",
-              gap: 0,
-              marginBottom: "2rem",
-              borderBottom: "1px solid rgba(232,213,163,0.12)",
-            }}
-          >
-            {(["vouchers", "earn"] as const).map((tab) => (
-              <button
-                key={tab}
-                className="tab-btn"
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  fontFamily: YK,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  padding: "0.75rem 1.75rem",
-                  background: "none",
-                  border: "none",
-                  borderBottom:
-                    activeTab === tab
-                      ? "2px solid #d4a843"
-                      : "2px solid transparent",
-                  color:
-                    activeTab === tab ? "#e8d5a3" : "rgba(232,213,163,0.35)",
-                  cursor: "pointer",
-                  marginBottom: -1,
-                }}
-              >
-                {tab === "vouchers"
-                  ? "🎟  Available Vouchers"
-                  : "✅  Earn Credits"}
-              </button>
-            ))}
-          </div>
-
-          {/* VOUCHERS TAB */}
           {activeTab === "vouchers" && (
             <>
               <div
@@ -609,11 +839,16 @@ export default function VouchersPage() {
                 }}
               >
                 {VOUCHERS.map((v) => (
-                  <VoucherCard key={v.id} voucher={v} />
+                  <VoucherCard
+                    key={v.id}
+                    voucher={v}
+                    remaining={remaining[v.id as "drink" | "food"]}
+                    total={total[v.id as "drink" | "food"]}
+                    onClaim={handleClaim}
+                  />
                 ))}
               </div>
 
-              {/* How to redeem */}
               <div
                 style={{
                   border: "1px solid rgba(232,213,163,0.1)",
@@ -632,15 +867,15 @@ export default function VouchersPage() {
                     margin: "0 0 1rem",
                   }}
                 >
-                  How to Redeem
+                  How It Works
                 </p>
                 <div
                   style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem" }}
                 >
                   {[
-                    ["1", "Copy the voucher code above"],
-                    ["2", "Visit 3rd Space (Daily 9am – 12am)"],
-                    ["3", "Show this page or the code to staff"],
+                    ["1", "Enter your name and claim a voucher above"],
+                    ["2", "Visit 3rd Space and dine in (Daily 9am – 12am)"],
+                    ["3", "Tell staff you have a voucher — they'll verify it"],
                     ["4", "Enjoy your discount!"],
                   ].map(([num, step]) => (
                     <div
@@ -683,7 +918,6 @@ export default function VouchersPage() {
             </>
           )}
 
-          {/* EARN TAB */}
           {activeTab === "earn" && (
             <div>
               <p
