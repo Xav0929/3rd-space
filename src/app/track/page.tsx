@@ -95,7 +95,13 @@ interface Order {
 }
 
 const DINE_STEPS = ["pending", "confirmed", "preparing", "ready", "completed"];
-const DELIVERY_STEPS = ["pending", "confirmed", "preparing", "completed"];
+const DELIVERY_STEPS = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "completed",
+];
 
 function StatusProgress({ status, type }: { status: string; type: string }) {
   const steps = type === "delivery" ? DELIVERY_STEPS : DINE_STEPS;
@@ -161,13 +167,14 @@ function StatusProgress({ status, type }: { status: string; type: string }) {
                   boxShadow: active ? "0 0 14px rgba(212,168,67,0.5)" : "none",
                 }}
               >
-                {done && (
+                {(done || active) && (
                   <div
                     style={{
                       width: 8,
                       height: 8,
                       borderRadius: 999,
-                      background: BG_DEEP,
+                      background: done ? "#0f1a0f" : "transparent",
+                      border: active && !done ? "2px solid #d4a843" : "none",
                     }}
                   />
                 )}
@@ -338,16 +345,31 @@ function ETACircle({ status }: { status: string }) {
 }
 
 // ── RIDER MAP ────────────────────────────────────────────────────────────────
-function RiderMap({ orderId }: { orderId: string }) {
+const CAFE_LAT = 15.461629;
+const CAFE_LNG = 120.9492521;
+
+function RiderMap({
+  orderId,
+  destLat,
+  destLng,
+  onStatusChange,
+}: {
+  orderId: string;
+  destLat?: number;
+  destLng?: number;
+  onStatusChange?: (status: "waiting" | "live" | "stopped") => void;
+}) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapObjRef = useRef<any>(null);
   const riderMarkerRef = useRef<any>(null);
+  const routeLayerRef = useRef<any>(null);
   const [riderPos, setRiderPos] = useState<{ lat: number; lng: number } | null>(
     null,
   );
   const [mapStatus, setMapStatus] = useState<"waiting" | "live" | "stopped">(
     "waiting",
   );
+  const [riderName, setRiderName] = useState<string | null>(null);
 
   useEffect(() => {
     const es = new EventSource(`/api/orders/${orderId}/location`);
@@ -357,10 +379,14 @@ function RiderMap({ orderId }: { orderId: string }) {
         if (data.type === "location") {
           setRiderPos({ lat: data.lat, lng: data.lng });
           setMapStatus("live");
+          onStatusChange?.("live");
+          if (data.riderName) setRiderName(data.riderName);
         } else if (data.type === "stopped") {
           setMapStatus("stopped");
+          onStatusChange?.("stopped");
         } else if (data.type === "waiting") {
           setMapStatus("waiting");
+          onStatusChange?.("waiting");
         }
       } catch {}
     };
@@ -390,6 +416,44 @@ function RiderMap({ orderId }: { orderId: string }) {
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
         }).addTo(mapObjRef.current);
+        if (destLat && destLng) {
+          fetch(
+            `https://router.project-osrm.org/route/v1/driving/${CAFE_LNG},${CAFE_LAT};${destLng},${destLat}?overview=full&geometries=geojson`,
+          )
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.routes?.[0] && mapObjRef.current) {
+                if (routeLayerRef.current)
+                  mapObjRef.current.removeLayer(routeLayerRef.current);
+                routeLayerRef.current = L.geoJSON(data.routes[0].geometry, {
+                  style: {
+                    color: "#4ade80",
+                    weight: 4,
+                    opacity: 0.75,
+                  },
+                }).addTo(mapObjRef.current);
+                L.circleMarker([CAFE_LAT, CAFE_LNG], {
+                  radius: 8,
+                  fillColor: "#d4a843",
+                  color: "#fff",
+                  weight: 2,
+                  fillOpacity: 1,
+                })
+                  .bindTooltip("3rd Space", { permanent: false })
+                  .addTo(mapObjRef.current);
+                L.circleMarker([destLat, destLng], {
+                  radius: 8,
+                  fillColor: "#4ade80",
+                  color: "#fff",
+                  weight: 2,
+                  fillOpacity: 1,
+                })
+                  .bindTooltip("Your location", { permanent: false })
+                  .addTo(mapObjRef.current);
+              }
+            })
+            .catch(() => {});
+        }
       }
 
       const riderIcon = L.icon({
@@ -525,16 +589,25 @@ function RiderMap({ orderId }: { orderId: string }) {
             display: "inline-block",
           }}
         />
-        <span
-          style={{
-            color: "#4ade80",
-            fontSize: 11,
-            fontFamily: "'Cinzel', serif",
-            letterSpacing: "0.1em",
-          }}
-        >
-          LIVE — RIDER LOCATION
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <span
+            style={{
+              color: "#4ade80",
+              fontSize: 11,
+              fontFamily: "'Cinzel', serif",
+              letterSpacing: "0.1em",
+            }}
+          >
+            LIVE — RIDER LOCATION
+          </span>
+          {riderName && (
+            <span style={{ color: "rgba(232,213,163,0.6)", fontSize: 11 }}>
+              Your rider:{" "}
+              <strong style={{ color: "#e8d5a3" }}>{riderName}</strong> is on
+              the way
+            </span>
+          )}
+        </div>
         <style>{`.rider-marker-icon{border-radius:50%;box-shadow:0 0 12px rgba(212,168,67,0.6);transition:all 0.8s ease;}`}</style>
       </div>
       <div
@@ -558,6 +631,9 @@ function TrackContent() {
   const [focused, setFocused] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [copied, setCopied] = useState(false);
+  const [riderStatus, setRiderStatus] = useState<
+    "waiting" | "live" | "stopped"
+  >("waiting");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   async function handleTrack(e?: React.FormEvent, silent = false) {
@@ -978,17 +1054,24 @@ function TrackContent() {
                   </div>
                 </div>
 
-                {/* ETA ring — delivery only, non-completed */}
-                {order.type === "delivery" && order.status !== "completed" && (
-                  <ETACircle status={order.status} />
-                )}
+                {/* ETA ring — hide when rider has arrived */}
+                {order.type === "delivery" &&
+                  order.status !== "completed" &&
+                  riderStatus !== "stopped" && (
+                    <ETACircle status={order.status} />
+                  )}
 
                 {/* ── RIDER MAP — delivery only, while rider is out ── */}
                 {order.type === "delivery" &&
                   order.status !== "pending" &&
                   order.status !== "cancelled" &&
                   order.status !== "completed" && (
-                    <RiderMap orderId={order._id} />
+                    <RiderMap
+                      orderId={order._id}
+                      destLat={order.deliveryAddressDetails?.lat}
+                      destLng={order.deliveryAddressDetails?.lng}
+                      onStatusChange={setRiderStatus}
+                    />
                   )}
 
                 {/* Completed delivery message */}

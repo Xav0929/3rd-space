@@ -1849,42 +1849,97 @@ function DeliveryAddressPicker({
   const [searching, setSearching] = useState(false);
   const searchTimer = useRef<any>(null);
   const geocodeDebounce = useRef<any>(null);
+  const routeLayerRef = useRef<any>(null);
+  const [routeDistance, setRouteDistance] = useState<string | null>(null);
+  const isProgrammaticMove = useRef(false);
+  const isDrawingRoute = useRef(false);
+  const userIsTyping = useRef(false);
+  const valueRef = useRef(value);
+  useEffect(() => {
+    valueRef.current = value;
+    if (value?.fullAddress) setShowFields(true);
+  }, [value]);
 
   const DEFAULT_LAT = 15.4817,
     DEFAULT_LNG = 120.966;
 
-  const reverseGeocode = useCallback(
-    async (lat: number, lng: number) => {
-      setGeocoding(true);
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
-        );
-        const data = await res.json();
-        const addr = data.address || {};
-        onChange({
-          ...(value || {}),
-          lat,
-          lng,
-          street: addr.road || addr.pedestrian || "",
-          barangay:
-            addr.suburb ||
+  const CAFE_LAT = 15.461629;
+  const CAFE_LNG = 120.9492521;
+
+  const drawRoute = useCallback(async (destLat: number, destLng: number) => {
+    if (!mapObjRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    if (routeLayerRef.current) {
+      mapObjRef.current.removeLayer(routeLayerRef.current);
+      routeLayerRef.current = null;
+    }
+    try {
+      isDrawingRoute.current = true;
+      const res = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${CAFE_LNG},${CAFE_LAT};${destLng},${destLat}?overview=full&geometries=geojson`,
+      );
+      const data = await res.json();
+      if (data.routes?.[0]) {
+        const route = data.routes[0];
+        const km = (route.distance / 1000).toFixed(1);
+        setRouteDistance(`${km} km from 3rd Space`);
+        const layer = L.geoJSON(route.geometry, {
+          style: {
+            color: "#4ade80",
+            weight: 4,
+            opacity: 0.8,
+          },
+        }).addTo(mapObjRef.current);
+        routeLayerRef.current = layer;
+      }
+    } catch {
+      /* silent */
+    } finally {
+      setTimeout(() => {
+        isDrawingRoute.current = false;
+      }, 800);
+    }
+  }, []);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    setGeocoding(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+      );
+      const data = await res.json();
+      const addr = data.address || {};
+      const cur = valueRef.current || {};
+      onChangeRef.current({
+        ...cur,
+        lat,
+        lng,
+        street: cur.street?.trim()
+          ? cur.street
+          : addr.road || addr.pedestrian || "",
+        barangay: cur.barangay?.trim()
+          ? cur.barangay
+          : addr.suburb ||
             addr.village ||
             addr.neighbourhood ||
             addr.quarter ||
             "",
-          city: addr.city || addr.town || addr.municipality || "",
-          province: addr.state || "",
-          fullAddress: data.display_name || "",
-        });
-        setShowFields(true);
-      } catch {
-        /* silent */
-      }
-      setGeocoding(false);
-    },
-    [onChange, value],
-  );
+        city: cur.city?.trim()
+          ? cur.city
+          : addr.city || addr.town || addr.municipality || "",
+        province: cur.province?.trim() ? cur.province : addr.state || "",
+        fullAddress: data.display_name || "",
+      });
+      setShowFields(true);
+    } catch {
+      /* silent */
+    }
+    setGeocoding(false);
+  }, []);
 
   const initMap = useCallback(
     (lat?: number, lng?: number) => {
@@ -1905,14 +1960,54 @@ function DeliveryAddressPicker({
       map.on("moveend", () => {
         const c = map.getCenter();
         clearTimeout(geocodeDebounce.current);
-        geocodeDebounce.current = setTimeout(
-          () => reverseGeocode(c.lat, c.lng),
-          600,
-        );
+        geocodeDebounce.current = setTimeout(() => {
+          if (
+            isProgrammaticMove.current ||
+            isDrawingRoute.current ||
+            userIsTyping.current
+          )
+            return;
+          // Only reverse geocode, don't re-draw route
+          setGeocoding(true);
+          fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${c.lat}&lon=${c.lng}&addressdetails=1`,
+          )
+            .then((r) => r.json())
+            .then((data) => {
+              const addr = data.address || {};
+              const cur = valueRef.current || {};
+              onChange({
+                ...cur,
+                lat: c.lat,
+                lng: c.lng,
+                street: cur.street?.trim()
+                  ? cur.street
+                  : addr.road || addr.pedestrian || "",
+                barangay: cur.barangay?.trim()
+                  ? cur.barangay
+                  : addr.suburb ||
+                    addr.village ||
+                    addr.neighbourhood ||
+                    addr.quarter ||
+                    "",
+                city: cur.city?.trim()
+                  ? cur.city
+                  : addr.city || addr.town || addr.municipality || "",
+                province: cur.province?.trim()
+                  ? cur.province
+                  : addr.state || "",
+                fullAddress: data.display_name || "",
+              });
+              setShowFields(true);
+              drawRoute(c.lat, c.lng);
+            })
+            .catch(() => {})
+            .finally(() => setGeocoding(false));
+        }, 600);
       });
       mapObjRef.current = map;
       setMapReady(true);
-      if (!value?.lat) reverseGeocode(startLat, startLng);
+      // Don't auto-geocode on load — wait for user to pick a location
     },
     [value, reverseGeocode],
   );
@@ -1953,9 +2048,17 @@ function DeliveryAddressPicker({
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         setLocating(false);
-        if (mapObjRef.current)
+        if (mapObjRef.current) {
+          isProgrammaticMove.current = true;
           mapObjRef.current.flyTo([lat, lng], 18, { duration: 1.2 });
-        else if (leafletRef.current) initMap(lat, lng);
+          setTimeout(() => {
+            reverseGeocode(lat, lng);
+            drawRoute(lat, lng);
+            setTimeout(() => {
+              isProgrammaticMove.current = false;
+            }, 800);
+          }, 1400);
+        } else if (leafletRef.current) initMap(lat, lng);
       },
       (err) => {
         setLocating(false);
@@ -1997,13 +2100,24 @@ function DeliveryAddressPicker({
       lng = parseFloat(r.lon);
     setSearchQuery(r.display_name.split(",").slice(0, 2).join(","));
     setSearchResults([]);
-    if (mapObjRef.current)
-      mapObjRef.current.flyTo([lat, lng], 17, { duration: 1 });
-    else if (leafletRef.current) initMap(lat, lng);
+    if (mapObjRef.current) {
+      isProgrammaticMove.current = true;
+      mapObjRef.current.flyTo([lat, lng], 18, { duration: 1.2 });
+      setTimeout(() => {
+        isProgrammaticMove.current = false;
+        reverseGeocode(lat, lng);
+      }, 1500);
+    } else if (leafletRef.current) initMap(lat, lng);
   };
 
-  const sf = (field: string, val: string) =>
+  const sf = (field: string, val: string) => {
+    userIsTyping.current = true;
+    clearTimeout((userIsTyping as any)._t);
+    (userIsTyping as any)._t = setTimeout(() => {
+      userIsTyping.current = false;
+    }, 3000);
     onChange({ ...(value || {}), [field]: val });
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -2300,6 +2414,26 @@ function DeliveryAddressPicker({
         )}
       </div>
 
+      {routeDistance && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(212,168,67,.08)",
+            border: `1px solid rgba(212,168,67,.3)`,
+            borderRadius: 10,
+            padding: "9px 12px",
+            fontSize: 13,
+            color: "#d4a843",
+            fontFamily: "'Cinzel',serif",
+            fontWeight: 700,
+            letterSpacing: ".06em",
+          }}
+        >
+          📍 {routeDistance}
+        </div>
+      )}
       {value?.fullAddress && (
         <div
           style={{
@@ -2319,7 +2453,7 @@ function DeliveryAddressPicker({
         </div>
       )}
 
-      {showFields && (
+      {(showFields || value?.fullAddress) && (
         <>
           <p
             style={{
@@ -2363,24 +2497,6 @@ function DeliveryAddressPicker({
             onChange={(v: string) => sf("landmark", v)}
           />
         </>
-      )}
-      {!showFields && (
-        <button
-          onClick={() => setShowFields(true)}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: CM,
-            fontSize: 12,
-            textDecoration: "underline",
-            textUnderlineOffset: 3,
-            touchAction: "manipulation",
-            padding: "4px 0",
-          }}
-        >
-          Enter address manually instead
-        </button>
       )}
     </div>
   );

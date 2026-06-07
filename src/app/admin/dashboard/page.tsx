@@ -151,49 +151,7 @@ type Account = {
   createdAt: string;
 };
 
-const INITIAL_POSTS: Post[] = [
-  {
-    id: 1,
-    tag: "PINNED",
-    pinned: true,
-    pinColor: "gold",
-    date: "June 2025",
-    title: "We're Now Open Until Midnight 🌙",
-    body: "3rd Space is extending hours to 12am every day. Come wind down, work late, or just hang.",
-    tilt: -1.2,
-    size: "lg",
-  },
-  {
-    id: 2,
-    tag: "PROMO",
-    pinColor: "red",
-    date: "June 2025",
-    title: "Buy 2 Get 1 Pastillas — Every Friday",
-    body: "Every Friday, grab any two pastillas from our pastry shelf and the third one's on us. Valid until supplies last.",
-    tilt: 0.8,
-    size: "md",
-  },
-  {
-    id: 3,
-    tag: "EVENT",
-    pinColor: "teal",
-    date: "July 2025",
-    title: "Open Mic Night",
-    body: "Bring your guitar, your poems, your voice. We'll provide the crowd and the coffee. Signups open at 7pm. Last Saturday of the month.",
-    tilt: -0.6,
-    size: "md",
-  },
-  {
-    id: 4,
-    tag: "UPDATE",
-    pinColor: "gold",
-    date: "May 2025",
-    title: "New Drinks on the Menu",
-    body: "We've added Brown Sugar Oat Latte, Mango Matcha, and Ube Cold Brew. Come try 'em while they last.",
-    tilt: 1.1,
-    size: "sm",
-  },
-];
+const INITIAL_POSTS: Post[] = [];
 
 const partners: Partner[] = [
   {
@@ -1397,15 +1355,75 @@ function CancelReasonModal({
 
 function DeliveryMapPanel({
   details,
+  orderId,
 }: {
   details: NonNullable<Order["deliveryAddressDetails"]>;
+  orderId: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapObjRef = useRef<any>(null);
+  const riderMarkerRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
+  const [riderPos, setRiderPos] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+  const [riderName, setRiderName] = useState<string | null>(null);
+  const [routeDistance, setRouteDistance] = useState<string | null>(null);
+
+  // Subscribe to rider location SSE
+  useEffect(() => {
+    const es = new EventSource(`/api/orders/${orderId}/location`);
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === "location") {
+          setRiderPos({ lat: data.lat, lng: data.lng });
+          if (data.riderName) setRiderName(data.riderName);
+        } else if (data.type === "stopped" || data.type === "waiting") {
+          setRiderPos(null);
+          setRiderName(null);
+        }
+      } catch {}
+    };
+    return () => es.close();
+  }, [orderId]);
+
+  // Update rider marker when position changes
+  useEffect(() => {
+    if (!riderPos || !mapObjRef.current || !(window as any).L) return;
+    const L = (window as any).L;
+    if (!riderMarkerRef.current) {
+      const icon = L.divIcon({
+        html: `<div style="
+          width:36px;height:36px;
+          background:#d4a843;
+          border-radius:50%;
+          border:3px solid white;
+          box-shadow:0 0 14px rgba(212,168,67,0.8);
+          display:flex;align-items:center;justify-content:center;
+          font-size:18px;
+        ">🏍</div>`,
+        className: "",
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+      riderMarkerRef.current = L.marker([riderPos.lat, riderPos.lng], { icon })
+        .addTo(mapObjRef.current)
+        .bindPopup(riderName ? `Rider: ${riderName}` : "Rider");
+    } else {
+      riderMarkerRef.current.setLatLng([riderPos.lat, riderPos.lng]);
+      mapObjRef.current.panTo([riderPos.lat, riderPos.lng], {
+        animate: true,
+        duration: 0.8,
+      });
+    }
+  }, [riderPos]);
 
   const lat = details?.lat;
   const lng = details?.lng;
+
+  const CAFE_LAT = 15.461629;
+  const CAFE_LNG = 120.9492521;
 
   useEffect(() => {
     if (!lat || !lng) return;
@@ -1414,13 +1432,9 @@ function DeliveryMapPanel({
       if (!mapRef.current || mapObjRef.current) return;
       const map = L.map(mapRef.current, {
         center: [lat, lng],
-        zoom: 17,
+        zoom: 15,
         zoomControl: true,
         attributionControl: false,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        touchZoom: false,
       });
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -1447,6 +1461,38 @@ function DeliveryMapPanel({
       });
 
       L.marker([lat, lng], { icon }).addTo(map);
+
+      // Café marker
+      L.circleMarker([CAFE_LAT, CAFE_LNG], {
+        radius: 7,
+        fillColor: "#d4a843",
+        color: "#fff",
+        weight: 2,
+        fillOpacity: 1,
+      })
+        .bindTooltip("3rd Space", { permanent: false })
+        .addTo(map);
+
+      // Draw route
+      fetch(
+        `https://router.project-osrm.org/route/v1/driving/${CAFE_LNG},${CAFE_LAT};${lng},${lat}?overview=full&geometries=geojson`,
+      )
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.routes?.[0] && mapObjRef.current) {
+            const routeLayer = L.geoJSON(data.routes[0].geometry, {
+              style: { color: "#4ade80", weight: 4, opacity: 0.75 },
+            }).addTo(mapObjRef.current);
+            const km = (data.routes[0].distance / 1000).toFixed(1);
+            const mins = Math.round(data.routes[0].duration / 60);
+            setRouteDistance(`${km} km · ~${mins} min by road`);
+            mapObjRef.current.fitBounds(routeLayer.getBounds(), {
+              padding: [30, 30],
+            });
+          }
+        })
+        .catch(() => {});
+
       mapObjRef.current = map;
       setReady(true);
     }
@@ -1502,7 +1548,7 @@ function DeliveryMapPanel({
       <div
         style={{
           position: "relative",
-          height: 180,
+          height: 220,
           width: "100%",
           overflow: "hidden",
         }}
@@ -1560,6 +1606,52 @@ function DeliveryMapPanel({
         )}
       </div>
 
+      {(routeDistance || riderPos) && (
+        <div
+          style={{
+            padding: "8px 14px",
+            borderBottom: `1px solid ${T.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          {routeDistance && (
+            <span style={{ color: "#4ade80", fontSize: 12, fontWeight: 600 }}>
+              📍 {routeDistance}
+            </span>
+          )}
+          {riderPos && (
+            <span
+              style={{
+                fontSize: 11,
+                color: "#d4a843",
+                background: "rgba(212,168,67,0.1)",
+                border: "1px solid rgba(212,168,67,0.3)",
+                borderRadius: 6,
+                padding: "3px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#4ade80",
+                  boxShadow: "0 0 6px rgba(74,222,128,0.8)",
+                  display: "inline-block",
+                }}
+              />
+              {riderName ? `${riderName} is riding` : "Rider live"}
+            </span>
+          )}
+        </div>
+      )}
       {rows.length > 0 && (
         <div style={{ padding: "10px 14px" }}>
           <p
@@ -1602,34 +1694,45 @@ function DeliveryMapPanel({
               </div>
             ))}
           </div>
-          <a
-            href={`https://www.google.com/maps?q=${lat},${lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              marginTop: 10,
-              fontSize: 11,
-              color: T.blue,
-              textDecoration: "none",
-              background: "rgba(91,155,213,0.08)",
-              border: "1px solid rgba(91,155,213,0.2)",
-              borderRadius: 6,
-              padding: "4px 10px",
-            }}
-          >
-            <MapPin
-              size={11}
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <button
+              onClick={() => window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank")}
               style={{
-                display: "inline",
-                verticalAlign: "middle",
-                marginRight: 4,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                fontSize: 11,
+                color: T.blue,
+                background: "rgba(91,155,213,0.08)",
+                border: "1px solid rgba(91,155,213,0.2)",
+                borderRadius: 6,
+                padding: "6px 12px",
+                cursor: "pointer",
               }}
-            />{" "}
-            Open in Google Maps
-          </a>
+            >
+              <MapPin size={11} /> Open in Maps
+            </button>
+            <button
+              onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&origin=${CAFE_LAT},${CAFE_LNG}&destination=${lat},${lng}&travelmode=driving`, "_blank")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#0a0f0a",
+                background: T.gold,
+                border: "none",
+                borderRadius: 6,
+                padding: "6px 14px",
+                fontFamily: "'Cinzel',serif",
+                letterSpacing: ".06em",
+                cursor: "pointer",
+              }}
+            >
+              🏍 NAVIGATE TO CUSTOMER
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -1642,44 +1745,59 @@ function DeliveryMapPanel({
 function RiderTrackingButton({
   orderId,
   orderNumber,
+  riderName,
 }: {
   orderId: string;
   orderNumber: string;
+  riderName: string;
 }) {
   const [tracking, setTracking] = useState(false);
+  const [activeRider, setActiveRider] = useState<string | null>(null);
   const [error, setError] = useState("");
   const watchIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const es = new EventSource(`/api/orders/${orderId}/location`);
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === "location" && data.riderName) {
+          setActiveRider(data.riderName);
+        } else if (data.type === "stopped" || data.type === "waiting") {
+          setActiveRider(null);
+        }
+      } catch {}
+    };
+    return () => es.close();
+  }, [orderId]);
 
   const pushLocation = async (lat: number, lng: number) => {
     try {
       await fetch(`/api/orders/${orderId}/location`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat, lng }),
+        body: JSON.stringify({ lat, lng, riderName }),
       });
     } catch {}
   };
 
+  // 3rd Space fixed coordinates — update these to the actual café location
+  const CAFE_LAT = 15.461629;
+  const CAFE_LNG = 120.9492521;
+
   function startTracking() {
-    if (!navigator.geolocation) {
-      setError("Geolocation not supported on this device.");
-      return;
-    }
     setError("");
     setTracking(true);
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => pushLocation(pos.coords.latitude, pos.coords.longitude),
-      (err) => {
-        setError(err.message);
-        setTracking(false);
-      },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 },
-    );
+    pushLocation(CAFE_LAT, CAFE_LNG);
+    // Push every 30s to keep the location "alive" on the customer's map
+    watchIdRef.current = window.setInterval(() => {
+      pushLocation(CAFE_LAT, CAFE_LNG);
+    }, 30000) as unknown as number;
   }
 
   async function stopTracking() {
     if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
+      clearInterval(watchIdRef.current);
       watchIdRef.current = null;
     }
     setTracking(false);
@@ -1697,6 +1815,9 @@ function RiderTrackingButton({
     };
   }, []);
 
+  const someoneElseTracking =
+    activeRider && activeRider !== riderName && !tracking;
+
   return (
     <div
       style={{
@@ -1706,48 +1827,65 @@ function RiderTrackingButton({
         marginBottom: 8,
       }}
     >
-      <button
-        onClick={tracking ? stopTracking : startTracking}
-        style={{
-          width: "100%",
-          padding: "10px 12px",
-          background: tracking
-            ? "rgba(239,68,68,0.12)"
-            : "rgba(212,168,67,0.12)",
-          border: `1px solid ${tracking ? "rgba(239,68,68,0.4)" : "rgba(212,168,67,0.4)"}`,
-          color: tracking ? T.red : T.gold,
-          borderRadius: 8,
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: "pointer",
-          fontFamily: "'Cinzel',serif",
-          letterSpacing: ".06em",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-      >
-        {tracking ? (
-          <>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: T.red,
-                boxShadow: "0 0 6px rgba(239,68,68,0.8)",
-                animation: "pulse-track 1s ease-in-out infinite",
-                flexShrink: 0,
-              }}
-            />
-            STOP TRACKING · #{orderNumber}
-          </>
-        ) : (
-          <>📍 START RIDER TRACKING</>
-        )}
-      </button>
-      {tracking && (
+      {someoneElseTracking ? (
+        <div
+          style={{
+            padding: "8px 12px",
+            background: "rgba(212,168,67,0.08)",
+            border: "1px solid rgba(212,168,67,0.3)",
+            borderRadius: 8,
+            fontSize: 12,
+            color: "#d4a843",
+            textAlign: "center",
+            marginBottom: 8,
+          }}
+        >
+          📍 {activeRider} is currently tracking this order
+        </div>
+      ) : (
+        <button
+          onClick={tracking ? stopTracking : startTracking}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            background: tracking
+              ? "rgba(239,68,68,0.12)"
+              : "rgba(212,168,67,0.12)",
+            border: `1px solid ${tracking ? "rgba(239,68,68,0.4)" : "rgba(212,168,67,0.4)"}`,
+            color: tracking ? T.red : T.gold,
+            borderRadius: 8,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "'Cinzel',serif",
+            letterSpacing: ".06em",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          {tracking ? (
+            <>
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: T.red,
+                  boxShadow: "0 0 6px rgba(239,68,68,0.8)",
+                  animation: "pulse-track 1s ease-in-out infinite",
+                  flexShrink: 0,
+                }}
+              />
+              STOP TRACKING · #{orderNumber}
+            </>
+          ) : (
+            <>📍 START RIDER TRACKING</>
+          )}
+        </button>
+      )}
+      {!someoneElseTracking && tracking && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <p style={{ color: T.muted, fontSize: 11, textAlign: "center" }}>
             Broadcasting your location · Customer can see you live
@@ -1797,6 +1935,7 @@ function OrderCard({
   onPaymentConfirm,
   onSetPaymentMethod,
   onDelete,
+  staffName,
 }: {
   order: Order;
   menuItems: MenuItem[];
@@ -1804,6 +1943,7 @@ function OrderCard({
   onPaymentConfirm: (id: string) => void;
   onSetPaymentMethod: (id: string, method: "cash" | "gcash") => void;
   onDelete: (id: string) => void;
+  staffName: string;
 }) {
   const [open, setOpen] = useState(false);
   const [receiptSrc, setReceiptSrc] = useState<string | null>(null);
@@ -2254,7 +2394,10 @@ function OrderCard({
                     </div>
                   )}
                   {order.deliveryAddressDetails?.lat && (
-                    <DeliveryMapPanel details={order.deliveryAddressDetails} />
+                    <DeliveryMapPanel
+                      details={order.deliveryAddressDetails}
+                      orderId={order._id}
+                    />
                   )}
                 </>
               )}
@@ -2716,14 +2859,13 @@ function OrderCard({
             </div>
 
             {/* ── RIDER TRACKING ── */}
-            {order.type === "delivery" &&
-              order.status !== "completed" &&
-              order.status !== "cancelled" && (
-                <RiderTrackingButton
-                  orderId={order._id}
-                  orderNumber={order.orderNumber}
-                />
-              )}
+            {order.type === "delivery" && order.status !== "cancelled" && (
+              <RiderTrackingButton
+                orderId={order._id}
+                orderNumber={order.orderNumber}
+                riderName={staffName}
+              />
+            )}
 
             {/* ── STATUS ACTIONS ── */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -6792,6 +6934,7 @@ export default function AdminDashboard() {
                       onPaymentConfirm={confirmPayment}
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
+                      staffName={staffName}
                     />
                   ))}
                 </div>
@@ -6824,6 +6967,7 @@ export default function AdminDashboard() {
                       onPaymentConfirm={confirmPayment}
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
+                      staffName={staffName}
                     />
                   ))}
                 </div>

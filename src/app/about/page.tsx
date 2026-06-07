@@ -1047,37 +1047,6 @@ export default function AboutPage() {
                         />
                       </svg>
                     </Link>
-                    <Link
-                      href="/book"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 10,
-                        border: "1px solid rgba(232,213,163,0.25)",
-                        color: "rgba(232,213,163,0.7)",
-                        fontFamily: YK,
-                        fontWeight: 700,
-                        fontSize: "clamp(0.75rem, 1.1vw, 0.9rem)",
-                        letterSpacing: "0.2em",
-                        textTransform: "uppercase",
-                        textDecoration: "none",
-                        padding:
-                          "clamp(0.7rem, 1.2vw, 1rem) clamp(1.2rem, 2vw, 1.8rem)",
-                        transition: "border-color 0.25s, color 0.25s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor =
-                          "rgba(232,213,163,0.6)";
-                        e.currentTarget.style.color = "#e8d5a3";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor =
-                          "rgba(232,213,163,0.25)";
-                        e.currentTarget.style.color = "rgba(232,213,163,0.7)";
-                      }}
-                    >
-                      BOOK A TABLE
-                    </Link>
                   </div>
                 </div>
               </FadeBlock>
