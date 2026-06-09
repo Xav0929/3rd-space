@@ -1694,9 +1694,16 @@ function DeliveryMapPanel({
               </div>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <div
+            style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}
+          >
             <button
-              onClick={() => window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank")}
+              onClick={() =>
+                window.open(
+                  `https://www.google.com/maps?q=${lat},${lng}`,
+                  "_blank",
+                )
+              }
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1713,7 +1720,12 @@ function DeliveryMapPanel({
               <MapPin size={11} /> Open in Maps
             </button>
             <button
-              onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&origin=${CAFE_LAT},${CAFE_LNG}&destination=${lat},${lng}&travelmode=driving`, "_blank")}
+              onClick={() =>
+                window.open(
+                  `https://www.google.com/maps/dir/?api=1&origin=${CAFE_LAT},${CAFE_LNG}&destination=${lat},${lng}&travelmode=driving`,
+                  "_blank",
+                )
+              }
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -5778,14 +5790,15 @@ function VouchersAdminTab() {
         >
           ◆ Verify Voucher Code
         </p>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             value={verifyCode}
             onChange={(e) => setVerifyCode(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === "Enter" && handleVerify()}
             placeholder="e.g. DRK-4X9K"
             style={{
-              flex: 1,
+              flex: "1 1 160px",
+              minWidth: 0,
               background: "rgba(255,255,255,0.04)",
               border: `1px solid ${T.borderH}`,
               borderRadius: 8,

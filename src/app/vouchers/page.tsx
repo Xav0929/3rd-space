@@ -593,6 +593,36 @@ function TaskRow({
 export default function VouchersPage() {
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [activeTab] = useState<"vouchers" | "earn">("vouchers");
+  const [reviewCopied, setReviewCopied] = useState(false);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const confirmed =
+        localStorage.getItem(
+          `review_confirmed_${new Date().toISOString().slice(0, 10)}`,
+        ) === "1";
+      setReviewConfirmed(confirmed);
+    } catch {}
+  }, []);
+
+  function handleOpenReview() {
+    setReviewCopied(true);
+    window.open(
+      "https://www.google.com/maps/place/3rd+Space./@15.461629,120.9492521,17z/data=!4m18!1m9!3m8!1s0x339729bcb0e7a4ef:0x7c6be590214baf56!2s3rd+Space.!8m2!3d15.461629!4d120.9492521!9m1!1b1!16s%2Fg%2F11ymd4bsqr!3m7!1s0x339729bcb0e7a4ef:0x7c6be590214baf56!8m2!3d15.461629!4d120.9492521!9m1!1b1!16s%2Fg%2F11ymd4bsqr?hl=en&entry=ttu&g_ep=EgoyMDI2MDYwMy4xIKXMDSoASAFQAw%3D%3D",
+      "_blank",
+    );
+  }
+
+  function handleConfirmReview() {
+    try {
+      localStorage.setItem(
+        `review_confirmed_${new Date().toISOString().slice(0, 10)}`,
+        "1",
+      );
+    } catch {}
+    setReviewConfirmed(true);
+  }
   const [remaining, setRemaining] = useState({ drink: 5, food: 5 });
   const [total] = useState({ drink: 5, food: 5 });
 
@@ -753,6 +783,212 @@ export default function VouchersPage() {
             </p>
           </div>
 
+          {/* ── REVIEW GATE ── */}
+          {!reviewConfirmed ? (
+            <div
+              style={{
+                marginBottom: "2.5rem",
+                border: "1px solid rgba(212,168,67,0.25)",
+                background: "rgba(212,168,67,0.03)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: "1.1rem 1.4rem",
+                  borderBottom: "1px solid rgba(212,168,67,0.12)",
+                  background: "rgba(212,168,67,0.06)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontSize: 20, flexShrink: 0, color: "#d4a843" }}>
+                  ★
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p
+                    style={{
+                      fontFamily: YK,
+                      fontWeight: 700,
+                      fontSize: 15,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: "#e8d5a3",
+                      margin: 0,
+                    }}
+                  >
+                    Leave a Google Review to Unlock Vouchers
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: DM,
+                      fontSize: 11,
+                      color: "rgba(232,213,163,0.4)",
+                      margin: "3px 0 0",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Tap below · Leave a review on Google · Confirm to unlock
+                  </p>
+                </div>
+                <span
+                  style={{
+                    fontFamily: YK,
+                    fontWeight: 700,
+                    fontSize: 10,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    padding: "3px 10px",
+                    flexShrink: 0,
+                    border: "1px solid rgba(212,168,67,0.3)",
+                    color: "#d4a843",
+                  }}
+                >
+                  REQUIRED
+                </span>
+              </div>
+
+              <div style={{ padding: "1.4rem" }}>
+                <p
+                  style={{
+                    fontFamily: DM,
+                    fontSize: 13,
+                    color: "rgba(232,213,163,0.5)",
+                    lineHeight: 1.7,
+                    margin: "0 0 1.25rem",
+                  }}
+                >
+                  Tap below to open Google Reviews, leave us a 5-star review,
+                  then come back and confirm. Staff will verify before you
+                  redeem.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.65rem",
+                  }}
+                >
+                  <button
+                    onClick={handleOpenReview}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.6rem",
+                      fontFamily: YK,
+                      fontWeight: 700,
+                      fontSize: 13,
+                      letterSpacing: "0.15em",
+                      textTransform: "uppercase",
+                      padding: "0.95rem 1.5rem",
+                      background: "#d4a843",
+                      color: "#0f1a0f",
+                      border: "none",
+                      cursor: "pointer",
+                      width: "100%",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    ★ LEAVE A GOOGLE REVIEW
+                  </button>
+
+                  {reviewCopied && (
+                    <>
+                      <p
+                        style={{
+                          fontFamily: DM,
+                          fontSize: 11,
+                          color: "rgba(232,213,163,0.4)",
+                          margin: 0,
+                          lineHeight: 1.6,
+                          textAlign: "center",
+                        }}
+                      >
+                        Posted your review? Tap below to unlock your vouchers.
+                      </p>
+                      <button
+                        onClick={handleConfirmReview}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.5rem",
+                          fontFamily: YK,
+                          fontWeight: 700,
+                          fontSize: 13,
+                          letterSpacing: "0.15em",
+                          textTransform: "uppercase",
+                          padding: "0.85rem 1.5rem",
+                          background: "rgba(126,200,160,0.12)",
+                          color: "#7ec8a0",
+                          border: "1px solid rgba(126,200,160,0.3)",
+                          cursor: "pointer",
+                          width: "100%",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        ✓ I'VE POSTED MY REVIEW — UNLOCK VOUCHERS
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                marginBottom: "2.5rem",
+                border: "1px solid rgba(126,200,160,0.25)",
+                background: "rgba(126,200,160,0.04)",
+                padding: "1.1rem 1.4rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 22,
+                  color: "#7ec8a0",
+                  flexShrink: 0,
+                  fontFamily: DM,
+                }}
+              >
+                ✓
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    fontFamily: YK,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#7ec8a0",
+                    margin: 0,
+                  }}
+                >
+                  Review Posted — Vouchers Unlocked
+                </p>
+                <p
+                  style={{
+                    fontFamily: DM,
+                    fontSize: 11,
+                    color: "rgba(126,200,160,0.55)",
+                    margin: "3px 0 0",
+                  }}
+                >
+                  Staff will verify your Google review before redeeming. Thank
+                  you!
+                </p>
+              </div>
+            </div>
+          )}
+
           {completedCount > 0 && (
             <div
               style={{
@@ -839,13 +1075,54 @@ export default function VouchersPage() {
                 }}
               >
                 {VOUCHERS.map((v) => (
-                  <VoucherCard
-                    key={v.id}
-                    voucher={v}
-                    remaining={remaining[v.id as "drink" | "food"]}
-                    total={total[v.id as "drink" | "food"]}
-                    onClaim={handleClaim}
-                  />
+                  <div key={v.id} style={{ position: "relative" }}>
+                    {!reviewConfirmed && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          zIndex: 10,
+                          background: "rgba(10,18,10,0.82)",
+                          backdropFilter: "blur(4px)",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.5rem",
+                          padding: "1rem",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 28,
+                            color: "rgba(232,213,163,0.2)",
+                          }}
+                        >
+                          ▣
+                        </span>
+                        <p
+                          style={{
+                            fontFamily: YK,
+                            fontWeight: 700,
+                            fontSize: 12,
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase",
+                            color: "rgba(232,213,163,0.35)",
+                            textAlign: "center",
+                            margin: 0,
+                          }}
+                        >
+                          POST A GOOGLE REVIEW TO UNLOCK
+                        </p>
+                      </div>
+                    )}
+                    <VoucherCard
+                      voucher={v}
+                      remaining={remaining[v.id as "drink" | "food"]}
+                      total={total[v.id as "drink" | "food"]}
+                      onClaim={handleClaim}
+                    />
+                  </div>
                 ))}
               </div>
 
