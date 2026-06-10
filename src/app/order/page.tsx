@@ -892,24 +892,49 @@ function MenuCard({
           justifyContent: "center",
         }}
       >
-        {item.image ? (
-          <img
-            src={item.image}
-            alt={item.name}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transition: "transform .4s",
-              transform: hov ? "scale(1.05)" : "scale(1)",
-            }}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        ) : (
-          <Coffee size={28} style={{ opacity: 0.35, color: CM }} />
-        )}
+        <img
+          src={
+            item.image ||
+            `/menu/food/${encodeURIComponent(
+              (
+                {
+                  "Fries (À La Carte)": "Fries (A la Carte)",
+                } as Record<string, string>
+              )[item.name] ?? item.name,
+            )}.png`
+          }
+          alt={item.name}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transition: "transform .4s",
+            transform: hov ? "scale(1.05)" : "scale(1)",
+          }}
+          onError={(e) => {
+            const el = e.target as HTMLImageElement;
+            const name = encodeURIComponent(item.name);
+            const tried = el.dataset.tried || "0";
+            if (tried === "0") {
+              el.dataset.tried = "1";
+              el.src = `/menu/coffee/${name}.png`;
+            } else if (tried === "1") {
+              el.dataset.tried = "2";
+              el.src = `/menu/pastries/${name}.png`;
+            } else {
+              el.style.display = "none";
+              const parent = el.parentElement;
+              if (parent && !parent.querySelector(".img-fallback")) {
+                const fb = document.createElement("div");
+                fb.className = "img-fallback";
+                fb.style.cssText =
+                  "display:flex;align-items:center;justify-content:center;width:100%;height:100%;";
+                fb.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='rgba(232,213,163,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='opacity:.35'><path d='M17 8h1a4 4 0 1 1 0 8h-1'/><path d='M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z'/><line x1='6' x2='6' y1='2' y2='4'/><line x1='10' x2='10' y1='2' y2='4'/><line x1='14' x2='14' y1='2' y2='4'/></svg>`;
+                parent.appendChild(fb);
+              }
+            }
+          }}
+        />
       </div>
       <div
         style={{
