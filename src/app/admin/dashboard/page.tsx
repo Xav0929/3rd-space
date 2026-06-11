@@ -94,11 +94,16 @@ type OrderStatus =
   | "ready"
   | "completed"
   | "cancelled";
-type OrderItem = { name: string; price: number; quantity: number };
+type OrderItem = {
+  name: string;
+  price: number;
+  quantity: number;
+  customizations?: { type: string; label: string; price: number }[];
+};
 type Order = {
   _id: string;
   orderNumber: string;
-  type: "delivery" | "dine-in";
+  type: "delivery" | "dine-in" | "takeout";
   status: OrderStatus;
   items: OrderItem[];
   total: number;
@@ -2078,6 +2083,18 @@ function OrderCard({
                     />{" "}
                     Delivery
                   </>
+                ) : order.type === "takeout" ? (
+                  <>
+                    <Coffee
+                      size={11}
+                      style={{
+                        display: "inline",
+                        verticalAlign: "middle",
+                        marginRight: 4,
+                      }}
+                    />{" "}
+                    Takeout
+                  </>
                 ) : (
                   <>
                     <Armchair
@@ -2141,7 +2158,9 @@ function OrderCard({
             <p style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
               {order.type === "delivery"
                 ? order.customerName
-                : `Table ${order.tableNumber || "N/A"}`}
+                : order.type === "takeout"
+                  ? order.customerName || "Takeout"
+                  : `Table ${order.tableNumber || "N/A"}`}
               {" · "}
               {ago(order.createdAt)}
             </p>
@@ -2968,7 +2987,12 @@ function MenuItemForm({
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState("");
   const set = (k: keyof MenuItem, v: any) => setForm((p) => ({ ...p, [k]: v }));
-  const valid = !!(form.name?.trim() && form.price && form.category?.trim());
+  const valid = !!(
+    form.name?.trim() &&
+    form.price !== undefined &&
+    form.price >= 0 &&
+    form.category?.trim()
+  );
 
   useEffect(() => {
     const handler = async (e: ClipboardEvent) => {
@@ -3731,6 +3755,7 @@ function AnalyticsTab({ orders }: { orders: Order[] }) {
   const avgOrder = completed.length ? revenue / completed.length : 0;
   const deliveryCount = orders.filter((o) => o.type === "delivery").length;
   const dineInCount = orders.filter((o) => o.type === "dine-in").length;
+  const takeoutCount = orders.filter((o) => o.type === "takeout").length;
   const byStatus = Object.entries(STATUS_CFG)
     .map(([k, v]) => ({
       status: k as OrderStatus,
@@ -3974,6 +3999,12 @@ function AnalyticsTab({ orders }: { orders: Order[] }) {
               count: deliveryCount,
               color: T.gold,
               icon: <Bike size={24} />,
+            },
+            {
+              label: "Takeout",
+              count: takeoutCount,
+              color: T.blue,
+              icon: <Coffee size={24} />,
             },
           ].map((s) => (
             <div

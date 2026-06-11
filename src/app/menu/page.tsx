@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
-const MAX_WIDTH = 1280;
+const SITE_PADDING = "clamp(1.5rem, 5vw, 3rem)";
 const YK = "var(--font-yanone), 'Yanone Kaffeesatz', sans-serif";
 const DM = "var(--font-dm), 'DM Sans', sans-serif";
 
@@ -22,15 +21,6 @@ type MenuItem = {
   image?: string;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  all: "All",
-  coffee: "Coffee",
-  noncoffee: "Non-Coffee",
-  matcha: "Matcha",
-  food: "Food",
-  specials: "Specials",
-};
-
 const CATEGORY_EMOJI: Record<string, string> = {
   coffee: "☕",
   noncoffee: "🫖",
@@ -39,11 +29,21 @@ const CATEGORY_EMOJI: Record<string, string> = {
   specials: "✦",
 };
 
+const TICKER_ITEMS = [
+  "Stay a Little Longer",
+  "80% Arabica · 20% Robusta",
+  "Roast: Medium Dark",
+  "Fresh Brews Daily",
+  "Dine In · Take Out · Delivery",
+];
+
 export default function MenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<MenuItem | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetch("/api/menu")
@@ -65,8 +65,6 @@ export default function MenuPage() {
       ? items
       : items.filter((i) => i.category.toLowerCase() === activeCategory);
 
-  const featured = items.filter((i) => i.featured && i.available !== false);
-
   const grouped = filtered.reduce<Record<string, MenuItem[]>>((acc, item) => {
     const key = item.category;
     if (!acc[key]) acc[key] = [];
@@ -74,12 +72,25 @@ export default function MenuPage() {
     return acc;
   }, {});
 
+  function handleItemEnter(item: MenuItem) {
+    if (!item.image) return;
+    if (previewTimeout.current) clearTimeout(previewTimeout.current);
+    setPreviewItem(item);
+    setPreviewVisible(true);
+  }
+
+  function handleItemLeave() {
+    previewTimeout.current = setTimeout(() => {
+      setPreviewVisible(false);
+    }, 180);
+  }
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .menu-page {
+        .menu-root {
           background: #0c160c;
           min-height: 100vh;
           color: #e8d5a3;
@@ -88,8 +99,8 @@ export default function MenuPage() {
         /* ── HEADER ── */
         .menu-header {
           position: relative;
-          padding: clamp(5rem, 10vw, 8rem) ${SITE_PADDING} 0;
-          max-width: ${MAX_WIDTH}px;
+          padding: clamp(5rem, 10vw, 7rem) ${SITE_PADDING} 0;
+          max-width: 1400px;
           margin: 0 auto;
           overflow: hidden;
         }
@@ -97,12 +108,12 @@ export default function MenuPage() {
         .menu-header::before {
           content: 'MENU';
           position: absolute;
-          top: -0.1em;
-          left: -0.05em;
+          top: -0.05em;
+          left: -0.03em;
           font-family: ${YK};
           font-weight: 700;
-          font-size: clamp(8rem, 18vw, 18rem);
-          color: rgba(232,213,163,0.03);
+          font-size: clamp(8rem, 20vw, 20rem);
+          color: rgba(232,213,163,0.025);
           letter-spacing: -0.02em;
           text-transform: uppercase;
           line-height: 1;
@@ -110,342 +121,465 @@ export default function MenuPage() {
           user-select: none;
         }
 
+        .back-link {
+          font-family: ${DM};
+          font-size: 10px;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          color: rgba(232,213,163,0.3);
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          transition: color 0.2s;
+          margin-bottom: 2rem;
+        }
+        .back-link:hover { color: rgba(232,213,163,0.7); }
+        .back-link:hover svg { transform: translateX(-3px); }
+        .back-link svg { transition: transform 0.2s; }
+
         .menu-eyebrow {
           font-family: ${DM};
           font-size: clamp(0.5rem, 0.8vw, 0.65rem);
           letter-spacing: 0.42em;
           color: rgba(232,213,163,0.35);
           text-transform: uppercase;
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
         }
 
         .menu-title {
           font-family: ${YK};
           font-weight: 700;
-          font-size: clamp(3.5rem, 7vw, 7rem);
+          font-size: clamp(3.5rem, 7vw, 6.5rem);
           line-height: 0.9;
           letter-spacing: 0.01em;
           text-transform: uppercase;
           color: #e8d5a3;
-          margin: 0 0 1.5rem;
+          margin-bottom: 1.25rem;
         }
 
-        .menu-title em {
-          color: #d4a843;
-          font-style: italic;
-        }
+        .menu-title em { color: #d4a843; font-style: italic; }
 
         .menu-sub {
           font-family: ${DM};
           font-weight: 300;
-          font-size: clamp(0.8rem, 1.2vw, 1rem);
-          color: rgba(232,213,163,0.4);
-          max-width: 360px;
+          font-size: clamp(0.8rem, 1.2vw, 0.95rem);
+          color: rgba(232,213,163,0.38);
+          max-width: 340px;
           line-height: 1.7;
           margin-bottom: 2.5rem;
         }
 
-        /* ── DIVIDER LINE ── */
-        .divider {
-          width: 100%;
+        .h-rule {
           height: 0.5px;
-          background: linear-gradient(to right, rgba(232,213,163,0.15), rgba(232,213,163,0.05) 70%, transparent);
+          background: linear-gradient(to right, rgba(232,213,163,0.15), transparent);
         }
 
-        /* ── CATEGORY TABS ── */
-        .cats-wrapper {
+        /* ── TICKER ── */
+        .ticker-wrap {
+          overflow: hidden;
+          background: rgba(212,168,67,0.05);
+          border-top: 0.5px solid rgba(212,168,67,0.1);
+          border-bottom: 0.5px solid rgba(212,168,67,0.1);
+          padding: 0.55rem 0;
+        }
+
+        .ticker-track {
+          display: flex;
+          width: max-content;
+          animation: ticker 26s linear infinite;
+        }
+
+        .ticker-track:hover { animation-play-state: paused; }
+
+        @keyframes ticker {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+
+        .ticker-item {
+          font-family: ${YK};
+          font-weight: 700;
+          font-size: 12px;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          color: rgba(212,168,67,0.65);
+          white-space: nowrap;
+          padding: 0 2rem;
+          display: flex;
+          align-items: center;
+          gap: 2rem;
+        }
+
+        .ticker-item::after {
+          content: '✦';
+          font-size: 7px;
+          color: rgba(212,168,67,0.3);
+        }
+
+        /* ── CATEGORY PILLS ── */
+        .cat-bar {
           position: sticky;
           top: 0;
-          z-index: 10;
-          background: rgba(12,22,12,0.92);
+          z-index: 20;
+          background: rgba(12,22,12,0.94);
           backdrop-filter: blur(16px);
-          border-bottom: 0.5px solid rgba(232,213,163,0.08);
-        }
-
-        .cats {
-          max-width: ${MAX_WIDTH}px;
-          margin: 0 auto;
-          padding: 0 ${SITE_PADDING};
-          display: flex;
-          gap: 0;
-          overflow-x: auto;
-          scrollbar-width: none;
-        }
-
-        .cats::-webkit-scrollbar { display: none; }
-
-        .cat-btn {
-          font-family: ${DM};
-          font-size: 11px;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          padding: 1.1rem 1.4rem;
-          background: transparent;
-          border: none;
-          border-bottom: 2px solid transparent;
-          color: rgba(232,213,163,0.35);
-          cursor: pointer;
-          white-space: nowrap;
-          transition: color 0.25s, border-color 0.25s;
-        }
-
-        .cat-btn:hover { color: rgba(232,213,163,0.7); }
-        .cat-btn.active {
-          color: #d4a843;
-          border-bottom-color: #d4a843;
-        }
-
-        /* ── FEATURED STRIP ── */
-        .featured-section {
-          max-width: ${MAX_WIDTH}px;
-          margin: 0 auto;
-          padding: 2.5rem ${SITE_PADDING} 0;
-        }
-
-        .section-eyebrow {
-          font-family: ${DM};
-          font-size: 9px;
-          letter-spacing: 0.35em;
-          text-transform: uppercase;
-          color: rgba(212,168,67,0.6);
-          margin-bottom: 1rem;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .section-eyebrow::after {
-          content: '';
-          flex: 1;
-          height: 0.5px;
-          background: rgba(212,168,67,0.15);
-        }
-
-        .featured-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1px;
-          background: rgba(232,213,163,0.06);
-          margin-bottom: 3rem;
-        }
-
-        .featured-card {
-          background: #0c160c;
-          padding: 1.5rem;
-          display: flex;
-          gap: 1.25rem;
-          align-items: flex-start;
-          cursor: pointer;
-          transition: background 0.25s;
-          text-decoration: none;
-          color: inherit;
-        }
-
-        .featured-card:hover { background: rgba(232,213,163,0.03); }
-
-        .featured-thumb {
-          width: 72px;
-          height: 72px;
-          flex-shrink: 0;
-          background: rgba(232,213,163,0.05);
-          border: 0.5px solid rgba(232,213,163,0.1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 28px;
-        }
-
-        .featured-label {
-          font-family: ${DM};
-          font-size: 9px;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: rgba(212,168,67,0.6);
-          margin-bottom: 4px;
-        }
-
-        .featured-name {
-          font-family: ${YK};
-          font-weight: 700;
-          font-size: 20px;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          color: #e8d5a3;
-          line-height: 1;
-          margin-bottom: 6px;
-        }
-
-        .featured-desc {
-          font-family: ${DM};
-          font-size: 11.5px;
-          color: rgba(232,213,163,0.38);
-          line-height: 1.55;
-          margin-bottom: 10px;
-        }
-
-        .featured-price {
-          font-family: ${YK};
-          font-size: 17px;
-          font-weight: 700;
-          color: #d4a843;
-        }
-
-        /* ── MENU SECTIONS ── */
-        .menu-sections {
-          max-width: ${MAX_WIDTH}px;
-          margin: 0 auto;
-          padding: 0 ${SITE_PADDING} 5rem;
-        }
-
-        .menu-section {
-          margin-bottom: 3rem;
-        }
-
-        .section-title-row {
-          display: flex;
-          align-items: baseline;
-          gap: 1rem;
-          margin-bottom: 1rem;
-          padding-bottom: 0.75rem;
           border-bottom: 0.5px solid rgba(232,213,163,0.07);
         }
 
-        .section-title {
+        .cat-inner {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 ${SITE_PADDING};
+          display: flex;
+          flex-wrap: wrap;
+          overflow-x: auto;
+          scrollbar-width: none;
+          gap: 0;
+        }
+
+        .cat-inner::-webkit-scrollbar { display: none; }
+
+        .cat-btn {
+          font-family: ${DM};
+          font-size: 10px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          padding: 0.9rem 1rem;
+          background: transparent;
+          border: none;
+          border-bottom: 2px solid transparent;
+          color: rgba(232,213,163,0.3);
+          cursor: pointer;
+          white-space: nowrap;
+          transition: color 0.2s, border-color 0.2s;
+          flex-shrink: 0;
+        }
+
+        .cat-btn:hover { color: rgba(232,213,163,0.65); }
+        .cat-btn.active { color: #d4a843; border-bottom-color: #d4a843; }
+
+        /* ── MAIN TWO-PANEL ── */
+        .main-layout {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 ${SITE_PADDING};
+          display: grid;
+          grid-template-columns: 1fr 340px;
+          gap: 3rem;
+          align-items: start;
+        }
+
+        /* ── MENU LIST PANEL ── */
+        .menu-list {
+          padding: 2.5rem 0 5rem;
+          min-width: 0;
+        }
+
+        .menu-section { margin-bottom: 2.5rem; }
+
+        .section-head {
+          display: flex;
+          align-items: baseline;
+          gap: 0.75rem;
+          padding-bottom: 0.65rem;
+          margin-bottom: 0;
+          border-bottom: 0.5px solid rgba(232,213,163,0.06);
+          position: relative;
+        }
+
+        .section-head::before {
+          content: '';
+          position: absolute;
+          bottom: -0.5px;
+          left: 0;
+          width: 36px;
+          height: 1px;
+          background: #d4a843;
+          opacity: 0.5;
+        }
+
+        .section-cat-name {
           font-family: ${YK};
           font-weight: 700;
-          font-size: clamp(1.6rem, 3vw, 2.2rem);
+          font-size: clamp(1.5rem, 2.5vw, 2rem);
           letter-spacing: 0.06em;
           text-transform: uppercase;
           color: #e8d5a3;
           line-height: 1;
         }
 
-        .section-count {
+        .section-cat-count {
           font-family: ${DM};
-          font-size: 11px;
-          color: rgba(232,213,163,0.25);
+          font-size: 10px;
+          color: rgba(232,213,163,0.22);
           letter-spacing: 0.1em;
+          margin-left: auto;
         }
 
-        /* ── ITEM GRID ── */
-        .items-grid {
+        /* ── ITEM ROW ── */
+        .item-row {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 1px;
-          background: rgba(232,213,163,0.06);
+          grid-template-columns: 1fr auto;
+          gap: 1rem;
+          align-items: start;
+          padding: 1rem 0;
+          border-bottom: 0.5px solid rgba(232,213,163,0.05);
+          cursor: default;
+          transition: background 0.15s;
+          position: relative;
         }
 
-        .item-card {
-          background: #0c160c;
-          padding: 1.25rem;
+        .item-row.has-image {
           cursor: pointer;
-          transition: background 0.2s;
-          display: flex;
-          flex-direction: column;
         }
 
-        .item-card:hover { background: rgba(232,213,163,0.03); }
+        .item-row.has-image:hover .item-row-name {
+          color: #d4a843;
+        }
 
-        .item-thumb {
-          width: 100%;
-          aspect-ratio: 16/10;
-          background: rgba(232,213,163,0.04);
-          border: 0.5px solid rgba(232,213,163,0.07);
+        .item-row.has-image:hover .item-row-dot {
+          background: #d4a843;
+          opacity: 1;
+        }
+
+        .item-row-left {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+
+        .item-row-dot {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: rgba(232,213,163,0.2);
+          flex-shrink: 0;
+          margin-top: 0.55rem;
+          transition: background 0.2s, opacity 0.2s;
+        }
+
+        .item-row-text { min-width: 0; }
+
+        .item-row-top {
           display: flex;
           align-items: center;
-          justify-content: center;
-          font-size: 30px;
-          margin-bottom: 1rem;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .item-thumb img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          position: absolute;
-          inset: 0;
-        }
-
-        .item-badges {
-          display: flex;
-          gap: 5px;
-          margin-bottom: 6px;
+          gap: 0.6rem;
           flex-wrap: wrap;
+          margin-bottom: 3px;
         }
 
-        .badge {
-          font-family: ${DM};
-          font-size: 8.5px;
-          letter-spacing: 0.15em;
+        .item-row-name {
+          font-family: ${YK};
+          font-weight: 700;
+          font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+          letter-spacing: 0.04em;
           text-transform: uppercase;
-          padding: 3px 7px;
+          color: #e8d5a3;
+          line-height: 1.1;
+          transition: color 0.2s;
         }
 
-        .badge-popular {
+        .item-badge {
+          font-family: ${DM};
+          font-size: 8px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          padding: 2px 6px;
+        }
+
+        .badge-pop {
           background: rgba(212,168,67,0.1);
-          color: rgba(212,168,67,0.85);
+          color: rgba(212,168,67,0.8);
           border: 0.5px solid rgba(212,168,67,0.2);
         }
 
         .badge-new {
           background: rgba(120,200,120,0.08);
-          color: rgba(120,200,120,0.85);
+          color: rgba(120,200,120,0.8);
           border: 0.5px solid rgba(120,200,120,0.2);
         }
 
-        .badge-featured {
-          background: rgba(212,168,67,0.08);
-          color: rgba(212,168,67,0.7);
+        .badge-pick {
+          background: rgba(212,168,67,0.07);
+          color: rgba(212,168,67,0.65);
           border: 0.5px solid rgba(212,168,67,0.15);
         }
 
-        .item-name {
+        .item-row-desc {
+          font-family: ${DM};
+          font-size: 11.5px;
+          color: rgba(232,213,163,0.32);
+          line-height: 1.55;
+        }
+
+        .item-row-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          flex-shrink: 0;
+          padding-top: 2px;
+        }
+
+        .item-row-price {
           font-family: ${YK};
           font-weight: 700;
-          font-size: 19px;
-          letter-spacing: 0.04em;
+          font-size: 1.1rem;
+          color: #d4a843;
+          white-space: nowrap;
+        }
+
+        .item-row-sub {
+          font-family: ${DM};
+          font-size: 9px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(232,213,163,0.2);
+        }
+
+        .item-row-eye {
+          font-size: 9px;
+          color: rgba(232,213,163,0.18);
+          letter-spacing: 0.05em;
+          font-family: ${DM};
+        }
+
+        /* ── PREVIEW PANEL ── */
+        .preview-panel {
+          position: sticky;
+          top: 80px;
+          height: calc(100vh - 120px);
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .preview-box {
+          flex: 1;
+          position: relative;
+          overflow: hidden;
+          border: 0.5px solid rgba(232,213,163,0.07);
+          background: rgba(232,213,163,0.02);
+        }
+
+        /* Bottom gradient fade */
+        .preview-box::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(to top, rgba(12,22,12,0.7) 0%, rgba(12,22,12,0.1) 45%, transparent 70%),
+            linear-gradient(to bottom, rgba(12,22,12,0.25) 0%, transparent 30%);
+          z-index: 2;
+          pointer-events: none;
+        }
+
+        /* Grain texture overlay */
+        .preview-box::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+          background-size: 180px 180px;
+          opacity: 0.35;
+          z-index: 3;
+          pointer-events: none;
+          mix-blend-mode: overlay;
+        }
+
+        .preview-img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: opacity 0.35s ease, transform 0.5s ease;
+        }
+
+        .preview-img.visible {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        .preview-img.hidden {
+          opacity: 0;
+          transform: scale(1.04);
+        }
+
+        .preview-empty {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          transition: opacity 0.3s;
+        }
+
+        .preview-empty.hidden { opacity: 0; }
+
+        .preview-empty-icon {
+          font-size: 2.5rem;
+          opacity: 0.12;
+        }
+
+        .preview-empty-text {
+          font-family: ${DM};
+          font-size: 9px;
+          letter-spacing: 0.3em;
+          text-transform: uppercase;
+          color: rgba(232,213,163,0.18);
+        }
+
+        .preview-meta {
+          padding: 1.1rem 0 0;
+          min-height: 80px;
+          transition: opacity 0.25s;
+        }
+
+        .preview-meta.hidden { opacity: 0; }
+
+        .preview-cat {
+          font-family: ${DM};
+          font-size: 9px;
+          letter-spacing: 0.3em;
+          text-transform: uppercase;
+          color: rgba(212,168,67,0.5);
+          margin-bottom: 5px;
+        }
+
+        .preview-name {
+          font-family: ${YK};
+          font-weight: 700;
+          font-size: 1.6rem;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
           color: #e8d5a3;
-          line-height: 1.1;
-          margin-bottom: 5px;
-          flex: 1;
+          line-height: 1;
+          margin-bottom: 6px;
         }
 
-        .item-desc {
+        .preview-desc {
           font-family: ${DM};
-          font-size: 11px;
+          font-size: 11.5px;
           color: rgba(232,213,163,0.35);
-          line-height: 1.55;
-          margin-bottom: 0.85rem;
+          line-height: 1.6;
+          margin-bottom: 10px;
         }
 
-        .item-footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-top: auto;
-        }
-
-        .item-price {
+        .preview-price {
           font-family: ${YK};
           font-weight: 700;
-          font-size: 17px;
+          font-size: 1.4rem;
           color: #d4a843;
         }
 
-        .item-subcategory {
-          font-family: ${DM};
-          font-size: 9px;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: rgba(232,213,163,0.22);
-        }
-
         /* ── LOADING ── */
-        .loading-state {
-          max-width: ${MAX_WIDTH}px;
+        .loading-wrap {
+          max-width: 1400px;
           margin: 0 auto;
           padding: 5rem ${SITE_PADDING};
           display: flex;
@@ -464,7 +598,7 @@ export default function MenuPage() {
 
         @keyframes pulse {
           0%, 100% { opacity: 0.2; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.2); }
+          50%       { opacity: 1;   transform: scale(1.2); }
         }
 
         .loading-text {
@@ -472,36 +606,19 @@ export default function MenuPage() {
           font-size: 11px;
           letter-spacing: 0.25em;
           text-transform: uppercase;
-          color: rgba(232,213,163,0.3);
+          color: rgba(232,213,163,0.28);
         }
 
-        /* ── NAV BACK ── */
-        .back-link {
-          font-family: ${DM};
-          font-size: 10px;
-          letter-spacing: 0.22em;
-          text-transform: uppercase;
-          color: rgba(232,213,163,0.3);
-          text-decoration: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          transition: color 0.2s;
-          margin-bottom: 2rem;
-        }
-
-        .back-link:hover { color: rgba(232,213,163,0.7); }
-
-        .back-link svg { transition: transform 0.2s; }
-        .back-link:hover svg { transform: translateX(-3px); }
-
-        @media (max-width: 640px) {
-          .items-grid { grid-template-columns: 1fr 1fr; }
-          .featured-grid { grid-template-columns: 1fr; }
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+          .main-layout {
+            grid-template-columns: 1fr;
+          }
+          .preview-panel { display: none; }
         }
       `}</style>
 
-      <div className="menu-page">
+      <div className="menu-root">
         {/* HEADER */}
         <div className="menu-header">
           <Link href="/" className="back-link">
@@ -517,7 +634,6 @@ export default function MenuPage() {
             </svg>
             Back to home
           </Link>
-
           <p className="menu-eyebrow">Third Space Café</p>
           <h1 className="menu-title">
             What We
@@ -528,131 +644,164 @@ export default function MenuPage() {
             Everything on our menu is made with intention — slow, warm, and
             worth sitting down for.
           </p>
+          <div className="h-rule" />
+        </div>
 
-          <div className="divider" />
+        {/* TICKER */}
+        <div className="ticker-wrap">
+          <div className="ticker-track">
+            {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
+              <span className="ticker-item" key={i}>
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* CATEGORY TABS */}
-        <div className="cats-wrapper">
-          <div className="cats">
+        <div className="cat-bar">
+          <div className="cat-inner">
             {categories.map((cat) => (
               <button
                 key={cat}
                 className={`cat-btn${activeCategory === cat ? " active" : ""}`}
                 onClick={() => setActiveCategory(cat)}
               >
-                {CATEGORY_LABELS[cat] ??
-                  cat.charAt(0).toUpperCase() + cat.slice(1)}
+                {cat === "all"
+                  ? "All"
+                  : cat.charAt(0).toUpperCase() + cat.slice(1)}
               </button>
             ))}
           </div>
         </div>
 
         {loading ? (
-          <div className="loading-state">
+          <div className="loading-wrap">
             <div className="loading-dot" />
             <p className="loading-text">Preparing the menu…</p>
           </div>
         ) : (
-          <>
-            {/* FEATURED TODAY — only show when "All" is selected */}
-            {activeCategory === "all" && featured.length > 0 && (
-              <div className="featured-section">
-                <p className="section-eyebrow">Featured today</p>
-                <div className="featured-grid">
-                  {featured.map((item) => (
-                    <div className="featured-card" key={item._id}>
-                      <div className="featured-thumb">
-                        {item.image ? (
-                          <img src={item.image} alt={item.name} />
-                        ) : (
-                          <span>
-                            {CATEGORY_EMOJI[item.category.toLowerCase()] ?? "✦"}
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <p className="featured-label">{item.category}</p>
-                        <p className="featured-name">{item.name}</p>
-                        <p className="featured-desc">{item.description}</p>
-                        <p className="featured-price">
-                          ₱{item.price.toLocaleString()}
-                        </p>
-                      </div>
+          <div className="main-layout">
+            {/* ── LEFT: MENU LIST ── */}
+            <div className="menu-list">
+              {Object.entries(grouped).map(([category, categoryItems]) => {
+                const available = categoryItems.filter(
+                  (i) => i.available !== false,
+                );
+                if (!available.length) return null;
+                if (
+                  category.toLowerCase() === "add-ons" ||
+                  category.toLowerCase() === "add ons"
+                )
+                  return null;
+                return (
+                  <div className="menu-section" key={category}>
+                    <div className="section-head">
+                      <h2 className="section-cat-name">{category}</h2>
+                      <span className="section-cat-count">
+                        {available.length} items
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* MENU SECTIONS */}
-            <div className="menu-sections">
-              {Object.entries(grouped).map(([category, categoryItems]) => (
-                <div className="menu-section" key={category}>
-                  <div className="section-title-row">
-                    <h2 className="section-title">{category}</h2>
-                    <span className="section-count">
-                      {categoryItems.length} items
-                    </span>
-                  </div>
-
-                  <div className="items-grid">
-                    {categoryItems
-                      .filter((i) => i.available !== false)
-                      .map((item) => (
-                        <div
-                          className="item-card"
-                          key={item._id}
-                          onMouseEnter={() => setHoveredId(item._id)}
-                          onMouseLeave={() => setHoveredId(null)}
-                        >
-                          <div className="item-thumb">
-                            {item.image ? (
-                              <img src={item.image} alt={item.name} />
-                            ) : (
-                              <span>
-                                {CATEGORY_EMOJI[item.category.toLowerCase()] ??
-                                  "✦"}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="item-badges">
-                            {item.featured && (
-                              <span className="badge badge-featured">
-                                Today's pick
-                              </span>
-                            )}
-                            {item.popular && (
-                              <span className="badge badge-popular">
-                                Popular
-                              </span>
-                            )}
-                            {item.isNew && (
-                              <span className="badge badge-new">New</span>
-                            )}
-                          </div>
-
-                          <p className="item-name">{item.name}</p>
-                          <p className="item-desc">{item.description}</p>
-
-                          <div className="item-footer">
-                            <span className="item-price">
-                              ₱{item.price.toLocaleString()}
-                            </span>
-                            {item.subcategory && (
-                              <span className="item-subcategory">
-                                {item.subcategory}
-                              </span>
+                    {available.map((item) => (
+                      <div
+                        key={item._id}
+                        className={`item-row${item.image ? " has-image" : ""}`}
+                        onMouseEnter={() => handleItemEnter(item)}
+                        onMouseLeave={handleItemLeave}
+                      >
+                        <div className="item-row-left">
+                          <div className="item-row-dot" />
+                          <div className="item-row-text">
+                            <div className="item-row-top">
+                              <span className="item-row-name">{item.name}</span>
+                              {item.featured && (
+                                <span className="item-badge badge-pick">
+                                  Pick
+                                </span>
+                              )}
+                              {item.popular && (
+                                <span className="item-badge badge-pop">
+                                  Popular
+                                </span>
+                              )}
+                              {item.isNew && (
+                                <span className="item-badge badge-new">
+                                  New
+                                </span>
+                              )}
+                            </div>
+                            {item.description && (
+                              <p className="item-row-desc">
+                                {item.description}
+                              </p>
                             )}
                           </div>
                         </div>
-                      ))}
+
+                        <div className="item-row-right">
+                          <span className="item-row-price">
+                            ₱{item.price.toLocaleString()}
+                          </span>
+                          {item.subcategory && (
+                            <span className="item-row-sub">
+                              {item.subcategory}
+                            </span>
+                          )}
+                          {item.image && (
+                            <span className="item-row-eye">
+                              hover to preview
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </>
+
+            {/* ── RIGHT: PREVIEW PANEL ── */}
+            <div className="preview-panel">
+              <div className="preview-box">
+                {/* Empty state */}
+                <div
+                  className={`preview-empty${previewVisible ? " hidden" : ""}`}
+                >
+                  <span className="preview-empty-icon">☕</span>
+                  <span className="preview-empty-text">Hover an item</span>
+                </div>
+
+                {/* Image */}
+                {previewItem?.image && (
+                  <img
+                    key={previewItem._id}
+                    src={previewItem.image}
+                    alt={previewItem.name}
+                    className={`preview-img${previewVisible ? " visible" : " hidden"}`}
+                  />
+                )}
+              </div>
+
+              {/* Meta below image */}
+              <div
+                className={`preview-meta${previewVisible && previewItem ? "" : " hidden"}`}
+              >
+                {previewItem && (
+                  <>
+                    <p className="preview-cat">{previewItem.category}</p>
+                    <p className="preview-name">{previewItem.name}</p>
+                    {previewItem.description && (
+                      <p className="preview-desc">{previewItem.description}</p>
+                    )}
+                    <p className="preview-price">
+                      ₱{previewItem.price.toLocaleString()}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>

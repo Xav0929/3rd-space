@@ -156,7 +156,12 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json();
-    if (!body.name?.trim() || !body.category?.trim() || !body.price) {
+    if (
+      !body.name?.trim() ||
+      !body.category?.trim() ||
+      body.price === undefined ||
+      body.price === null
+    ) {
       return NextResponse.json(
         { error: "name, category, and price are required" },
         { status: 400 },

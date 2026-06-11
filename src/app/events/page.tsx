@@ -1,12 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
-const YK = "'Yanone Kaffeesatz', sans-serif";
-const DM = "'DM Sans', sans-serif";
+type Event = {
+  id: string;
+  day: string;
+  fullDay: string;
+  name: string;
+  label: string;
+  time: string;
+  desc: string;
+  image: string;
+  firstPanel: boolean;
+  venue?: string;
+  host?: string;
+  note?: string;
+};
 
-const EVENTS = [
+const EVENTS: Event[] = [
   {
     id: "tarot-thursday",
     day: "THU",
@@ -16,7 +27,6 @@ const EVENTS = [
     time: "7:00 – 10:00 PM",
     desc: "Pull a card. Sip something warm. Let the night tell you what you already know.",
     image: "/images/events/tarot-thursday.png",
-    href: "/images/events/tarot-thursday",
     firstPanel: false,
   },
   {
@@ -28,7 +38,6 @@ const EVENTS = [
     time: "8:00 – 11:00 PM",
     desc: "Curated films. Dim lights. Great coffee. Something different every week.",
     image: "/images/events/film-friday.png",
-    href: "/images/events/film-friday",
     firstPanel: false,
   },
   {
@@ -40,7 +49,6 @@ const EVENTS = [
     time: "6:00 – 11:00 PM",
     desc: "No alcohol. No pressure. Just people being present — and really good coffee.",
     image: "/images/events/sober-saturday.png",
-    href: "/images/events/sober-saturday",
     firstPanel: false,
   },
   {
@@ -52,7 +60,6 @@ const EVENTS = [
     time: "7:00 – 11:00 PM",
     desc: "Open mic. Acoustic sets. End the week loud, off-key, and happy.",
     image: "/images/events/slow-sunday.png",
-    href: "/images/events/slow-sunday",
     firstPanel: false,
   },
 ];
@@ -81,16 +88,14 @@ export default function EventsPage() {
         .panel {
           flex: 1;
           position: relative;
-          cursor: pointer;
           overflow: hidden;
           border-right: 1px solid rgba(255,255,255,0.07);
-          text-decoration: none;
           display: block;
           transition: flex 0.5s cubic-bezier(0.4,0,0.2,1);
         }
         .panel:last-child { border-right: none; }
 
-.panel-img {
+        .panel-img {
           position: absolute;
           inset: 0;
           width: 100%;
@@ -103,7 +108,6 @@ export default function EventsPage() {
         .panel.first-active .panel-img { filter: grayscale(0.5) brightness(0.65); }
         .panel:hover .panel-img { filter: grayscale(0) brightness(0.72); }
 
-        /* dark gradient at bottom always */
         .panel-grad {
           position: absolute;
           inset: 0;
@@ -125,7 +129,6 @@ export default function EventsPage() {
           );
         }
 
-        /* day label — visible idle, fades on hover */
         .panel-day {
           position: absolute;
           bottom: 2rem;
@@ -139,7 +142,6 @@ export default function EventsPage() {
         }
         .panel:hover .panel-day { opacity: 0; }
 
-        /* bottom content — hidden idle, slides up on hover */
         .panel-content {
           position: absolute;
           bottom: 0;
@@ -197,26 +199,30 @@ export default function EventsPage() {
           margin-bottom: 1.1rem;
         }
 
-        .panel-cta {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          font-family: 'Yanone Kaffeesatz', sans-serif;
-          font-weight: 700;
-          font-size: clamp(0.6rem, 0.85vw, 0.75rem);
-          letter-spacing: 0.22em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.55);
-          border-bottom: 1px solid rgba(255,255,255,0.2);
-          padding-bottom: 2px;
-          transition: color 0.2s, border-color 0.2s;
-        }
-        .panel:hover .panel-cta:hover {
-          color: #fff;
-          border-color: rgba(255,255,255,0.6);
+        .panel-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.45rem;
+          margin-bottom: 1.1rem;
         }
 
-.free-badge {
+        .panel-detail-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: clamp(0.62rem, 0.8vw, 0.72rem);
+          color: rgba(255,255,255,0.32);
+          line-height: 1.5;
+        }
+
+        .panel-detail-row svg {
+          flex-shrink: 0;
+          margin-top: 1px;
+          opacity: 0.4;
+        }
+
+        .free-badge {
           display: inline-block;
           font-family: 'DM Sans', sans-serif;
           font-size: 0.52rem;
@@ -287,9 +293,8 @@ export default function EventsPage() {
         }}
       >
         {EVENTS.map((event, i) => (
-          <Link
+          <div
             key={event.id}
-            href={event.href}
             className={`panel${i === 0 ? " first-active" : ""}`}
           >
             <img src={event.image} alt={event.label} className="panel-img" />
@@ -325,25 +330,72 @@ export default function EventsPage() {
 
               <p className="panel-desc">{event.desc}</p>
 
-              <span className="panel-cta">
-                Learn more
-                <svg
-                  width="11"
-                  height="11"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </span>
+              <div className="panel-details">
+                {event.venue && (
+                  <div className="panel-detail-row">
+                    <svg
+                      width="11"
+                      height="11"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    {event.venue}
+                  </div>
+                )}
+                {event.host && (
+                  <div className="panel-detail-row">
+                    <svg
+                      width="11"
+                      height="11"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    {event.host}
+                  </div>
+                )}
+                {event.note && (
+                  <div className="panel-detail-row">
+                    <svg
+                      width="11"
+                      height="11"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    {event.note}
+                  </div>
+                )}
+              </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </>

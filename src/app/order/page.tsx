@@ -52,18 +52,31 @@ const MILK_SUBS = [
 type CustomizationConfig = {
   substitutions?: { label: string; price: number }[];
   addons?: { label: string; price: number }[];
+  sauces?: { name: string; image: string }[];
+  eggStyles?: { name: string; image: string }[];
 };
 function getCategoryCustomizations(
   category: string,
+  liveSauces?: { name: string; image: string }[],
+  liveEggStyles?: { name: string; image: string }[],
 ): CustomizationConfig | null {
   const c = category.toLowerCase().trim();
   if (c.includes("3rd space")) return { substitutions: MILK_SUBS };
   if (c.includes("appetizer") || c.includes("snack"))
     return {
-      addons: [
-        { label: "Extra Sauce", price: 15 },
-        { label: "Extra Serving", price: 30 },
-      ],
+      sauces:
+        liveSauces && liveSauces.length > 0
+          ? liveSauces
+          : [
+              "Garlic Mayo",
+              "Ketchup",
+              "Sweet Chili",
+              "Honey Mustard",
+              "Toyo Calamansi",
+              "Vinegar",
+              "Tonkatsu Sauce",
+            ].map((name) => ({ name, image: "" })),
+      addons: [{ label: "Extra Serving", price: 30 }],
     };
   if (c.includes("brain fuel")) return null;
   if (c.includes("oat"))
@@ -90,6 +103,18 @@ function getCategoryCustomizations(
     return { addons: [{ label: "Add Rice", price: 25 }] };
   if (c.includes("savory"))
     return {
+      eggStyles:
+        liveEggStyles && liveEggStyles.length > 0
+          ? liveEggStyles
+          : [
+              "Sunny Side Up",
+              "Over Easy",
+              "Over Hard",
+              "Soft Scramble",
+              "Hard Scramble",
+              "Soft Boiled",
+              "Hard Boiled",
+            ].map((name) => ({ name, image: "" })),
       addons: [
         { label: "Add Sauce", price: 15 },
         { label: "Add Egg", price: 15 },
@@ -121,11 +146,11 @@ interface CartItem extends MenuItem {
   cartKey: string;
   customizations: SelectedCustomization[];
 }
+type OrderType = "dine-in" | "delivery" | "takeout";
 interface Order {
   orderNumber: string;
-  type: "dine-in" | "delivery";
+  type: OrderType;
 }
-type OrderType = "dine-in" | "delivery";
 type PayMethod = "cash" | "gcash" | "pay-later";
 type Step = "mode-select" | "menu" | "checkout" | "payment" | "confirmed";
 
@@ -338,6 +363,10 @@ function CustomizationSheet({
     config.substitutions?.[0]?.label || "",
   );
   const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
+  const [selectedSauces, setSelectedSauces] = useState<Set<string>>(new Set());
+  const [selectedEggStyle, setSelectedEggStyle] = useState<string>(
+    config.eggStyles?.[0]?.name || "",
+  );
 
   const extraCost =
     (config.substitutions?.find((s) => s.label === selectedSub)?.price || 0) +
@@ -351,6 +380,12 @@ function CustomizationSheet({
       const sub = config.substitutions.find((s) => s.label === selectedSub);
       if (sub) result.push({ type: "substitution", ...sub });
     }
+    if (config.eggStyles && selectedEggStyle) {
+      result.push({ type: "substitution", label: selectedEggStyle, price: 0 });
+    }
+    selectedSauces.forEach((lbl) => {
+      result.push({ type: "addon", label: lbl, price: 0 });
+    });
     selectedAddons.forEach((lbl) => {
       const a = config.addons?.find((x) => x.label === lbl);
       if (a) result.push({ type: "addon", ...a });
@@ -547,6 +582,204 @@ function CustomizationSheet({
                       >
                         {s.price > 0 ? `+₱${s.price}` : "Free"}
                       </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {config.eggStyles && (
+            <div style={{ marginBottom: 18 }}>
+              <p
+                style={{
+                  color: CM,
+                  fontSize: 10,
+                  letterSpacing: ".14em",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 10,
+                }}
+              >
+                EGG STYLE
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {config.eggStyles.map((style) => {
+                  const sel = selectedEggStyle === style.name;
+                  return (
+                    <button
+                      key={style.name}
+                      onClick={() => setSelectedEggStyle(style.name)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 14px",
+                        borderRadius: 10,
+                        border: `1.5px solid ${sel ? G : BR}`,
+                        background: sel ? GD : "transparent",
+                        cursor: "pointer",
+                        touchAction: "manipulation",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: 999,
+                            border: `2px solid ${sel ? G : CM}`,
+                            background: sel ? G : "transparent",
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {sel && (
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: 999,
+                                background: BG,
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                          }}
+                        >
+                          {style.image && (
+                            <img
+                              src={style.image}
+                              alt={style.name}
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 6,
+                                objectFit: "cover",
+                                border: `1px solid ${sel ? G : BR}`,
+                              }}
+                            />
+                          )}
+                          <span style={{ color: sel ? C : CM, fontSize: 13 }}>
+                            {style.name}
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          color: CF,
+                          fontSize: 12,
+                          fontFamily: "'Cinzel',serif",
+                        }}
+                      >
+                        Free
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {config.sauces && (
+            <div style={{ marginBottom: 18 }}>
+              <p
+                style={{
+                  color: CM,
+                  fontSize: 10,
+                  letterSpacing: ".14em",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 10,
+                }}
+              >
+                CHOOSE YOUR SAUCE (FREE)
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                {config.sauces.map((sauce) => {
+                  const sauceName = sauce.name;
+                  const sel = selectedSauces.has(sauceName);
+                  return (
+                    <button
+                      key={sauceName}
+                      onClick={() =>
+                        setSelectedSauces((prev) => {
+                          const n = new Set(prev);
+                          n.has(sauceName)
+                            ? n.delete(sauceName)
+                            : n.add(sauceName);
+                          return n;
+                        })
+                      }
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "10px 6px",
+                        borderRadius: 12,
+                        border: `1.5px solid ${sel ? G : BR}`,
+                        background: sel ? GD : "transparent",
+                        cursor: "pointer",
+                        touchAction: "manipulation",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 10,
+                          overflow: "hidden",
+                          border: `1px solid ${sel ? G : BR}`,
+                          background: "rgba(212,168,67,.05)",
+                        }}
+                      >
+                        <img
+                          src={
+                            sauce.image ||
+                            `/menu/sauces/${encodeURIComponent(sauceName)}.png`
+                          }
+                          alt={sauceName}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      </div>
+                      <span
+                        style={{
+                          color: sel ? C : CM,
+                          fontSize: 10,
+                          textAlign: "center",
+                          lineHeight: 1.3,
+                          letterSpacing: ".02em",
+                        }}
+                      >
+                        {sauceName}
+                      </span>
+                      {sel && <Check size={11} color={G} />}
                     </button>
                   );
                 })}
@@ -767,7 +1000,7 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,220px),1fr))",
+          gridTemplateColumns: "repeat(2, 1fr)",
           gap: 14,
           width: "100%",
           maxWidth: 520,
@@ -780,21 +1013,31 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
             icon: <Armchair size={46} color={G} />,
             title: "DINE IN",
             sub: "Order at your table — pay cash or GCash",
+            span: false,
+          },
+          {
+            mode: "takeout" as OrderType,
+            icon: <Coffee size={46} color={G} />,
+            title: "TAKE OUT",
+            sub: "Pick up at the counter — cash or GCash",
+            span: false,
           },
           {
             mode: "delivery" as OrderType,
             icon: <Bike size={46} color={G} />,
             title: "DELIVERY",
             sub: "Delivered to your door — GCash only",
+            span: true,
           },
-        ].map(({ mode, icon, title, sub }) => (
-          <ModeCard
-            key={mode}
-            emoji={icon}
-            title={title}
-            sub={sub}
-            onClick={() => onSelect(mode)}
-          />
+        ].map(({ mode, icon, title, sub, span }) => (
+          <div key={mode} style={{ gridColumn: span ? "1 / -1" : undefined }}>
+            <ModeCard
+              emoji={icon}
+              title={title}
+              sub={sub}
+              onClick={() => onSelect(mode)}
+            />
+          </div>
         ))}
       </div>
       <div
@@ -1292,12 +1535,22 @@ function MenuScreen({
     new Set(menuItems.map((i: MenuItem) => i.category)),
   ).filter((cat) => {
     const c = (cat as string).toLowerCase();
-    return !c.includes("add-on") && !c.includes("substitut");
+    return (
+      !c.includes("add-on") &&
+      !c.includes("substitut") &&
+      !c.includes("sauce") &&
+      !c.includes("egg style")
+    );
   }) as string[];
 
   const visibleMenuItems = menuItems.filter((i: MenuItem) => {
     const c = i.category.toLowerCase();
-    return !c.includes("add-on") && !c.includes("substitut");
+    return (
+      !c.includes("add-on") &&
+      !c.includes("substitut") &&
+      !c.includes("sauce") &&
+      !c.includes("egg style")
+    );
   });
 
   const [active, setActive] = useState(categories[0] || "");
@@ -1309,8 +1562,26 @@ function MenuScreen({
   const [customizingConfig, setCustomizingConfig] =
     useState<CustomizationConfig | null>(null);
 
+  const liveSauces = menuItems
+    .filter(
+      (i: MenuItem) =>
+        i.category.toLowerCase().includes("sauce") && i.available,
+    )
+    .map((i: MenuItem) => ({ name: i.name, image: i.image }));
+
+  const liveEggStyles = menuItems
+    .filter(
+      (i: MenuItem) =>
+        i.category.toLowerCase().includes("egg style") && i.available,
+    )
+    .map((i: MenuItem) => ({ name: i.name, image: i.image }));
+
   const handleAddToCartWithCustomization = (item: MenuItem) => {
-    const config = getCategoryCustomizations(item.category);
+    const config = getCategoryCustomizations(
+      item.category,
+      liveSauces,
+      liveEggStyles,
+    );
     if (config) {
       setCustomizingItem(item);
       setCustomizingConfig(config);
@@ -2879,7 +3150,9 @@ function CheckoutScreen({
   const valid =
     orderType === "dine-in"
       ? (form.tableNumber || "").trim() && (form.customerName || "").trim()
-      : (form.customerName || "").trim() && phoneValid && addrComplete;
+      : orderType === "delivery"
+        ? (form.customerName || "").trim() && phoneValid && addrComplete
+        : (form.customerName || "").trim();
 
   return (
     <div
@@ -2891,7 +3164,15 @@ function CheckoutScreen({
         overflow: "hidden",
       }}
     >
-      <PlainHeader label={orderType === "dine-in" ? "DINE IN" : "DELIVERY"} />
+      <PlainHeader
+        label={
+          orderType === "dine-in"
+            ? "DINE IN"
+            : orderType === "delivery"
+              ? "DELIVERY"
+              : "TAKE OUT"
+        }
+      />
       <SubBar onClick={onBack} label="Back to Menu" />
       <div
         style={{
@@ -2988,7 +3269,11 @@ function CheckoutScreen({
           </div>
 
           <SectionTitle>
-            {orderType === "dine-in" ? "Table Details" : "Delivery Info"}
+            {orderType === "dine-in"
+              ? "Table Details"
+              : orderType === "delivery"
+                ? "Delivery Info"
+                : "Pickup Details"}
           </SectionTitle>
           <div
             style={{
@@ -3127,7 +3412,17 @@ function CheckoutScreen({
                 </div>
               </>
             )}
-            {/* Voucher code — dine-in only */}
+            {orderType === "takeout" && (
+              <>
+                <InputField
+                  label="Name *"
+                  placeholder="Juan dela Cruz"
+                  value={form.customerName || ""}
+                  onChange={(v: string) => onFormChange("customerName", v)}
+                />
+              </>
+            )}
+
             {orderType === "dine-in" && (
               <div>
                 <label
@@ -3378,9 +3673,9 @@ function PaymentScreen({
   const canConfirm: boolean =
     effectiveMethod === "cash" || effectiveMethod === "pay-later"
       ? true
-      : effectiveMethod === "gcash" && orderType === "dine-in"
+      : effectiveMethod === "gcash" && orderType !== "delivery"
         ? hasCopied && sentConfirmed
-        : uploaded; // delivery
+        : uploaded; // delivery only
 
   return (
     <div
@@ -3433,7 +3728,7 @@ function PaymentScreen({
           </div>
 
           {/* Dine-in method selector */}
-          {orderType === "dine-in" && (
+          {orderType !== "delivery" && (
             <>
               <SectionTitle>How will you pay?</SectionTitle>
               <div
@@ -3463,12 +3758,16 @@ function PaymentScreen({
                     label: "GCASH",
                     sub: "Pay via app",
                   },
-                  {
-                    id: "pay-later" as PayMethod,
-                    icon: <HelpCircle size={20} />,
-                    label: "DECIDE LATER",
-                    sub: "Tell staff",
-                  },
+                  ...(orderType === "dine-in"
+                    ? [
+                        {
+                          id: "pay-later" as PayMethod,
+                          icon: <HelpCircle size={20} />,
+                          label: "DECIDE LATER",
+                          sub: "Tell staff",
+                        },
+                      ]
+                    : []),
                 ].map((m) => {
                   const a = paymentMethod === m.id;
                   return (
@@ -3882,7 +4181,7 @@ function PaymentScreen({
                   marginBottom: 16,
                 }}
               >
-                {(orderType === "dine-in"
+                {(orderType !== "delivery"
                   ? [
                       {
                         n: 1,
@@ -4135,8 +4434,8 @@ function PaymentScreen({
                 )}
               </div>
 
-              {/* ── Dine-in: "I've sent it" checkbox ── */}
-              {orderType === "dine-in" && (
+              {/* ── Non-delivery: "I've sent it" checkbox ── */}
+              {orderType !== "delivery" && (
                 <button
                   onClick={() => {
                     if (hasCopied) setSentConfirmed((v) => !v);
@@ -4430,7 +4729,7 @@ function PaymentScreen({
                   ? "PLACING ORDER…"
                   : !hasCopied
                     ? "COPY GCASH NUMBER TO CONTINUE"
-                    : orderType === "dine-in" && !sentConfirmed
+                    : orderType !== "delivery" && !sentConfirmed
                       ? "TICK THE CHECKBOX TO CONTINUE"
                       : orderType === "delivery" && !uploaded
                         ? "UPLOAD SCREENSHOT TO CONTINUE"
@@ -4475,6 +4774,7 @@ function ConfirmationScreen({
   const isCash = paymentMethod === "cash" && orderType === "dine-in";
   const isPayLater = paymentMethod === "pay-later";
   const isDelivery = orderType === "delivery";
+  const isTakeout = orderType === "takeout";
 
   const addrLine = (addr: any) => {
     if (!addr) return "";
@@ -4482,11 +4782,8 @@ function ConfirmationScreen({
       .filter(Boolean)
       .join(", ");
   };
-  const headline = isPayLater
-    ? "ORDER PLACED!"
-    : isCash
-      ? "ORDER PLACED!"
-      : "ORDER CONFIRMED!";
+  const headline =
+    isPayLater || isCash || isTakeout ? "ORDER PLACED!" : "ORDER CONFIRMED!";
   const icon =
     isCash || isPayLater ? (
       <Receipt size={34} color={BG} strokeWidth={2} />
@@ -4517,6 +4814,14 @@ function ConfirmationScreen({
           cashier and pay ₱{(form as any)._total}.
           {form.tableNumber &&
             ` Sit back at ${form.tableNumber} — we'll bring it to you.`}
+        </p>
+      );
+    if (isTakeout)
+      return (
+        <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
+          Come to the counter and show order{" "}
+          <strong style={{ color: C }}>#{orderNumber}</strong> to pick up your
+          items.{form.pickupTime && ` Pickup time: ${form.pickupTime}.`}
         </p>
       );
     if (isDelivery)
@@ -4728,6 +5033,7 @@ export default function OrderPage() {
     deliveryAddress: {},
     tableNumber: "",
     notes: "",
+    pickupTime: "",
   });
 
   useEffect(() => {
@@ -4818,6 +5124,14 @@ export default function OrderPage() {
           receiptUrl,
           receiptKey,
         });
+      } else if (orderType === "takeout") {
+        payload.customerName = form.customerName;
+        if (form.pickupTime)
+          payload.notes = `Pickup: ${form.pickupTime}${form.notes ? ` | ${form.notes}` : ""}`;
+        if (eff === "gcash") {
+          payload.receiptUrl = receiptUrl;
+          payload.receiptKey = receiptKey;
+        }
       } else {
         payload.tableNumber = form.tableNumber;
         if (form.customerName) payload.customerName = form.customerName;
@@ -4876,6 +5190,10 @@ export default function OrderPage() {
       deliveryAddress: {},
       tableNumber: "",
       notes: "",
+      eventDate: "",
+      eventTime: "",
+      guestCount: "",
+      pickupTime: "",
     });
     setConfirmed(null);
     setVoucherCode("");

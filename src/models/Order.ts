@@ -10,7 +10,11 @@ const OrderItemSchema = new Schema({
 const OrderSchema = new Schema(
   {
     orderNumber: { type: String, required: true, unique: true },
-    type: { type: String, enum: ["delivery", "dine-in"], required: true },
+    type: {
+      type: String,
+      enum: ["delivery", "dine-in", "takeout"],
+      required: true,
+    },
     status: {
       type: String,
       enum: [

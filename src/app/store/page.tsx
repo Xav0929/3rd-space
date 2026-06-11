@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import Navbar from "@/components/Navbar"; // adjust path if needed
+import Navbar from "@/components/Navbar";
 
 const YK = "var(--font-yanone), 'Yanone Kaffeesatz', sans-serif";
 const DM = "var(--font-dm), 'DM Sans', sans-serif";
@@ -18,6 +19,7 @@ type Product = {
   price: string;
   tag?: string;
   shopLink: string;
+  images: string[]; // paths relative to /public  e.g. "/store/chilibog-1.jpg"
 };
 
 type Business = {
@@ -26,101 +28,73 @@ type Business = {
   tagline: string;
   category: string;
   accentColor: string;
+  shopLink: string;
   products: Product[];
 };
 
+/*
+  ──────────────────────────────────────────────────────────────
+  IMAGE NAMING GUIDE
+  Put your files in  /public/store/  and name them like this:
+
+  Chilibog:
+    /public/store/chilibog-1.jpg   ← product 1, first image
+    /public/store/chilibog-2.jpg   ← product 1, second image
+    /public/store/chilibog-3.jpg   ← product 1, third image
+
+  3rd Space Pastillas:
+    /public/store/pastillas-1.jpg
+    /public/store/pastillas-2.jpg
+    /public/store/pastillas-3.jpg
+
+  Then fill in the name / description / price fields below.
+  ──────────────────────────────────────────────────────────────
+*/
+
 const BUSINESSES: Business[] = [
   {
-    id: "business-a",
-    name: "Business Name A",
-    tagline: "Short tagline about what this business sells or does.",
-    category: "Category · TikTok Shop",
-    accentColor: "#d4a843",
+    id: "chilibog",
+    name: "Chilibog",
+    tagline: "Bold, house-made chili condiments for every table.",
+    category: "Food & Condiments · TikTok Shop",
+    accentColor: "#e85d2a",
+    shopLink: "https://www.tiktok.com/shop",
     products: [
       {
-        id: "a1",
-        name: "Product Name One",
+        id: "chilibog-1",
+        name: "Product Name", // ← fill in
         description: "Short product description. What it is, what it does.",
         price: "₱XXX",
         tag: "Best Seller",
         shopLink: "https://www.tiktok.com/shop",
-      },
-      {
-        id: "a2",
-        name: "Product Name Two",
-        description: "Short product description. What it is, what it does.",
-        price: "₱XXX",
-        shopLink: "https://www.tiktok.com/shop",
-      },
-      {
-        id: "a3",
-        name: "Product Name Three",
-        description: "Short product description. What it is, what it does.",
-        price: "₱XXX",
-        tag: "New",
-        shopLink: "https://www.tiktok.com/shop",
+        images: [
+          "/store/chilibog-1.png",
+          "/store/chilibog-2.png",
+          "/store/chilibog-3.png",
+        ],
       },
     ],
   },
   {
-    id: "business-b",
-    name: "Business Name B",
-    tagline: "Short tagline about what this business sells or does.",
-    category: "Category · TikTok Shop",
+    id: "3rd-space",
+    name: "3rd Space",
+    tagline: "Soft, melt-in-your-mouth pastillas made with love.",
+    category: "Sweets & Snacks · TikTok Shop",
     accentColor: "#7ec8a0",
+    shopLink: "https://www.tiktok.com/shop",
     products: [
       {
-        id: "b1",
-        name: "Product Name One",
+        id: "pastillas-1",
+        name: "Pastillas", // ← fill in variants if any
         description: "Short product description. What it is, what it does.",
         price: "₱XXX",
-        tag: "Top Pick",
+        tag: "House Favorite",
         shopLink: "https://www.tiktok.com/shop",
-      },
-      {
-        id: "b2",
-        name: "Product Name Two",
-        description: "Short product description. What it is, what it does.",
-        price: "₱XXX",
-        shopLink: "https://www.tiktok.com/shop",
-      },
-      {
-        id: "b3",
-        name: "Product Name Three",
-        description: "Short product description. What it is, what it does.",
-        price: "₱XXX",
-        shopLink: "https://www.tiktok.com/shop",
-      },
-    ],
-  },
-  {
-    id: "business-c",
-    name: "Business Name C",
-    tagline: "Short tagline about what this business sells or does.",
-    category: "Category · TikTok Shop",
-    accentColor: "#b89fd4",
-    products: [
-      {
-        id: "c1",
-        name: "Product Name One",
-        description: "Short product description. What it is, what it does.",
-        price: "₱XXX",
-        shopLink: "https://www.tiktok.com/shop",
-      },
-      {
-        id: "c2",
-        name: "Product Name Two",
-        description: "Short product description. What it is, what it does.",
-        price: "₱XXX",
-        tag: "Limited",
-        shopLink: "https://www.tiktok.com/shop",
-      },
-      {
-        id: "c3",
-        name: "Product Name Three",
-        description: "Short product description. What it is, what it does.",
-        price: "₱XXX",
-        shopLink: "https://www.tiktok.com/shop",
+        images: [
+          "/store/pastillas-1.png",
+          "/store/pastillas-2.png",
+          "/store/pastillas-3.png",
+        ],
       },
     ],
   },
@@ -137,6 +111,7 @@ function ProductCard({
 }) {
   const [hovered, setHovered] = useState(false);
   const [btnHovered, setBtnHovered] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
 
   return (
     <div
@@ -153,7 +128,7 @@ function ProductCard({
         overflow: "hidden",
       }}
     >
-      {/* Subtle accent line on hover */}
+      {/* Accent sweep on hover */}
       <div
         style={{
           position: "absolute",
@@ -210,32 +185,66 @@ function ProductCard({
         </span>
       </div>
 
-      {/* Placeholder image area */}
+      {/* Main image */}
       <div
         style={{
           width: "100%",
           aspectRatio: "4/3",
-          background: "rgba(232,213,163,0.03)",
-          border: "1px dashed rgba(232,213,163,0.08)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "1.1rem",
+          position: "relative",
+          overflow: "hidden",
+          marginBottom: "0.75rem",
+          background: "rgba(232,213,163,0.04)",
           flexShrink: 0,
         }}
       >
-        <span
+        <Image
+          src={product.images[activeImg]}
+          alt={`${product.name} – image ${activeImg + 1}`}
+          fill
+          unoptimized
+          style={{ objectFit: "cover", transition: "opacity 0.3s" }}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+        />
+      </div>
+
+      {/* Thumbnail strip (only when there are multiple images) */}
+      {product.images.length > 1 && (
+        <div
           style={{
-            fontFamily: DM,
-            fontSize: 10,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            color: "rgba(232,213,163,0.18)",
+            display: "flex",
+            gap: "0.4rem",
+            marginBottom: "1.1rem",
           }}
         >
-          Product Image
-        </span>
-      </div>
+          {product.images.map((src, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveImg(i)}
+              style={{
+                width: 44,
+                height: 36,
+                position: "relative",
+                padding: 0,
+                border: `1px solid ${i === activeImg ? accent : "rgba(232,213,163,0.12)"}`,
+                background: "transparent",
+                cursor: "pointer",
+                overflow: "hidden",
+                transition: "border-color 0.2s",
+                flexShrink: 0,
+              }}
+            >
+              <Image
+                src={src}
+                alt={`${product.name} thumbnail ${i + 1}`}
+                fill
+                unoptimized
+                style={{ objectFit: "cover" }}
+                sizes="60px"
+              />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Name + description */}
       <div style={{ flex: 1, marginBottom: "1.25rem" }}>
@@ -310,7 +319,6 @@ function ProductCard({
 function BusinessSection({ biz }: { biz: Business }) {
   return (
     <section style={{ marginBottom: "5rem" }}>
-      {/* Business header */}
       <div
         style={{
           display: "flex",
@@ -378,7 +386,7 @@ function BusinessSection({ biz }: { biz: Business }) {
         </div>
 
         <a
-          href="https://www.tiktok.com/shop"
+          href={biz.shopLink}
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -410,6 +418,7 @@ function BusinessSection({ biz }: { biz: Business }) {
 
       {/* Products grid */}
       <div
+        className="store-products-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
