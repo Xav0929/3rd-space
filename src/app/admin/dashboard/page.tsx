@@ -56,9 +56,16 @@ function useWindowWidth() {
     typeof window !== "undefined" ? window.innerWidth : 1200,
   );
   useEffect(() => {
-    const fn = () => setWidth(window.innerWidth);
+    let timeout: ReturnType<typeof setTimeout>;
+    const fn = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setWidth(window.innerWidth), 100);
+    };
     window.addEventListener("resize", fn);
-    return () => window.removeEventListener("resize", fn);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("resize", fn);
+    };
   }, []);
   return width;
 }
@@ -232,15 +239,15 @@ function PinDot({ color = "gold" }: { color?: PinColor }) {
     <div
       style={{
         position: "absolute",
-        top: -10,
+        top: -9,
         left: "50%",
         transform: "translateX(-50%)",
         width: 18,
         height: 18,
         borderRadius: "50%",
         background: `radial-gradient(circle at 35% 30%, #fff8, transparent 60%), ${c}`,
-        boxShadow: `0 2px 6px rgba(0,0,0,0.55), 0 0 0 2px rgba(0,0,0,0.25)`,
-        zIndex: 2,
+        boxShadow: `0 2px 8px rgba(0,0,0,0.7), 0 0 0 2px rgba(0,0,0,0.3)`,
+        zIndex: 10,
         flexShrink: 0,
       }}
     />
@@ -276,12 +283,14 @@ function BoardPostCard({
           : "rgba(15,26,15,0.97)",
         border: `1px solid ${post.pinned ? "rgba(212,168,67,0.28)" : T.border}`,
         padding: "clamp(1.2rem, 2.5vw, 1.6rem)",
-        paddingTop: "clamp(1.6rem, 3vw, 2rem)",
+        paddingTop: "clamp(2rem, 3.5vw, 2.4rem)",
         transform: `rotate(${tilt}deg)`,
         transition: "transform 0.25s ease, box-shadow 0.25s ease",
         boxShadow: "0 4px 24px rgba(0,0,0,0.45)",
         breakInside: "avoid",
         marginBottom: "clamp(0.75rem, 2vw, 1.25rem)",
+        marginTop: 14,
+        overflow: "visible",
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
@@ -901,9 +910,11 @@ function BoardTab({
       </div>
       <div
         style={{
-          columnCount: "auto",
-          columnWidth: "clamp(260px, 30vw, 380px)",
-          columnGap: "1rem",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gap: "1rem",
+          paddingTop: 14,
+          alignItems: "start",
         }}
       >
         {posts.map((post) => (
@@ -914,31 +925,6 @@ function BoardTab({
             onDelete={handleDelete}
           />
         ))}
-      </div>
-      <div>
-        <p
-          style={{
-            color: T.gold,
-            fontSize: 11,
-            letterSpacing: ".15em",
-            textTransform: "uppercase",
-            fontFamily: "'Cinzel',serif",
-            marginBottom: 16,
-          }}
-        >
-          ◆ Our Partners
-        </p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {partners.map((p) => (
-            <BoardPartnerCard key={p.id} partner={p} />
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -1158,8 +1144,7 @@ function StatCard({
         justifyContent: "space-between",
         transition: "border-color .2s",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = T.borderH)}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = T.border)}
+      className="stat-card"
     >
       <div>
         <p
@@ -1968,6 +1953,86 @@ function OrderCard({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const nextStatus = STATUS_CFG[order.status].next;
 
+  function printReceipt() {
+    const win = window.open("", "_blank", "width=400,height=600");
+    if (!win) return;
+    const now = new Date().toLocaleString("en-PH", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    const itemRows = order.items
+      .map(
+        (it) =>
+          `<tr>
+        <td style="padding:3px 0;font-size:12px;">${it.quantity}× ${it.name}</td>
+        <td style="padding:3px 0;text-align:right;font-size:12px;">₱${(it.price * it.quantity).toFixed(2)}</td>
+      </tr>`,
+      )
+      .join("");
+    const typeLabel =
+      order.type === "dine-in"
+        ? `Dine-in · Table ${order.tableNumber || "?"}`
+        : order.type === "takeout"
+          ? "Takeout"
+          : "Delivery";
+    const payLabel =
+      order.paymentMethod === "cash"
+        ? "Cash"
+        : order.paymentMethod === "gcash"
+          ? "GCash"
+          : "—";
+
+    win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; width: 300px; margin: 0 auto; padding: 16px 12px; background: #fff; color: #111; }
+  .logo { display: block; width: 72px; height: 72px; object-fit: contain; margin: 0 auto 6px; filter: invert(1); }
+  .name { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; text-align: center; letter-spacing: .15em; }
+  .sub { font-size: 10px; text-align: center; color: #666; letter-spacing: .08em; margin-top: 2px; }
+  .divider { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
+  .order-num { font-size: 13px; font-weight: bold; text-align: center; margin: 6px 0 2px; }
+  .meta { font-size: 11px; text-align: center; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  .total-row td { font-weight: bold; font-size: 14px; padding-top: 8px; border-top: 1px dashed #aaa; }
+  .footer { font-size: 11px; text-align: center; color: #666; margin-top: 12px; line-height: 1.6; }
+  @media print {
+    body { width: 100%; }
+    @page { margin: 6mm; }
+  }
+</style>
+</head><body>
+<img src="${window.location.origin}/logo.png" class="logo" onerror="this.style.display='none'" />
+  <div class="sub">OFFICIAL RECEIPT</div>
+  <hr class="divider"/>
+  <div class="order-num">#${order.orderNumber}</div>
+  <div class="meta">${now}</div>
+  <div class="meta">${typeLabel}</div>
+  ${order.customerName ? `<div class="meta">${order.customerName}</div>` : ""}
+  <hr class="divider"/>
+  <table>${itemRows}</table>
+  <table>
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td style="text-align:right;">₱${order.total.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <td style="font-size:11px;color:#555;padding-top:4px;">Payment</td>
+      <td style="font-size:11px;color:#555;text-align:right;padding-top:4px;">${payLabel}</td>
+    </tr>
+  </table>
+  <hr class="divider"/>
+  <div class="footer">Thank you for visiting!<br/>3rd Space Café · Nueva Ecija<br/>————————————</div>
+  <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};}<\/script>
+</body></html>`);
+    win.document.close();
+  }
+
   // Determine what to show for payment method
   const methodKnown = order.paymentMethod && order.paymentMethod !== "pending";
   const methodPending = order.paymentMethod === "pending";
@@ -2017,8 +2082,7 @@ function OrderCard({
           overflow: "hidden",
           transition: "border-color .2s",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.borderColor = T.borderH)}
-        onMouseLeave={(e) => (e.currentTarget.style.borderColor = T.border)}
+        className="order-card"
       >
         <div
           style={{
@@ -2905,6 +2969,7 @@ function OrderCard({
                   onClick={(e) => {
                     e.stopPropagation();
                     onStatusChange(order._id, nextStatus);
+                    if (order.status === "pending") printReceipt();
                   }}
                   style={{
                     flex: 1,
@@ -4634,12 +4699,7 @@ function AccountsTab() {
                 transition: "border-color .2s",
                 flexWrap: "wrap",
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.borderColor = T.borderH)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.borderColor = T.border)
-              }
+              className="account-row"
             >
               <div
                 style={{
@@ -5305,22 +5365,15 @@ function CrewTab({
                   <div
                     key={item._id}
                     onClick={() => addItem(item)}
+                    className="crew-item-card"
+                    data-incart={inCart ? "1" : "0"}
                     style={{
                       background: inCart ? T.goldDim : T.bgCard,
                       border: `1px solid ${inCart ? T.gold : T.border}`,
                       borderRadius: 12,
                       overflow: "hidden",
                       cursor: "pointer",
-                      transition: "all .15s",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.borderColor = T.borderH)
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.borderColor = inCart
-                        ? T.gold
-                        : T.border)
-                    }
                   >
                     {item.image && (
                       <div style={{ height: 70, overflow: "hidden" }}>
@@ -6667,7 +6720,16 @@ export default function AdminDashboard() {
         input::placeholder,textarea::placeholder{color:${T.faint}!important;}
         input:focus,textarea:focus{outline:none;border-color:${T.gold}!important;}
         input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-        input[type=number]{-moz-appearance:textfield;}`}</style>
+        input[type=number]{-moz-appearance:textfield;}
+        .crew-item-card{transition:border-color .15s;}
+        .crew-item-card:hover{border-color:${T.borderH} !important;}
+        .stat-card{transition:border-color .2s;}
+        .stat-card:hover{border-color:${T.borderH} !important;}
+        .order-card{transition:border-color .2s;}
+        .order-card:hover{border-color:${T.borderH} !important;}
+        .account-row{transition:border-color .2s;}
+        .account-row:hover{border-color:${T.borderH} !important;}
+        @keyframes spin{to{transform:rotate(360deg);}}`}</style>
 
       <header
         style={{

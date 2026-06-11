@@ -900,15 +900,13 @@ function CustomizationSheet({
 
 /* ─── MODE SELECT ─────────────────────────────────────────────────────────── */
 function ModeCard({ emoji, title, sub, onClick }: any) {
-  const [hov, setHov] = useState(false);
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+      className="mode-card"
       style={{
-        background: hov ? GD : CARD,
-        border: `1.5px solid ${hov ? G : BR}`,
+        background: CARD,
+        border: `1.5px solid ${BR}`,
         borderRadius: 20,
         padding: "clamp(24px,5vw,38px) 20px",
         cursor: "pointer",
@@ -916,9 +914,6 @@ function ModeCard({ emoji, title, sub, onClick }: any) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        transform: hov ? "translateY(-3px)" : "none",
-        boxShadow: hov ? "0 12px 40px rgba(212,168,67,.12)" : "none",
-        transition: "all .22s ease",
         outline: "none",
         touchAction: "manipulation",
         width: "100%",
@@ -934,14 +929,14 @@ function ModeCard({ emoji, title, sub, onClick }: any) {
         {emoji}
       </div>
       <div
+        className="mode-card-title"
         style={{
           fontFamily: "'Cinzel',serif",
           fontSize: "clamp(16px,4vw,19px)",
           fontWeight: 700,
           letterSpacing: ".15em",
-          color: hov ? G : C,
+          color: C,
           marginBottom: 8,
-          transition: "color .22s",
         }}
       >
         {title}
@@ -1110,19 +1105,14 @@ function MenuCard({
   cartCount: number;
   onAdd: () => void;
 }) {
-  const [hov, setHov] = useState(false);
   return (
     <div
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+      className="menu-card"
       style={{
         background: CARD,
-        border: `1px solid ${hov ? BRH : BR}`,
+        border: `1px solid ${BR}`,
         borderRadius: 16,
         overflow: "hidden",
-        transition: "all .22s ease",
-        transform: hov ? "translateY(-2px)" : "none",
-        boxShadow: hov ? "0 8px 32px rgba(0,0,0,.35)" : "none",
       }}
     >
       <div
@@ -1136,46 +1126,16 @@ function MenuCard({
         }}
       >
         <img
-          src={
-            item.image ||
-            `/menu/food/${encodeURIComponent(
-              (
-                {
-                  "Fries (À La Carte)": "Fries (A la Carte)",
-                } as Record<string, string>
-              )[item.name] ?? item.name,
-            )}.png`
-          }
+          src={item.image || undefined}
           alt={item.name}
+          className="menu-card-img"
           style={{
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            transition: "transform .4s",
-            transform: hov ? "scale(1.05)" : "scale(1)",
           }}
           onError={(e) => {
-            const el = e.target as HTMLImageElement;
-            const name = encodeURIComponent(item.name);
-            const tried = el.dataset.tried || "0";
-            if (tried === "0") {
-              el.dataset.tried = "1";
-              el.src = `/menu/coffee/${name}.png`;
-            } else if (tried === "1") {
-              el.dataset.tried = "2";
-              el.src = `/menu/pastries/${name}.png`;
-            } else {
-              el.style.display = "none";
-              const parent = el.parentElement;
-              if (parent && !parent.querySelector(".img-fallback")) {
-                const fb = document.createElement("div");
-                fb.className = "img-fallback";
-                fb.style.cssText =
-                  "display:flex;align-items:center;justify-content:center;width:100%;height:100%;";
-                fb.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='rgba(232,213,163,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='opacity:.35'><path d='M17 8h1a4 4 0 1 1 0 8h-1'/><path d='M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z'/><line x1='6' x2='6' y1='2' y2='4'/><line x1='10' x2='10' y1='2' y2='4'/><line x1='14' x2='14' y1='2' y2='4'/></svg>`;
-                parent.appendChild(fb);
-              }
-            }
+            (e.target as HTMLImageElement).style.display = "none";
           }}
         />
       </div>
@@ -5220,6 +5180,14 @@ export default function OrderPage() {
           .safe-bottom { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .menu-card { transition: border-color .2s, transform .2s, box-shadow .2s; }
+        .menu-card:hover { border-color: ${BRH} !important; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.35); }
+        .menu-card-img { transition: transform .4s; }
+        .menu-card:hover .menu-card-img { transform: scale(1.05); }
+        .mode-card { transition: background .22s, border-color .22s, transform .22s, box-shadow .22s; }
+        .mode-card:hover { background: ${GD} !important; border-color: ${G} !important; transform: translateY(-3px); box-shadow: 0 12px 40px rgba(212,168,67,.12); }
+        .mode-card:hover .mode-card-title { color: ${G}; }
+        .mode-card-title { transition: color .22s; }
       `}</style>
       {step === "mode-select" && (
         <ModeSelectScreen

@@ -143,15 +143,15 @@ function PinDot({ color = "gold" }: { color?: PinColor }) {
     <div
       style={{
         position: "absolute",
-        top: -10,
+        top: -9,
         left: "50%",
         transform: "translateX(-50%)",
         width: 18,
         height: 18,
         borderRadius: "50%",
         background: `radial-gradient(circle at 35% 30%, #fff8, transparent 60%), ${c}`,
-        boxShadow: `0 2px 6px rgba(0,0,0,0.55), 0 0 0 2px rgba(0,0,0,0.25)`,
-        zIndex: 2,
+        boxShadow: `0 2px 8px rgba(0,0,0,0.7), 0 0 0 2px rgba(0,0,0,0.3)`,
+        zIndex: 10,
         flexShrink: 0,
       }}
     />
@@ -188,14 +188,14 @@ function PostCard({
           : "rgba(15,26,15,0.97)",
         border: `1px solid ${post.pinned ? "rgba(212,168,67,0.28)" : BR}`,
         padding: "clamp(1.2rem, 2.5vw, 1.6rem)",
-        paddingTop: "clamp(1.6rem, 3vw, 2rem)",
+        paddingTop: "clamp(2rem, 3.5vw, 2.4rem)",
         transform: `rotate(${tilt}deg)`,
         transition:
           "transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s",
         boxShadow: `0 4px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(232,213,163,0.05) inset`,
         cursor: "default",
-        breakInside: "avoid",
-        marginBottom: "clamp(0.75rem, 2vw, 1.25rem)",
+        marginTop: 14,
+        overflow: "visible",
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
@@ -1148,9 +1148,11 @@ export default function BulletinPage() {
             {/* Masonry-style CSS columns */}
             <div
               style={{
-                columnCount: "auto",
-                columnWidth: "clamp(260px, 30vw, 380px)",
-                columnGap: "clamp(0.75rem, 2vw, 1.25rem)",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                gap: "clamp(0.75rem, 2vw, 1.25rem)",
+                paddingTop: 14,
+                alignItems: "start",
               }}
             >
               {posts.map((post) => (
