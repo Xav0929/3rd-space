@@ -9,6 +9,14 @@ export const metadata: Metadata = {
     description:
       "Browse 3RD SPACE's full menu of coffee, drinks, and bites — order ahead for pickup or delivery in Cabanatuan City.",
     url: "https://3rd-space-peach.vercel.app/menu",
+    images: [
+      {
+        url: "/og-default.png",
+        width: 1200,
+        height: 630,
+        alt: "3RD SPACE",
+      },
+    ],
   },
 };
 

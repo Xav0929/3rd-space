@@ -9,6 +9,14 @@ export const metadata: Metadata = {
     description:
       "Upcoming events and happenings at 3RD SPACE — tarot nights, business talks, art takeovers, and more.",
     url: "https://3rd-space-peach.vercel.app/events",
+    images: [
+      {
+        url: "/og-default.png",
+        width: 1200,
+        height: 630,
+        alt: "3RD SPACE",
+      },
+    ],
   },
 };
 
