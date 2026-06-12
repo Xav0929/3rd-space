@@ -9,15 +9,16 @@ const FONT = "'Yanone Kaffeesatz', sans-serif";
 
 const footerLinks = {
   "ABOUT US": [
+    { label: "About", href: "/about" },
     { label: "Gallery", href: "/gallery" },
-    { label: "Team", href: "/about#team" },
-    { label: "Communities", href: "/community" },
-    { label: "Blog", href: "/blog" },
+    { label: "The Board", href: "/bulletin" },
+    { label: "Vouchers", href: "/vouchers" },
   ],
-  PRODUCT: [
+  EXPLORE: [
     { label: "Menu", href: "/menu" },
-    { label: "Book Now", href: "/book" },
-    { label: "Chili", href: "/menu#chili" },
+    { label: "Store", href: "/store" },
+    { label: "Events", href: "/events" },
+    { label: "Vouchers", href: "/vouchers" },
   ],
 };
 

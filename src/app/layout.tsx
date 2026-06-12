@@ -19,8 +19,34 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "3RD SPACE — Your Cozy Corner Away From Home",
+  metadataBase: new URL("https://3rd-space-peach.vercel.app"),
+  title: {
+    default: "3RD SPACE — Your Cozy Corner Away From Home",
+    template: "%s — 3RD SPACE",
+  },
   description: "A cozy café and community space. Relax, create, breathe.",
+  openGraph: {
+    title: "3RD SPACE — Your Cozy Corner Away From Home",
+    description: "A cozy café and community space. Relax, create, breathe.",
+    url: "https://3rd-space-peach.vercel.app",
+    siteName: "3RD SPACE",
+    images: [
+      {
+        url: "/og-default.png",
+        width: 1200,
+        height: 630,
+        alt: "3RD SPACE",
+      },
+    ],
+    locale: "en_PH",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "3RD SPACE — Your Cozy Corner Away From Home",
+    description: "A cozy café and community space. Relax, create, breathe.",
+    images: ["/og-default.png"],
+  },
 };
 
 export default function RootLayout({
