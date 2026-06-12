@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "Menu — 3RD SPACE",
     description:
       "Browse 3RD SPACE's full menu of coffee, drinks, and bites — order ahead for pickup or delivery in Cabanatuan City.",
-    url: "https://3rd-space-peach.vercel.app/menu",
+    url: "https://www.3rdspace.shop/menu",
     images: [
       {
         url: "/og-default.png",

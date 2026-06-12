@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://3rd-space-peach.vercel.app/sitemap.xml",
+    sitemap: "https://www.3rdspace.shop/sitemap.xml",
   };
 }

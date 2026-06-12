@@ -19,7 +19,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://3rd-space-peach.vercel.app"),
+  metadataBase: new URL("https://www.3rdspace.shop"),
   title: {
     default: "3RD SPACE — Your Cozy Corner Away From Home",
     template: "%s — 3RD SPACE",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "3RD SPACE — Your Cozy Corner Away From Home",
     description: "A cozy café and community space. Relax, create, breathe.",
-    url: "https://3rd-space-peach.vercel.app",
+    url: "https://www.3rdspace.shop",
     siteName: "3RD SPACE",
     images: [
       {

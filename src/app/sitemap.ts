@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://3rd-space-peach.vercel.app";
+  const baseUrl = "https://www.3rdspace.shop";
 
   const routes = [
     "",

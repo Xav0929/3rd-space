@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "Gallery — 3RD SPACE",
     description:
       "A visual look inside 3RD SPACE — photos of our space, our drinks, our events, and the community moments that make this place feel like home.",
-    url: "https://3rd-space-peach.vercel.app/gallery",
+    url: "https://www.3rdspace.shop/gallery",
     images: [
       {
         url: "/og-default.png",

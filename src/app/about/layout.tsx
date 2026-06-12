@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "About — 3RD SPACE",
     description:
       "Meet France and Mai, the curators behind 3RD SPACE, and discover the story of how this cozy café and community space came to life in Cabanatuan City.",
-    url: "https://3rd-space-peach.vercel.app/about",
+    url: "https://www.3rdspace.shop/about",
     images: [
       {
         url: "/og-default.png",

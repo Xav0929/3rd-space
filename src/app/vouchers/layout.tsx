@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "Vouchers — 3RD SPACE",
     description:
       "Claim your 3RD SPACE food and drink vouchers — leave a review, unlock rewards, and enjoy a little something extra on your next visit.",
-    url: "https://3rd-space-peach.vercel.app/vouchers",
+    url: "https://www.3rdspace.shop/vouchers",
     images: [
       {
         url: "/og-default.png",
