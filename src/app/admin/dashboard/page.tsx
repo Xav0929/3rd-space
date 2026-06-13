@@ -2453,13 +2453,53 @@ function OrderCard({
               )}
 
               {order.customerContact && (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ color: T.muted, fontSize: 12, minWidth: 100 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span
+                    style={{
+                      color: T.muted,
+                      fontSize: 12,
+                      minWidth: 100,
+                      flexShrink: 0,
+                    }}
+                  >
                     Phone
                   </span>
-                  <span style={{ color: T.cream, fontSize: 12 }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const num = `+63${order.customerContact}`;
+                      const btn = e.currentTarget;
+                      const prev = btn.textContent ?? "";
+                      btn.textContent = "Copied!";
+                      navigator.clipboard.writeText(num).finally(() => {
+                        setTimeout(() => {
+                          if (btn) btn.textContent = prev;
+                        }, 1500);
+                      });
+                    }}
+                    style={{
+                      background: "rgba(232,213,163,0.06)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 6,
+                      padding: "4px 10px",
+                      color: T.cream,
+                      fontSize: 12,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      letterSpacing: ".02em",
+                      transition: "all .15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = T.gold;
+                      e.currentTarget.style.color = T.gold;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = T.border;
+                      e.currentTarget.style.color = T.cream;
+                    }}
+                  >
                     +63 {order.customerContact}
-                  </span>
+                  </button>
                 </div>
               )}
 
