@@ -1884,9 +1884,20 @@ function MenuScreen({
             {/* Continuous category sections */}
             {!searchResults &&
               categories.map((cat) => {
-                const items = visibleMenuItems.filter(
-                  (i: MenuItem) => i.category === cat,
-                );
+                const items = [
+                  ...visibleMenuItems.filter(
+                    (i: MenuItem) => i.category === cat,
+                  ),
+                ].sort((a: MenuItem, b: MenuItem) => {
+                  const n = (s: string) => s.toLowerCase();
+                  const aIced =
+                    n(a.name).startsWith("ice") || n(a.name).includes("(iced)");
+                  const bIced =
+                    n(b.name).startsWith("ice") || n(b.name).includes("(iced)");
+                  if (aIced && !bIced) return -1;
+                  if (!aIced && bIced) return 1;
+                  return n(a.name).localeCompare(n(b.name));
+                });
                 return (
                   <div
                     key={cat}

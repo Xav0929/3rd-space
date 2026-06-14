@@ -1028,15 +1028,18 @@ function ConfirmModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
         style={{
           background: "#13180f",
           border: `1px solid ${danger ? "rgba(239,68,68,0.4)" : T.borderH}`,
           borderRadius: 18,
-          padding: "36px 32px",
+          padding: "clamp(20px,5vw,36px) clamp(16px,4vw,32px)",
           maxWidth: 360,
           width: "100%",
           textAlign: "center",
           boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          maxHeight: "90svh",
+          overflowY: "auto",
         }}
       >
         <div
@@ -1227,17 +1230,20 @@ function CancelReasonModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
         style={{
           background: "#13180f",
           border: "1px solid rgba(239,68,68,0.4)",
           borderRadius: 18,
-          padding: "28px 24px",
+          padding: "clamp(16px,3.5vw,28px) clamp(14px,3vw,24px)",
           maxWidth: 400,
           width: "100%",
           boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
           display: "flex",
           flexDirection: "column",
           gap: 14,
+          maxHeight: "90svh",
+          overflowY: "auto",
         }}
       >
         <div>
@@ -1538,9 +1544,10 @@ function DeliveryMapPanel({
       }}
     >
       <div
+        className="dash-map"
         style={{
           position: "relative",
-          height: 220,
+          height: "clamp(150px, 28vw, 220px)",
           width: "100%",
           overflow: "hidden",
         }}
@@ -6305,6 +6312,7 @@ function VouchersAdminTab() {
 export default function AdminDashboard() {
   const w = useWindowWidth();
   const isMobile = w < 640;
+  const isSmall = w < 400;
 
   const [tab, setTab] = useState<Tab>("orders");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -6861,9 +6869,31 @@ export default function AdminDashboard() {
         .stat-card:hover{border-color:${T.borderH} !important;}
         .order-card{transition:border-color .2s;}
         .order-card:hover{border-color:${T.borderH} !important;}
-        .account-row{transition:border-color .2s;}
+       .account-row{transition:border-color .2s;}
         .account-row:hover{border-color:${T.borderH} !important;}
-        @keyframes spin{to{transform:rotate(360deg);}}`}</style>
+        @keyframes spin{to{transform:rotate(360deg);}}
+
+        /* ── RESPONSIVE ─────────────────────────── */
+        /* tiny phones ≤ 380px */
+        @media(max-width:380px){
+          .modal-inner{padding:16px 14px!important;}
+          .modal-inner h2{font-size:1.05rem!important;}
+        }
+        /* landscape phones — modals overflow the short viewport */
+        @media(orientation:landscape)and(max-height:520px){
+          .modal-inner{
+            padding:12px 18px!important;
+            max-height:94svh!important;
+            overflow-y:auto!important;
+            border-radius:12px!important;
+          }
+          .dash-map{height:150px!important;}
+          .dash-content{padding:10px 12px!important;}
+        }
+        /* tablet portrait 641 – 1024px */
+        @media(min-width:641px)and(max-width:1024px){
+          .dash-content{padding:18px 14px!important;}
+        }`}</style>
 
       <header
         style={{
@@ -6982,16 +7012,17 @@ export default function AdminDashboard() {
       </header>
 
       <div
+        className="dash-content"
         style={{
           maxWidth: 1100,
           margin: "0 auto",
-          padding: isMobile ? "16px 12px" : "24px 20px",
+          padding: isSmall ? "12px 10px" : isMobile ? "16px 12px" : "24px 20px",
         }}
       >
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? "140px" : "180px"},1fr))`,
+            gridTemplateColumns: `repeat(auto-fill,minmax(${isSmall ? "120px" : isMobile ? "140px" : "180px"},1fr))`,
             gap: isMobile ? 8 : 12,
             marginBottom: isMobile ? 16 : 24,
           }}
@@ -7066,7 +7097,12 @@ export default function AdminDashboard() {
                   flexShrink: 0,
                 }}
               >
-                {t.icon} {t.label.toUpperCase()}
+                {t.icon}
+                {!isSmall && (
+                  <span style={{ marginLeft: isSmall ? 0 : 5 }}>
+                    {t.label.toUpperCase()}
+                  </span>
+                )}
               </button>
             );
           })}

@@ -32,7 +32,6 @@ export default function FeaturedPopup() {
   const [currentIdx, setCurrentIdx] = useState(0);
 
   useEffect(() => {
-    // Only show once per session
     if (sessionStorage.getItem(SESSION_KEY)) return;
 
     fetch("/api/menu?featured=true")
@@ -47,10 +46,8 @@ export default function FeaturedPopup() {
             );
 
         if (items.length === 0) return;
-
         setFeatured(items);
 
-        // Slight delay so it doesn't pop immediately on page load
         setTimeout(() => {
           setVisible(true);
           sessionStorage.setItem(SESSION_KEY, "1");
@@ -64,13 +61,9 @@ export default function FeaturedPopup() {
     setTimeout(() => setVisible(false), 420);
   };
 
-  const next = () => {
-    setCurrentIdx((i) => (i + 1) % featured.length);
-  };
-
-  const prev = () => {
+  const next = () => setCurrentIdx((i) => (i + 1) % featured.length);
+  const prev = () =>
     setCurrentIdx((i) => (i - 1 + featured.length) % featured.length);
-  };
 
   if (!visible || featured.length === 0) return null;
 
@@ -79,29 +72,40 @@ export default function FeaturedPopup() {
   return (
     <>
       <style>{`
+        /* ─── FeaturedPopup ─────────────────────────────────────── */
+
         .fp-backdrop {
           position: fixed;
           inset: 0;
           z-index: 9000;
+          /* Bottom-left on desktop/tablet, bottom-center on phone */
           display: flex;
           align-items: flex-end;
           justify-content: flex-start;
-          padding: clamp(1.5rem, 3vw, 2.5rem);
+          padding: clamp(1rem, 3vw, 2.5rem);
           pointer-events: none;
+          /* iOS safe area */
+          padding-bottom: max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-bottom));
+          padding-left: max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-left));
         }
 
         .fp-card {
           pointer-events: all;
           width: clamp(260px, 30vw, 340px);
-          background: rgba(10, 18, 10, 0.96);
+          background: rgba(10, 18, 10, 0.97);
           backdrop-filter: blur(18px);
           -webkit-backdrop-filter: blur(18px);
           border: 0.5px solid rgba(232,213,163,0.18);
           box-shadow: 0 24px 60px rgba(0,0,0,0.7);
-          transform: ${exiting ? "translateY(16px)" : "translateY(0)"};
-          opacity: ${exiting ? "0" : "1"};
-          transition: transform 0.42s cubic-bezier(0.4,0,0.2,1), opacity 0.42s ease;
+          transition: transform 0.42s cubic-bezier(0.4,0,0.2,1),
+                      opacity 0.42s ease;
           animation: fp-rise 0.5s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        /* Exiting state — toggled via class to avoid re-injecting the style block */
+        .fp-card.exiting {
+          transform: translateY(16px) !important;
+          opacity: 0 !important;
         }
 
         @keyframes fp-rise {
@@ -109,6 +113,7 @@ export default function FeaturedPopup() {
           to   { transform: translateY(0);   opacity: 1; }
         }
 
+        /* ── Header ── */
         .fp-top {
           display: flex;
           align-items: center;
@@ -125,34 +130,43 @@ export default function FeaturedPopup() {
           display: flex;
           align-items: center;
           gap: 5px;
+          margin: 0;
         }
 
-        .fp-dot {
+        .fp-live-dot {
           width: 5px;
           height: 5px;
           background: #d4a843;
           border-radius: 50%;
+          flex-shrink: 0;
           animation: fp-blink 2s ease-in-out infinite;
         }
 
         @keyframes fp-blink {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
+          50%       { opacity: 0.3; }
         }
 
+        /* Close button — 44px tap target via padding trick */
         .fp-close {
           background: none;
           border: none;
           cursor: pointer;
           color: rgba(232,213,163,0.3);
-          padding: 2px;
+          /* Visual icon is 14px but tap area is 44px */
+          padding: 15px;
+          margin: -15px;
           display: flex;
           align-items: center;
+          justify-content: center;
           transition: color 0.2s;
+          -webkit-tap-highlight-color: transparent;
+          flex-shrink: 0;
         }
+        .fp-close:hover,
+        .fp-close:focus-visible { color: rgba(232,213,163,0.7); outline: none; }
 
-        .fp-close:hover { color: rgba(232,213,163,0.7); }
-
+        /* ── Body ── */
         .fp-body {
           padding: 0.75rem 0.9rem 0.9rem;
           display: flex;
@@ -172,12 +186,13 @@ export default function FeaturedPopup() {
           font-size: 24px;
           overflow: hidden;
         }
-
         .fp-thumb img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
+
+        .fp-meta { flex: 1; min-width: 0; }
 
         .fp-category {
           font-family: ${DM};
@@ -185,7 +200,7 @@ export default function FeaturedPopup() {
           letter-spacing: 0.2em;
           text-transform: uppercase;
           color: rgba(232,213,163,0.35);
-          margin-bottom: 3px;
+          margin: 0 0 3px;
         }
 
         .fp-name {
@@ -196,7 +211,11 @@ export default function FeaturedPopup() {
           text-transform: uppercase;
           color: #e8d5a3;
           line-height: 1;
-          margin-bottom: 4px;
+          margin: 0 0 4px;
+          /* Prevent overflow on narrow phones */
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .fp-desc {
@@ -204,7 +223,7 @@ export default function FeaturedPopup() {
           font-size: 10.5px;
           color: rgba(232,213,163,0.38);
           line-height: 1.5;
-          margin-bottom: 8px;
+          margin: 0 0 8px;
         }
 
         .fp-price {
@@ -212,8 +231,10 @@ export default function FeaturedPopup() {
           font-weight: 700;
           font-size: 16px;
           color: #d4a843;
+          margin: 0;
         }
 
+        /* ── Footer ── */
         .fp-footer {
           display: flex;
           align-items: center;
@@ -225,11 +246,13 @@ export default function FeaturedPopup() {
         .fp-nav {
           display: flex;
           gap: 4px;
+          flex-shrink: 0;
         }
 
+        /* Nav buttons — 44px tap target */
         .fp-nav-btn {
-          width: 28px;
-          height: 28px;
+          width: 44px;
+          height: 44px;
           background: rgba(232,213,163,0.06);
           border: 0.5px solid rgba(232,213,163,0.1);
           color: rgba(232,213,163,0.45);
@@ -238,11 +261,13 @@ export default function FeaturedPopup() {
           align-items: center;
           justify-content: center;
           transition: background 0.2s, color 0.2s;
+          -webkit-tap-highlight-color: transparent;
         }
-
-        .fp-nav-btn:hover {
+        .fp-nav-btn:hover,
+        .fp-nav-btn:focus-visible {
           background: rgba(232,213,163,0.1);
           color: #e8d5a3;
+          outline: none;
         }
 
         .fp-dots {
@@ -254,12 +279,11 @@ export default function FeaturedPopup() {
         }
 
         .fp-dot-pill {
-          width: 14px;
           height: 3px;
+          width: 14px;
           background: rgba(232,213,163,0.15);
           transition: background 0.2s, width 0.2s;
         }
-
         .fp-dot-pill.active {
           background: #d4a843;
           width: 20px;
@@ -271,26 +295,153 @@ export default function FeaturedPopup() {
           font-size: 9.5px;
           letter-spacing: 0.18em;
           text-transform: uppercase;
-          padding: 7px 14px;
+          /* 44px tap target height */
+          padding: 0 14px;
+          height: 44px;
+          display: inline-flex;
+          align-items: center;
           background: #e8d5a3;
           color: #0f1a0f;
           text-decoration: none;
           flex-shrink: 0;
           transition: background 0.2s;
-          display: inline-block;
+          -webkit-tap-highlight-color: transparent;
+          white-space: nowrap;
+        }
+        .fp-cta:hover { background: #d4a843; }
+
+        /* ─── MOBILE PORTRAIT (≤480px) ──────────────────────────── */
+        /* Card stretches across bottom, centered */
+        @media (max-width: 480px) {
+          .fp-backdrop {
+            justify-content: center;
+            padding-left: clamp(0.75rem, 4vw, 1rem);
+            padding-right: clamp(0.75rem, 4vw, 1rem);
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+          }
+
+          .fp-card {
+            /* Full available width minus backdrop padding */
+            width: 100%;
+            max-width: 400px;
+          }
         }
 
-        .fp-cta:hover { background: #d4a843; }
+        /* ─── VERY SMALL PHONES (≤360px) ────────────────────────── */
+        @media (max-width: 360px) {
+          .fp-thumb {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+          }
+
+          .fp-name {
+            font-size: 17px;
+          }
+
+          .fp-desc {
+            font-size: 9.5px;
+          }
+
+          /* Hide description on very small phones to save space */
+          .fp-desc {
+            display: none;
+          }
+
+          .fp-top {
+            padding: 0.6rem 0.75rem 0;
+          }
+
+          .fp-body {
+            padding: 0.6rem 0.75rem 0.75rem;
+          }
+
+          .fp-footer {
+            padding: 0.5rem 0.75rem;
+          }
+
+          .fp-cta {
+            font-size: 8.5px;
+            padding: 0 10px;
+          }
+        }
+
+        /* ─── LANDSCAPE PHONES (short viewport) ─────────────────── */
+        @media (orientation: landscape) and (max-height: 600px) {
+          .fp-backdrop {
+            /* Bottom-right on landscape phones — avoids navbar on left */
+            justify-content: flex-end;
+            padding: 0.75rem;
+            padding-right: max(0.75rem, env(safe-area-inset-right));
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+          }
+
+          .fp-card {
+            /* Compact horizontal layout on landscape phone */
+            width: clamp(260px, 48vw, 320px);
+          }
+
+          /* Tighten padding everywhere */
+          .fp-top {
+            padding: 0.5rem 0.75rem 0;
+          }
+
+          .fp-body {
+            padding: 0.5rem 0.75rem 0.6rem;
+            gap: 0.65rem;
+          }
+
+          .fp-thumb {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+          }
+
+          .fp-name {
+            font-size: 17px;
+          }
+
+          /* Hide description on landscape phones — too short to fit */
+          .fp-desc {
+            display: none;
+          }
+
+          .fp-footer {
+            padding: 0.4rem 0.75rem;
+          }
+
+          .fp-nav-btn {
+            width: 36px;
+            height: 36px;
+          }
+
+          .fp-cta {
+            height: 36px;
+          }
+        }
+
+        /* ─── TABLETS (641px+) ───────────────────────────────────── */
+        /* Stays bottom-left, original sizing — already fine */
+        @media (min-width: 641px) {
+          .fp-card {
+            width: clamp(280px, 28vw, 340px);
+          }
+        }
       `}</style>
 
       <div className="fp-backdrop">
-        <div className="fp-card">
+        <div className={`fp-card${exiting ? " exiting" : ""}`}>
+          {/* Header */}
           <div className="fp-top">
             <p className="fp-eyebrow">
-              <span className="fp-dot" />
-              Today's picks
+              <span className="fp-live-dot" />
+              Today&apos;s picks
             </p>
-            <button className="fp-close" onClick={dismiss} aria-label="Close">
+            <button
+              className="fp-close"
+              onClick={dismiss}
+              aria-label="Close popup"
+            >
               <svg
                 width="14"
                 height="14"
@@ -304,6 +455,7 @@ export default function FeaturedPopup() {
             </button>
           </div>
 
+          {/* Body */}
           <div className="fp-body">
             <div className="fp-thumb">
               {item.image ? (
@@ -314,7 +466,7 @@ export default function FeaturedPopup() {
                 </span>
               )}
             </div>
-            <div>
+            <div className="fp-meta">
               <p className="fp-category">{item.category}</p>
               <p className="fp-name">{item.name}</p>
               <p className="fp-desc">{item.description}</p>
@@ -322,13 +474,14 @@ export default function FeaturedPopup() {
             </div>
           </div>
 
+          {/* Footer */}
           <div className="fp-footer">
             {featured.length > 1 && (
               <div className="fp-nav">
                 <button
                   className="fp-nav-btn"
                   onClick={prev}
-                  aria-label="Previous"
+                  aria-label="Previous item"
                 >
                   <svg
                     width="12"
@@ -341,7 +494,11 @@ export default function FeaturedPopup() {
                     <path d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <button className="fp-nav-btn" onClick={next} aria-label="Next">
+                <button
+                  className="fp-nav-btn"
+                  onClick={next}
+                  aria-label="Next item"
+                >
                   <svg
                     width="12"
                     height="12"
