@@ -1954,6 +1954,8 @@ function OrderCard({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const nextStatus = STATUS_CFG[order.status].next;
+  // Only mount map/tracking when card is open
+  const isDeliveryOpen = open && order.type === "delivery";
 
   function printReceipt() {
     const win = window.open("", "_blank", "width=400,height=600");
@@ -2261,6 +2263,8 @@ function OrderCard({
                         src={img}
                         alt={it.name}
                         title={it.name}
+                        loading="lazy"
+                        decoding="async"
                         style={{
                           width: 56,
                           height: 56,
@@ -2571,7 +2575,7 @@ function OrderCard({
                       )}
                     </div>
                   )}
-                  {order.deliveryAddressDetails?.lat && (
+                  {isDeliveryOpen && order.deliveryAddressDetails?.lat && (
                     <DeliveryMapPanel
                       details={order.deliveryAddressDetails}
                       orderId={order._id}
@@ -3081,7 +3085,7 @@ function OrderCard({
             </div>
 
             {/* ── RIDER TRACKING ── */}
-            {order.type === "delivery" && order.status !== "cancelled" && (
+            {isDeliveryOpen && order.status !== "cancelled" && (
               <RiderTrackingButton
                 orderId={order._id}
                 orderNumber={order.orderNumber}
@@ -3775,6 +3779,8 @@ function MenuTab({
                       <img
                         src={item.image}
                         alt={item.name}
+                        loading="lazy"
+                        decoding="async"
                         style={{
                           width: "100%",
                           height: "100%",
@@ -6375,14 +6381,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!role) return;
-    const id = setInterval(() => fetchData(true), 15000);
 
-    // SSE for instant updates
+    // SSE for instant updates — no polling needed
     const es = new EventSource("/api/orders/stream");
     es.onmessage = () => {
       setTimeout(() => fetchData(true), 300);
     };
+    // Fallback: if SSE dies, poll every 30s instead of 15s
     es.onerror = () => es.close();
+    const id = setInterval(() => fetchData(true), 30000);
 
     return () => {
       clearInterval(id);
@@ -6602,7 +6609,7 @@ export default function AdminDashboard() {
             "radial-gradient(ellipse at 50% 20%,rgba(212,168,67,0.1) 0%,transparent 60%), #0a0f0a",
         }}
       >
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap'); *{box-sizing:border-box;margin:0;padding:0;}body{background:#0a0f0a;} input:focus{outline:none;border-color:${T.gold}!important;}`}</style>
+        <style>{` *{box-sizing:border-box;margin:0;padding:0;}body{background:#0a0f0a;} input:focus{outline:none;border-color:${T.gold}!important;}`}</style>
         <div
           style={{
             width: "100%",
@@ -6839,7 +6846,7 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ minHeight: "100svh", background: "#0a0f0a", color: T.cream }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap');
+      <style>{`
         *{box-sizing:border-box;margin:0;padding:0;}body{background:#0a0f0a;}
         ::-webkit-scrollbar{width:4px;height:4px;}
         ::-webkit-scrollbar-thumb{background:${T.border};border-radius:99px;}

@@ -1887,6 +1887,7 @@ function MenuScreen({
                 const items = visibleMenuItems.filter(
                   (i: MenuItem) => i.category === cat,
                 );
+                const isActive = cat === active;
                 return (
                   <div
                     key={cat}
@@ -1931,24 +1932,28 @@ function MenuScreen({
                         gridTemplateColumns:
                           "repeat(auto-fill,minmax(min(100%,clamp(140px,40vw,260px)),1fr))",
                         gap: "clamp(10px,2.5vw,14px)",
+                        minHeight: isActive ? undefined : 80,
                       }}
                     >
-                      {items.map((item: MenuItem) => {
-                        const count = cart
-                          .filter((c: CartItem) => c._id === item._id)
-                          .reduce(
-                            (s: number, c: CartItem) => s + c.quantity,
-                            0,
+                      {isActive &&
+                        items.map((item: MenuItem) => {
+                          const count = cart
+                            .filter((c: CartItem) => c._id === item._id)
+                            .reduce(
+                              (s: number, c: CartItem) => s + c.quantity,
+                              0,
+                            );
+                          return (
+                            <MenuCard
+                              key={item._id}
+                              item={item}
+                              cartCount={count}
+                              onAdd={() =>
+                                handleAddToCartWithCustomization(item)
+                              }
+                            />
                           );
-                        return (
-                          <MenuCard
-                            key={item._id}
-                            item={item}
-                            cartCount={count}
-                            onAdd={() => handleAddToCartWithCustomization(item)}
-                          />
-                        );
-                      })}
+                        })}
                     </div>
                   </div>
                 );
@@ -5269,7 +5274,6 @@ export default function OrderPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; background: ${BG}; -webkit-text-size-adjust: 100%; }
         input::placeholder, textarea::placeholder { color: ${CF}; }

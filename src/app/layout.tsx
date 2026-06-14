@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Yanone_Kaffeesatz, DM_Sans } from "next/font/google";
+import { Yanone_Kaffeesatz, DM_Sans, Cinzel } from "next/font/google";
 import "./globals.css";
 import NavbarWrapper from "@/components/NavbarWrapper";
 import FeaturedPopup from "@/components/FeaturedPopup";
@@ -15,6 +15,13 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "800"],
   variable: "--font-dm",
+  display: "swap",
+});
+
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-cinzel",
   display: "swap",
 });
 
@@ -56,7 +63,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${yanone.variable} ${dmSans.variable}`}>
+    <html
+      lang="en"
+      className={`${yanone.variable} ${dmSans.variable} ${cinzel.variable}`}
+    >
       <body>
         <NavbarWrapper />
         {children}
