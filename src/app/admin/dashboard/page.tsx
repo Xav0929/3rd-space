@@ -125,6 +125,7 @@ type Order = {
   createdAt: string;
   waiterName?: string;
   cancelReason?: string;
+  deliveryFee?: number;
   deliveryAddressDetails?: {
     lat?: number;
     lng?: number;
@@ -134,6 +135,7 @@ type Order = {
     city?: string;
     landmark?: string;
     fullAddress?: string;
+    distanceKm?: number;
   };
 };
 type MenuItem = {
@@ -2528,6 +2530,47 @@ function OrderCard({
                       </span>
                     </div>
                   )}
+                  {(order as any).deliveryFee != null && (
+                    <div
+                      style={{ display: "flex", gap: 8, alignItems: "center" }}
+                    >
+                      <span
+                        style={{
+                          color: T.muted,
+                          fontSize: 12,
+                          minWidth: 100,
+                          flexShrink: 0,
+                        }}
+                      >
+                        Delivery Fee
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: T.gold,
+                          background: "rgba(212,168,67,0.08)",
+                          border: "1px solid rgba(212,168,67,0.25)",
+                          borderRadius: 6,
+                          padding: "3px 10px",
+                          fontFamily: "'Cinzel',serif",
+                        }}
+                      >
+                        ₱{(order as any).deliveryFee}
+                      </span>
+                      {(order as any).deliveryAddressDetails?.distanceKm !=
+                        null && (
+                        <span style={{ color: T.muted, fontSize: 11 }}>
+                          ·{" "}
+                          {(
+                            (order as any).deliveryAddressDetails
+                              .distanceKm as number
+                          ).toFixed(1)}{" "}
+                          km away
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {order.deliveryAddressDetails?.lat && (
                     <DeliveryMapPanel
                       details={order.deliveryAddressDetails}
@@ -2619,29 +2662,73 @@ function OrderCard({
                     paddingTop: 8,
                     marginTop: 2,
                     display: "flex",
-                    justifyContent: "space-between",
+                    flexDirection: "column",
+                    gap: 6,
                   }}
                 >
-                  <span
-                    style={{
-                      color: T.muted,
-                      fontSize: 12,
-                      fontFamily: "'Cinzel',serif",
-                      letterSpacing: ".08em",
-                    }}
+                  {(order as any).deliveryFee > 0 && (
+                    <>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 12 }}>
+                          Items subtotal
+                        </span>
+                        <span style={{ color: T.cream, fontSize: 12 }}>
+                          ₱
+                          {(order.total - (order as any).deliveryFee).toFixed(
+                            2,
+                          )}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 12 }}>
+                          Delivery fee
+                        </span>
+                        <span
+                          style={{
+                            color: T.gold,
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          ₱{(order as any).deliveryFee}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
                   >
-                    TOTAL
-                  </span>
-                  <span
-                    style={{
-                      color: T.gold,
-                      fontSize: 16,
-                      fontWeight: 700,
-                      fontFamily: "'Cinzel',serif",
-                    }}
-                  >
-                    ₱{order.total.toFixed(2)}
-                  </span>
+                    <span
+                      style={{
+                        color: T.muted,
+                        fontSize: 12,
+                        fontFamily: "'Cinzel',serif",
+                        letterSpacing: ".08em",
+                      }}
+                    >
+                      TOTAL
+                    </span>
+                    <span
+                      style={{
+                        color: T.gold,
+                        fontSize: 16,
+                        fontWeight: 700,
+                        fontFamily: "'Cinzel',serif",
+                      }}
+                    >
+                      ₱{order.total.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

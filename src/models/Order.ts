@@ -43,9 +43,11 @@ const OrderSchema = new Schema(
       city: { type: String },
       landmark: { type: String },
       fullAddress: { type: String },
+      distanceKm: { type: Number },
     },
     receiptUrl: { type: String },
     receiptKey: { type: String },
+    deliveryFee: { type: Number, default: 0 },
 
     // dine-in only
     tableNumber: { type: String },

@@ -42,12 +42,16 @@ const BR = "rgba(232,213,163,0.11)";
 const BRH = "rgba(212,168,67,0.45)";
 const ERR = "rgba(248,113,113,0.8)";
 
+function getDeliveryFee(distanceKm: number): number {
+  if (distanceKm <= 1) return 30;
+  if (distanceKm <= 3) return 50;
+  return 100;
+}
+
 /* ─── CUSTOMIZATION CONFIG ────────────────────────────────────────────────── */
 const MILK_SUBS = [
   { label: "Regular Milk", price: 0 },
   { label: "Oat Milk", price: 30 },
-  { label: "Almond Milk", price: 30 },
-  { label: "Soy Milk", price: 20 },
 ];
 type CustomizationConfig = {
   substitutions?: { label: string; price: number }[];
@@ -2137,14 +2141,19 @@ function DeliveryAddressPicker({
       const data = await res.json();
       if (data.routes?.[0]) {
         const route = data.routes[0];
-        const km = (route.distance / 1000).toFixed(1);
-        setRouteDistance(`${km} km from 3rd Space`);
+        const kmRaw = route.distance / 1000;
+        const km = kmRaw.toFixed(1);
+        const fee = getDeliveryFee(kmRaw);
+        setRouteDistance(`${km} km from 3rd Space · ₱${fee} delivery fee`);
+        onChangeRef.current({
+          ...(valueRef.current || {}),
+          lat: destLat,
+          lng: destLng,
+          distanceKm: kmRaw,
+          deliveryFee: fee,
+        });
         const layer = L.geoJSON(route.geometry, {
-          style: {
-            color: "#4ade80",
-            weight: 4,
-            opacity: 0.8,
-          },
+          style: { color: "#4ade80", weight: 4, opacity: 0.8 },
         }).addTo(mapObjRef.current);
         routeLayerRef.current = layer;
       }
@@ -2174,6 +2183,8 @@ function DeliveryAddressPicker({
         ...cur,
         lat,
         lng,
+        deliveryFee: cur.deliveryFee,
+        distanceKm: cur.distanceKm,
         street: cur.street?.trim()
           ? cur.street
           : addr.road || addr.pedestrian || "",
@@ -2236,6 +2247,8 @@ function DeliveryAddressPicker({
                 ...cur,
                 lat: c.lat,
                 lng: c.lng,
+                deliveryFee: cur.deliveryFee,
+                distanceKm: cur.distanceKm,
                 street: cur.street?.trim()
                   ? cur.street
                   : addr.road || addr.pedestrian || "",
@@ -2671,23 +2684,60 @@ function DeliveryAddressPicker({
       </div>
 
       {routeDistance && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "rgba(212,168,67,.08)",
-            border: `1px solid rgba(212,168,67,.3)`,
-            borderRadius: 10,
-            padding: "9px 12px",
-            fontSize: 13,
-            color: "#d4a843",
-            fontFamily: "'Cinzel',serif",
-            fontWeight: 700,
-            letterSpacing: ".06em",
-          }}
-        >
-          📍 {routeDistance}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "rgba(212,168,67,.08)",
+              border: `1px solid rgba(212,168,67,.3)`,
+              borderRadius: 10,
+              padding: "9px 12px",
+              fontSize: 13,
+              color: "#d4a843",
+              fontFamily: "'Cinzel',serif",
+              fontWeight: 700,
+              letterSpacing: ".06em",
+            }}
+          >
+            📍 {routeDistance}
+          </div>
+          {value?.deliveryFee != null && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                gap: "4px 12px",
+                background: "rgba(255,255,255,.03)",
+                border: `1px solid ${BR}`,
+                borderRadius: 10,
+                padding: "10px 14px",
+                fontSize: 12,
+                color: CM,
+              }}
+            >
+              <span>Zone</span>
+              <span style={{ color: C, fontWeight: 600, textAlign: "right" }}>
+                {(value.distanceKm ?? 0) <= 1
+                  ? "Zone 1 (within 1 km)"
+                  : (value.distanceKm ?? 0) <= 3
+                    ? "Zone 2 (1–3 km)"
+                    : "Zone 3 (3 km+)"}
+              </span>
+              <span>Delivery fee</span>
+              <span
+                style={{
+                  color: "#d4a843",
+                  fontFamily: "'Cinzel',serif",
+                  fontWeight: 700,
+                  textAlign: "right",
+                }}
+              >
+                ₱{value.deliveryFee}
+              </span>
+            </div>
+          )}
         </div>
       )}
       {value?.fullAddress && (
@@ -3043,8 +3093,10 @@ function CheckoutScreen({
   } | null>(voucherCode ? { ok: true, msg: `✓ Voucher applied` } : null);
 
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const deliveryFee =
+    orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
   const discountedTotal = Math.max(0, rawTotal - voucherDiscount);
-  const total = discountedTotal;
+  const total = discountedTotal + deliveryFee;
 
   async function applyVoucher() {
     if (!voucherInput.trim()) return;
@@ -3198,34 +3250,92 @@ function CheckoutScreen({
               </div>
             ))}
             <div style={{ height: 1, background: BR, margin: "10px 0" }} />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span
+            <>
+              {voucherDiscount > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                  }}
+                >
+                  <span style={{ color: CM, fontSize: 12 }}>Subtotal</span>
+                  <span style={{ color: C, fontSize: 12 }}>
+                    ₱{rawTotal.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              {voucherDiscount > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                  }}
+                >
+                  <span style={{ color: "#4ade80", fontSize: 12 }}>
+                    Voucher
+                  </span>
+                  <span style={{ color: "#4ade80", fontSize: 12 }}>
+                    −₱{voucherDiscount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              {deliveryFee > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                  }}
+                >
+                  <span style={{ color: CM, fontSize: 12 }}>
+                    Delivery fee
+                    {form.deliveryAddress?.distanceKm != null && (
+                      <span style={{ color: CF, fontSize: 11 }}>
+                        {" "}
+                        (
+                        {(form.deliveryAddress.distanceKm as number).toFixed(
+                          1,
+                        )}{" "}
+                        km)
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ color: G, fontSize: 12, fontWeight: 600 }}>
+                    ₱{deliveryFee}
+                  </span>
+                </div>
+              )}
+              <div
                 style={{
-                  fontFamily: "'Cinzel',serif",
-                  color: C,
-                  fontSize: 12,
-                  letterSpacing: ".08em",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                TOTAL
-              </span>
-              <span
-                style={{
-                  fontFamily: "'Cinzel',serif",
-                  color: G,
-                  fontSize: 20,
-                  fontWeight: 700,
-                }}
-              >
-                ₱{total.toFixed(2)}
-              </span>
-            </div>
+                <span
+                  style={{
+                    fontFamily: "'Cinzel',serif",
+                    color: C,
+                    fontSize: 12,
+                    letterSpacing: ".08em",
+                  }}
+                >
+                  TOTAL
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'Cinzel',serif",
+                    color: G,
+                    fontSize: 20,
+                    fontWeight: 700,
+                  }}
+                >
+                  ₱{total.toFixed(2)}
+                </span>
+              </div>
+            </>
           </div>
 
           <SectionTitle>
@@ -3565,7 +3675,9 @@ function PaymentScreen({
   voucherCode?: string;
 }) {
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const total = Math.max(0, rawTotal - (voucherDiscount || 0));
+  const deliveryFee =
+    orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
+  const total = Math.max(0, rawTotal - (voucherDiscount || 0)) + deliveryFee;
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
@@ -3694,7 +3806,7 @@ function PaymentScreen({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gridTemplateColumns: "repeat(2, 1fr)",
                   gap: "clamp(6px,2vw,10px)",
                   marginBottom: 18,
                 }}
@@ -3718,16 +3830,6 @@ function PaymentScreen({
                     label: "GCASH",
                     sub: "Pay via app",
                   },
-                  ...(orderType === "dine-in"
-                    ? [
-                        {
-                          id: "pay-later" as PayMethod,
-                          icon: <HelpCircle size={20} />,
-                          label: "DECIDE LATER",
-                          sub: "Tell staff",
-                        },
-                      ]
-                    : []),
                 ].map((m) => {
                   const a = paymentMethod === m.id;
                   return (
@@ -5048,7 +5150,9 @@ export default function OrderPage() {
     try {
       setSubmitting(true);
       const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-      const total = Math.max(0, rawTotal - voucherDiscount);
+      const deliveryFee =
+        orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
+      const total = Math.max(0, rawTotal - voucherDiscount) + deliveryFee;
       const eff: PayMethod = orderType === "delivery" ? "gcash" : paymentMethod;
       const addr = form.deliveryAddress || {};
       const addrStr = [
@@ -5083,6 +5187,7 @@ export default function OrderPage() {
           deliveryAddressDetails: form.deliveryAddress,
           receiptUrl,
           receiptKey,
+          deliveryFee,
         });
       } else if (orderType === "takeout") {
         payload.customerName = form.customerName;

@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
     notes,
     waiterName,
     source,
+    deliveryFee,
   } = body;
 
   // Basic validation
@@ -146,6 +147,7 @@ export async function POST(req: NextRequest) {
     notes,
     waiterName,
     source,
+    deliveryFee,
   });
 
   // notify admin dashboard instantly
