@@ -6422,6 +6422,9 @@ export default function AdminDashboard() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
+  const [shopOpen, setShopOpen] = useState(true);
+  const [shopToggling, setShopToggling] = useState(false);
+  const [confirmPauseShop, setConfirmPauseShop] = useState(false);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [activeConfirm, setActiveConfirm] = useState<{
@@ -6460,6 +6463,24 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  async function toggleShop(next: boolean) {
+    setShopToggling(true);
+    try {
+      const res = await fetch("/api/shop-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ open: next }),
+      });
+      if (res.ok) {
+        setShopOpen(next);
+        showToast(next ? "✓ Ordering resumed" : "🚫 Ordering paused");
+      }
+    } catch {
+      showToast("Failed to toggle shop status", false);
+    }
+    setShopToggling(false);
+  }
+
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
@@ -6468,6 +6489,10 @@ export default function AdminDashboard() {
   const isAdmin = role === "admin";
 
   useEffect(() => {
+    fetch("/api/shop-status")
+      .then((r) => r.json())
+      .then((d) => setShopOpen(d.open))
+      .catch(() => {});
     const savedRole = localStorage.getItem("3s_role") as Role;
     const savedName = localStorage.getItem("3s_name") || "";
     if (savedRole && savedName && !savedName.includes("@")) {
@@ -7066,6 +7091,38 @@ export default function AdminDashboard() {
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isAdmin && (
+            <button
+              onClick={async () => {
+                if (shopToggling) return;
+                const next = !shopOpen;
+                if (!next) {
+                  setConfirmPauseShop(true);
+                  return;
+                }
+                toggleShop(true);
+              }}
+              style={{
+                padding: "7px 14px",
+                background: shopOpen
+                  ? "rgba(34,197,94,0.1)"
+                  : "rgba(248,113,113,0.1)",
+                border: `1px solid ${shopOpen ? "rgba(34,197,94,0.4)" : "rgba(248,113,113,0.4)"}`,
+                borderRadius: 8,
+                color: shopOpen ? T.green : "#f87171",
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "'Cinzel',serif",
+                letterSpacing: ".06em",
+                cursor: shopToggling ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              {shopToggling ? "…" : shopOpen ? "🟢 OPEN" : "🔴 PAUSED"}
+            </button>
+          )}
           {!isMobile && (
             <button
               onClick={() => fetchData()}
@@ -7364,6 +7421,17 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {confirmPauseShop && (
+        <ConfirmModal
+          danger={false}
+          message="Pause all ordering? Customers won't be able to check out until you resume."
+          onConfirm={() => {
+            setConfirmPauseShop(false);
+            toggleShop(false);
+          }}
+          onCancel={() => setConfirmPauseShop(false)}
+        />
+      )}
       {activeConfirm?.type === "order" && (
         <ConfirmModal
           message="Delete this order? This cannot be undone."

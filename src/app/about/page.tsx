@@ -259,10 +259,12 @@ export default function AboutPage() {
                     maxWidth: 420,
                   }}
                 >
-                  3rd Space was built on one quiet conviction — that people
-                  deserve a place where they can just{" "}
-                  <span style={{ color: "#e8d5a3" }}>exist</span>. Not perform,
-                  not rush, not justify their presence with every sip. Just be.
+                  3rd Space was created from a simple belief — everyone deserves
+                  a place between home and work where they can slow down,
+                  connect, create, and{" "}
+                  <span style={{ color: "#e8d5a3" }}>belong</span>. More than a
+                  café, a space where conversations begin, ideas grow, and
+                  communities come together.
                 </p>
                 <div
                   style={{
@@ -665,9 +667,9 @@ export default function AboutPage() {
                     color: "rgba(232,213,163,0.5)",
                   }}
                 >
-                  France and Mai built this not as a café, but as a community. A
-                  place where conversations begin, ideas grow, friendships are
-                  formed, and strangers become familiar faces.
+                  More than a café, we envisioned a space where conversations
+                  begin, ideas grow, friendships are formed, and communities
+                  come together.
                 </p>
                 <p
                   style={{
@@ -677,10 +679,9 @@ export default function AboutPage() {
                     color: "rgba(232,213,163,0.5)",
                   }}
                 >
-                  The name came naturally.{" "}
                   <span style={{ color: "#e8d5a3" }}>3rd Space</span> — not
-                  home, not work. The place in between where you go to remember
-                  who you are outside of both.
+                  home, not work. The place in between where you go to slow
+                  down, connect, and remember who you are outside of both.
                 </p>
               </div>
             </FadeBlock>
@@ -734,9 +735,11 @@ export default function AboutPage() {
                   maxWidth: 900,
                 }}
               >
-                The Ambience
+                We Don't Just
                 <br />
-                <em style={{ color: "#d4a843" }}>Is the</em> Product.
+                Serve <em style={{ color: "#d4a843" }}>Coffee.</em>
+                <br />
+                We Serve Connection.
               </h2>
             </FadeBlock>
 
@@ -752,18 +755,18 @@ export default function AboutPage() {
               {[
                 {
                   number: "01",
-                  title: "The Feeling of Arrival",
-                  body: "The moment you walk in and your shoulders drop. The smell, the light, the sound — all engineered to tell your nervous system: you're safe here. You can slow down.",
+                  title: "We Sell Moments",
+                  body: "A place to meet. A reason to stay a little longer. A community where strangers become familiar faces. Every cup is simply an invitation to connect.",
                 },
                 {
                   number: "02",
-                  title: "The Permission to Stay",
-                  body: "No timers. No rush. No side-eye from the staff. Your table is yours. The coffee and food are your reason to be here — but you are always welcome longer than both.",
+                  title: "We Sell Connection",
+                  body: "Coffee, food, and drinks — but that's not what we truly sell. We sell the feeling of belonging. Of sitting somewhere that feels like it was made for you.",
                 },
                 {
                   number: "03",
-                  title: "The People Around You",
-                  body: "Creatives, students, workers, wanderers. Everyone minding their own business, but everyone choosing to be here. There is quiet power in sharing a room with people who also chose stillness.",
+                  title: "We Sell the Space Between",
+                  body: "Not home. Not work. The third place — where conversations begin, ideas grow, and the best parts of your day happen without you planning them.",
                 },
               ].map((pillar, i) => (
                 <FadeBlock key={pillar.number} delay={i * 120}>
@@ -884,9 +887,8 @@ export default function AboutPage() {
                   letterSpacing: "0.01em",
                 }}
               >
-                "Happy people don't need a reason to be happy here. They just
-                need a <em style={{ color: "#d4a843" }}>place</em> that lets
-                them be."
+                "People may come for the coffee, but they return for the{" "}
+                <em style={{ color: "#d4a843" }}>feeling.</em>"
               </p>
             </FadeBlock>
           </div>
@@ -928,7 +930,7 @@ export default function AboutPage() {
                 >
                   {[
                     { num: "500+", label: "Members in our community" },
-                    { num: "6 mos", label: "Of building this feeling" },
+                    { num: "7 mos", label: "Of building this feeling" },
                     {
                       num: "10+",
                       label: "Events that brought people together",
@@ -985,9 +987,11 @@ export default function AboutPage() {
                       marginBottom: "clamp(1rem, 2vw, 1.5rem)",
                     }}
                   >
-                    Come Find
+                    You Don't Have
                     <br />
-                    <em style={{ color: "#d4a843" }}>Your Corner.</em>
+                    To Fit In.
+                    <br />
+                    <em style={{ color: "#d4a843" }}>You Already Belong.</em>
                   </h3>
                   <p
                     style={{
@@ -999,9 +1003,10 @@ export default function AboutPage() {
                       maxWidth: 340,
                     }}
                   >
-                    Whether you stay for 30 minutes or 4 hours, whether you
-                    order once or six times — you're welcome here. That's not a
-                    slogan. That's the whole point.
+                    Whether you're a student, remote worker, artist, cyclist,
+                    traveler, reader, or simply looking for your next favorite
+                    spot — there's a seat for you here. Come for the coffee.
+                    Stay for the conversations. Leave with new connections.
                   </p>
                   <div
                     style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}

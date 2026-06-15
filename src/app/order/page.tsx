@@ -953,7 +953,13 @@ function ModeCard({ emoji, title, sub, onClick }: any) {
   );
 }
 
-function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
+function ModeSelectScreen({
+  onSelect,
+  shopOpen,
+}: {
+  onSelect: (m: OrderType) => void;
+  shopOpen: boolean;
+}) {
   return (
     <div
       style={{
@@ -979,6 +985,41 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
           (e.target as HTMLImageElement).style.display = "none";
         }}
       />
+      {!shopOpen && (
+        <div
+          style={{
+            background: "rgba(248,113,113,0.1)",
+            border: "1px solid rgba(248,113,113,0.4)",
+            borderRadius: 12,
+            padding: "12px 20px",
+            marginBottom: 16,
+            textAlign: "center",
+            maxWidth: 520,
+            width: "100%",
+          }}
+        >
+          <p
+            style={{
+              color: "#f87171",
+              fontSize: 13,
+              fontWeight: 700,
+              fontFamily: "'Cinzel',serif",
+              letterSpacing: ".08em",
+            }}
+          >
+            🚫 ORDERING IS CURRENTLY PAUSED
+          </p>
+          <p
+            style={{
+              color: "rgba(248,113,113,0.7)",
+              fontSize: 12,
+              marginTop: 4,
+            }}
+          >
+            We'll be back soon. Check back in a bit!
+          </p>
+        </div>
+      )}
       <div
         style={{
           width: 50,
@@ -1037,7 +1078,7 @@ function ModeSelectScreen({ onSelect }: { onSelect: (m: OrderType) => void }) {
               emoji={icon}
               title={title}
               sub={sub}
-              onClick={() => onSelect(mode)}
+              onClick={() => shopOpen && onSelect(mode)}
             />
           </div>
         ))}
@@ -1628,6 +1669,7 @@ function MenuScreen({
   onRemoveFromCart,
   onCheckout,
   onBack,
+  shopOpen,
 }: any) {
   const categories = Array.from(
     new Set(menuItems.map((i: MenuItem) => i.category)),
@@ -2118,12 +2160,26 @@ function MenuScreen({
             borderTop: `1px solid ${BR}`,
           }}
         >
+          {!shopOpen && (
+            <p
+              style={{
+                textAlign: "center",
+                color: "#f87171",
+                fontSize: 12,
+                marginBottom: 8,
+                fontWeight: 600,
+              }}
+            >
+              🚫 Ordering is paused — checkout disabled
+            </p>
+          )}
           <button
-            onClick={onCheckout}
+            onClick={shopOpen ? onCheckout : undefined}
+            disabled={!shopOpen}
             style={{
               width: "100%",
-              background: G,
-              color: BG,
+              background: shopOpen ? G : "rgba(212,168,67,0.25)",
+              color: shopOpen ? BG : "rgba(232,213,163,0.4)",
               border: "none",
               borderRadius: 14,
               padding: "clamp(13px,3.5vw,15px) 16px",
@@ -2131,7 +2187,7 @@ function MenuScreen({
               fontSize: "clamp(13px,3vw,14px)",
               letterSpacing: ".15em",
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: shopOpen ? "pointer" : "not-allowed",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -2148,7 +2204,7 @@ function MenuScreen({
             >
               {count} item{count !== 1 ? "s" : ""}
             </span>
-            <span>CHECKOUT</span>
+            <span>{shopOpen ? "CHECKOUT" : "PAUSED"}</span>
             <span>₱{total.toFixed(2)}</span>
           </button>
         </div>
@@ -5262,6 +5318,7 @@ export default function OrderPage() {
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [voucherType, setVoucherType] = useState<"drink" | "food" | null>(null);
+  const [shopOpen, setShopOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState<Order | null>(null);
   const [form, setForm] = useState<any>({
@@ -5275,6 +5332,10 @@ export default function OrderPage() {
 
   useEffect(() => {
     fetchMenu();
+    fetch("/api/shop-status")
+      .then((r) => r.json())
+      .then((d) => setShopOpen(d.open))
+      .catch(() => {});
   }, []);
 
   async function fetchMenu() {
@@ -5470,6 +5531,7 @@ export default function OrderPage() {
       `}</style>
       {step === "mode-select" && (
         <ModeSelectScreen
+          shopOpen={shopOpen}
           onSelect={(m) => {
             setOrderType(m);
             setPaymentMethod(m === "delivery" ? "gcash" : "pay-later");
@@ -5481,6 +5543,7 @@ export default function OrderPage() {
         <MenuScreen
           menuItems={menuItems}
           cart={cart}
+          shopOpen={shopOpen}
           onAddToCart={(
             item: MenuItem,
             customizations: SelectedCustomization[],

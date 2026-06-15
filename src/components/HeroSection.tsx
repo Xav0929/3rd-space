@@ -427,7 +427,7 @@ export default function HeroSection() {
                   Business Open
                   <br />
                   <span style={{ color: "#d4a843" }}>
-                    Daily from 9am – 12am
+                    Daily from 8am – 12am
                   </span>
                 </p>
               </div>
