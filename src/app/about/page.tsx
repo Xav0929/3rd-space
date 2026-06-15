@@ -222,14 +222,14 @@ export default function AboutPage() {
                       "opacity 0.9s ease 0.2s, transform 0.9s ease 0.2s",
                   }}
                 >
-                  We Don't
+                  Every Great
                   <br />
-                  Sell{" "}
+                  Community{" "}
                   <em style={{ color: "#d4a843", fontStyle: "italic" }}>
-                    Coffee.
+                    Begins.
                   </em>
                   <br />
-                  We Sell
+                  With A Place
                   <br />
                   <em
                     style={{
@@ -237,7 +237,7 @@ export default function AboutPage() {
                       fontStyle: "normal",
                     }}
                   >
-                    Feeling.
+                    To Gather.
                   </em>
                 </h1>
               </div>
