@@ -708,7 +708,7 @@ function CustomizationSheet({
                   marginBottom: 10,
                 }}
               >
-                CHOOSE YOUR SAUCE (FREE)
+                CHOOSE YOUR SAUCE — MAX 2 (FREE)
               </p>
               <div
                 style={{
@@ -726,9 +726,11 @@ function CustomizationSheet({
                       onClick={() =>
                         setSelectedSauces((prev) => {
                           const n = new Set(prev);
-                          n.has(sauceName)
-                            ? n.delete(sauceName)
-                            : n.add(sauceName);
+                          if (n.has(sauceName)) {
+                            n.delete(sauceName);
+                          } else if (n.size < 2) {
+                            n.add(sauceName);
+                          }
                           return n;
                         })
                       }
