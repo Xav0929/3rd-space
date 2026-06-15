@@ -8,6 +8,7 @@ const MenuItemSchema = new Schema(
     category: { type: String, required: true },
     image: { type: String, default: "" },
     available: { type: Boolean, default: true },
+    variants: { type: [String], default: [] },
   },
   { timestamps: true },
 );

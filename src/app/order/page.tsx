@@ -139,6 +139,7 @@ interface MenuItem {
   category: string;
   image: string;
   available: boolean;
+  variants?: string[];
 }
 interface SelectedCustomization {
   type: "substitution" | "addon";
@@ -1485,6 +1486,137 @@ function CartDrawer({
   );
 }
 
+/* ─── VARIANT SHEET ───────────────────────────────────────────────────────── */
+function VariantSheet({
+  item,
+  onSelect,
+  onClose,
+}: {
+  item: MenuItem;
+  onSelect: (variant: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,.6)",
+          backdropFilter: "blur(4px)",
+          zIndex: 60,
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "#111e11",
+          borderTop: `1px solid ${BR}`,
+          borderRadius: "20px 20px 0 0",
+          zIndex: 61,
+          padding: "0 0 env(safe-area-inset-bottom,0)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            padding: "12px 0 4px",
+          }}
+        >
+          <div
+            style={{ width: 36, height: 4, borderRadius: 999, background: BR }}
+          />
+        </div>
+        <div
+          style={{
+            padding: "0 clamp(16px,4vw,20px) 14px",
+            borderBottom: `1px solid ${BR}`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: 15,
+                fontWeight: 700,
+                color: C,
+              }}
+            >
+              {item.name}
+            </p>
+            <p style={{ color: CM, fontSize: 12, marginTop: 2 }}>
+              Choose your variant
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: CARD,
+              border: `1px solid ${BR}`,
+              borderRadius: 999,
+              width: 32,
+              height: 32,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: CM,
+            }}
+          >
+            <X size={13} />
+          </button>
+        </div>
+        <div
+          style={{
+            padding: "14px clamp(16px,4vw,20px) 24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          {(item.variants || []).map((v) => (
+            <button
+              key={v}
+              onClick={() => onSelect(v)}
+              style={{
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: `1.5px solid ${BR}`,
+                background: "transparent",
+                cursor: "pointer",
+                textAlign: "left",
+                color: C,
+                fontSize: 14,
+                fontFamily: "'Cinzel',serif",
+                letterSpacing: ".04em",
+                transition: "all .15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = G;
+                e.currentTarget.style.background = GD;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = BR;
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ─── MENU SCREEN ─────────────────────────────────────────────────────────── */
 function MenuScreen({
   menuItems,
@@ -1525,6 +1657,7 @@ function MenuScreen({
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [customizingConfig, setCustomizingConfig] =
     useState<CustomizationConfig | null>(null);
+  const [variantItem, setVariantItem] = useState<MenuItem | null>(null);
 
   const liveSauces = menuItems
     .filter(
@@ -1541,16 +1674,20 @@ function MenuScreen({
     .map((i: MenuItem) => ({ name: i.name, image: i.image }));
 
   const handleAddToCartWithCustomization = (item: MenuItem) => {
-    const config = getCategoryCustomizations(
-      item.category,
-      liveSauces,
-      liveEggStyles,
-    );
-    if (config) {
-      setCustomizingItem(item);
-      setCustomizingConfig(config);
+    if (item.variants && item.variants.length > 0) {
+      setVariantItem(item);
     } else {
-      onAddToCart(item, []);
+      const config = getCategoryCustomizations(
+        item.category,
+        liveSauces,
+        liveEggStyles,
+      );
+      if (config) {
+        setCustomizingItem(item);
+        setCustomizingConfig(config);
+      } else {
+        onAddToCart(item, []);
+      }
     }
   };
 
@@ -2027,6 +2164,31 @@ function MenuScreen({
         }}
         cartTotal={total}
       />
+
+      {variantItem && (
+        <VariantSheet
+          item={variantItem}
+          onClose={() => setVariantItem(null)}
+          onSelect={(variant) => {
+            const itemWithVariant = {
+              ...variantItem,
+              name: `${variantItem.name} (${variant})`,
+            };
+            setVariantItem(null);
+            const config = getCategoryCustomizations(
+              variantItem.category,
+              liveSauces,
+              liveEggStyles,
+            );
+            if (config) {
+              setCustomizingItem(itemWithVariant);
+              setCustomizingConfig(config);
+            } else {
+              onAddToCart(itemWithVariant, []);
+            }
+          }}
+        />
+      )}
 
       {customizingItem && customizingConfig && (
         <CustomizationSheet

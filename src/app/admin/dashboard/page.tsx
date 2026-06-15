@@ -146,6 +146,7 @@ type MenuItem = {
   category: string;
   image: string;
   available: boolean;
+  variants?: string[];
 };
 type Tab =
   | "orders"
@@ -3196,6 +3197,7 @@ function MenuItemForm({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState("");
+  const [variantInput, setVariantInput] = useState("");
   const set = (k: keyof MenuItem, v: any) => setForm((p) => ({ ...p, [k]: v }));
   const valid = !!(
     form.name?.trim() &&
@@ -3357,6 +3359,92 @@ function MenuItemForm({
             }}
           >
             {form.available ? "✓ Available" : "✗ Unavailable"}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label style={labelStyle}>
+          VARIANTS (optional — e.g. Chicken, Tuna)
+        </label>
+        <div
+          style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}
+        >
+          {(form.variants || []).map((v: string) => (
+            <span
+              key={v}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                background: "rgba(212,168,67,0.12)",
+                border: `1px solid ${T.gold}44`,
+                borderRadius: 6,
+                padding: "3px 10px",
+                fontSize: 12,
+                color: T.gold,
+              }}
+            >
+              {v}
+              <button
+                onClick={() =>
+                  set(
+                    "variants",
+                    (form.variants || []).filter((x: string) => x !== v),
+                  )
+                }
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: T.muted,
+                  padding: 0,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            value={variantInput}
+            onChange={(e) => setVariantInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && variantInput.trim()) {
+                set("variants", [
+                  ...(form.variants || []),
+                  variantInput.trim(),
+                ]);
+                setVariantInput("");
+              }
+            }}
+            placeholder="e.g. Chicken — press Enter to add"
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          <button
+            onClick={() => {
+              if (variantInput.trim()) {
+                set("variants", [
+                  ...(form.variants || []),
+                  variantInput.trim(),
+                ]);
+                setVariantInput("");
+              }
+            }}
+            style={{
+              padding: "9px 14px",
+              background: T.goldDim,
+              border: `1px solid ${T.gold}44`,
+              borderRadius: 8,
+              color: T.gold,
+              cursor: "pointer",
+              fontSize: 12,
+              flexShrink: 0,
+            }}
+          >
+            Add
           </button>
         </div>
       </div>
