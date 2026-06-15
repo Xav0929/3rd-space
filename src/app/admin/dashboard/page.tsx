@@ -32,6 +32,8 @@ import {
   Bike,
   HelpCircle,
   Coffee,
+  Power,
+  PowerOff,
 } from "lucide-react";
 
 const T = {
@@ -7120,7 +7122,17 @@ export default function AdminDashboard() {
                 gap: 6,
               }}
             >
-              {shopToggling ? "…" : shopOpen ? "🟢 OPEN" : "🔴 PAUSED"}
+              {shopToggling ? (
+                "…"
+              ) : shopOpen ? (
+                <>
+                  <Power size={12} /> OPEN
+                </>
+              ) : (
+                <>
+                  <PowerOff size={12} /> PAUSED
+                </>
+              )}
             </button>
           )}
           {!isMobile && (

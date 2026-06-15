@@ -51,6 +51,24 @@ export async function POST(req: NextRequest) {
   await connectDB();
   const body = await req.json();
 
+  // Block orders when shop is paused
+  if (body.source !== "crew") {
+    const { default: mongoose } = await import("mongoose");
+    const Setting =
+      mongoose.models.Setting ||
+      mongoose.model(
+        "Setting",
+        new mongoose.Schema({ key: String, open: Boolean }),
+      );
+    const shopStatus = await Setting.findOne({ key: "shopStatus" }).lean();
+    if (shopStatus && (shopStatus as any).open === false) {
+      return NextResponse.json(
+        { error: "Ordering is currently paused." },
+        { status: 503 },
+      );
+    }
+  }
+
   const {
     type,
     items,

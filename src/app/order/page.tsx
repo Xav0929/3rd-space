@@ -1005,9 +1005,13 @@ function ModeSelectScreen({
               fontWeight: 700,
               fontFamily: "'Cinzel',serif",
               letterSpacing: ".08em",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              justifyContent: "center",
             }}
           >
-            🚫 ORDERING IS CURRENTLY PAUSED
+            <AlertCircle size={14} /> ORDERING IS CURRENTLY PAUSED
           </p>
           <p
             style={{
@@ -2163,6 +2167,10 @@ function MenuScreen({
           {!shopOpen && (
             <p
               style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
                 textAlign: "center",
                 color: "#f87171",
                 fontSize: 12,
@@ -2170,7 +2178,8 @@ function MenuScreen({
                 fontWeight: 600,
               }}
             >
-              🚫 Ordering is paused — checkout disabled
+              <AlertCircle size={12} color="#f87171" /> Ordering is paused —
+              checkout disabled
             </p>
           )}
           <button
@@ -5312,7 +5321,7 @@ export default function OrderPage() {
   const [orderType, setOrderType] = useState<OrderType>("dine-in");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PayMethod>("pay-later");
+  const [paymentMethod, setPaymentMethod] = useState<PayMethod>("cash");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [receiptKey, setReceiptKey] = useState("");
   const [voucherCode, setVoucherCode] = useState("");
@@ -5534,7 +5543,7 @@ export default function OrderPage() {
           shopOpen={shopOpen}
           onSelect={(m) => {
             setOrderType(m);
-            setPaymentMethod(m === "delivery" ? "gcash" : "pay-later");
+            setPaymentMethod(m === "delivery" ? "gcash" : "cash");
             setStep("menu");
           }}
         />
