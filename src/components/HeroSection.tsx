@@ -122,7 +122,7 @@ export default function HeroSection() {
         {/* Video */}
         <video
           ref={videoRef}
-          src="https://pub-9f10feaff9e04a53b72e9a2d79b24eaa.r2.dev/3rd-space/hero.mp4"
+          src="https://cdn.3rdspace.shop/hero.mp4"
           loop
           playsInline
           style={{
