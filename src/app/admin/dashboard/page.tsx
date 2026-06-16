@@ -86,6 +86,7 @@ interface Post {
   tilt?: number;
   size?: "sm" | "md" | "lg";
   image?: string;
+  link?: string;
 }
 
 interface Partner {
@@ -322,8 +323,7 @@ function BoardPostCard({
             style={{
               width: "100%",
               display: "block",
-              objectFit: "cover",
-              maxHeight: 180,
+              objectFit: "contain",
             }}
           />
         </div>
@@ -380,10 +380,36 @@ function BoardPostCard({
           lineHeight: 1.65,
           margin: 0,
           flex: 1,
+          whiteSpace: "pre-wrap",
         }}
       >
         {post.body}
       </p>
+
+      {post.link && (
+        <a
+          href={post.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            marginTop: "0.75rem",
+            fontSize: "0.7rem",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: T.gold,
+            textDecoration: "none",
+            border: "1px solid rgba(212,168,67,0.35)",
+            padding: "6px 14px",
+            background: "rgba(212,168,67,0.07)",
+            borderRadius: 4,
+          }}
+        >
+          ↗ Visit Link
+        </a>
+      )}
 
       {isAdmin && onDelete && (
         <button
@@ -503,6 +529,7 @@ function BoardPostModal({
   const [size, setSize] = useState<"sm" | "md" | "lg">("md");
   const [pinned, setPinned] = useState(false);
   const [image, setImage] = useState("");
+  const [link, setLink] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const handleSubmit = () => {
@@ -520,6 +547,7 @@ function BoardPostModal({
       title,
       body,
       image: image || undefined,
+      link: link || undefined,
       tilt,
       size,
     });
@@ -816,6 +844,27 @@ function BoardPostModal({
               }}
             />
           </label>
+        </div>
+
+        <div style={{ marginBottom: "1rem" }}>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: "0.68rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase" as const,
+              display: "block",
+              marginBottom: "0.4rem",
+            }}
+          >
+            Link (optional)
+          </label>
+          <input
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://..."
+            style={inputStyle}
+          />
         </div>
 
         <button
@@ -4047,6 +4096,1039 @@ function MenuTab({
   );
 }
 
+// ── SALES CALENDAR ────────────────────────────────────────────────────────────
+function SalesCalendar({ orders }: { orders: Order[] }) {
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+
+  // Group completed orders by YYYY-MM-DD
+  const dailyStats: Record<
+    string,
+    { revenue: number; orders: Order[]; count: number }
+  > = {};
+  orders.forEach((o) => {
+    if (o.status !== "completed") return;
+    const d = new Date(o.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (!dailyStats[key])
+      dailyStats[key] = { revenue: 0, orders: [], count: 0 };
+    dailyStats[key].revenue += o.total;
+    dailyStats[key].orders.push(o);
+    dailyStats[key].count++;
+  });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthRevenue = Object.entries(dailyStats)
+    .filter(([k]) => k.startsWith(monthPrefix))
+    .reduce((s, [, v]) => s + v.revenue, 0);
+  const monthOrders = Object.entries(dailyStats)
+    .filter(([k]) => k.startsWith(monthPrefix))
+    .reduce((s, [, v]) => s + v.count, 0);
+  const maxRev = Math.max(
+    ...Object.values(dailyStats).map((d) => d.revenue),
+    1,
+  );
+
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const selectedStats = selectedDay ? dailyStats[selectedDay] || null : null;
+
+  const MONTHS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+
+  return (
+    <div
+      style={{
+        background: T.bgCard,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        padding: 20,
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          marginBottom: 16,
+          flexWrap: "wrap",
+          gap: 8,
+        }}
+      >
+        <div>
+          <p
+            style={{
+              color: T.gold,
+              fontSize: 11,
+              letterSpacing: ".15em",
+              textTransform: "uppercase",
+              fontFamily: "'Cinzel',serif",
+              marginBottom: 6,
+            }}
+          >
+            ◆ Sales Calendar
+          </p>
+          <p
+            style={{
+              color: T.cream,
+              fontSize: 15,
+              fontWeight: 700,
+              fontFamily: "'Cinzel',serif",
+            }}
+          >
+            {MONTHS[month]} {year}
+          </p>
+          <p style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>
+            {fmt(monthRevenue)} · {monthOrders} completed order
+            {monthOrders !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            onClick={() => {
+              setCurrentMonth(new Date(year, month - 1, 1));
+              setSelectedDay(null);
+            }}
+            style={{
+              width: 34,
+              height: 34,
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              color: T.muted,
+              cursor: "pointer",
+              fontSize: 18,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => {
+              setCurrentMonth(new Date(year, month + 1, 1));
+              setSelectedDay(null);
+            }}
+            style={{
+              width: 34,
+              height: 34,
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              color: T.muted,
+              cursor: "pointer",
+              fontSize: 18,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      {/* Day-of-week headers */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7,1fr)",
+          gap: 3,
+          marginBottom: 3,
+        }}
+      >
+        {DAYS.map((d, i) => (
+          <div
+            key={i}
+            style={{
+              textAlign: "center",
+              color: T.faint,
+              fontSize: 10,
+              padding: "4px 0",
+              fontFamily: "'Cinzel',serif",
+            }}
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7,1fr)",
+          gap: 3,
+        }}
+      >
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`e${i}`} />
+        ))}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1;
+          const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const stats = dailyStats[key];
+          const isToday = key === todayKey;
+          const isSelected = key === selectedDay;
+          const intensity = stats ? Math.min(stats.revenue / maxRev, 1) : 0;
+          const isFuture = new Date(key + "T23:59:59") > today;
+
+          return (
+            <div
+              key={key}
+              onClick={() =>
+                !isFuture && setSelectedDay(isSelected ? null : key)
+              }
+              title={
+                stats
+                  ? `${fmt(stats.revenue)} · ${stats.count} order${stats.count !== 1 ? "s" : ""}`
+                  : undefined
+              }
+              style={{
+                aspectRatio: "1",
+                borderRadius: 6,
+                cursor: isFuture ? "default" : "pointer",
+                background: isSelected
+                  ? "rgba(212,168,67,0.22)"
+                  : stats
+                    ? `rgba(34,197,94,${0.07 + intensity * 0.38})`
+                    : "rgba(255,255,255,0.02)",
+                border: isSelected
+                  ? `1px solid ${T.gold}`
+                  : isToday
+                    ? "1px solid rgba(212,168,67,0.55)"
+                    : stats
+                      ? `1px solid rgba(34,197,94,${0.1 + intensity * 0.35})`
+                      : `1px solid ${T.border}`,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 2,
+                transition: "all .12s",
+                opacity: isFuture ? 0.3 : 1,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: isToday || isSelected ? 700 : 400,
+                  color: isSelected
+                    ? T.gold
+                    : isToday
+                      ? T.gold
+                      : stats
+                        ? "#4ade80"
+                        : T.muted,
+                  lineHeight: 1,
+                }}
+              >
+                {day}
+              </span>
+              {stats && (
+                <span
+                  style={{
+                    fontSize: "0.52rem",
+                    color: isSelected ? T.gold : "#4ade80",
+                    lineHeight: 1,
+                    marginTop: 1,
+                  }}
+                >
+                  {stats.revenue >= 1000
+                    ? `${(stats.revenue / 1000).toFixed(1)}k`
+                    : `${Math.round(stats.revenue)}`}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}
+      >
+        <span style={{ color: T.faint, fontSize: 10 }}>Less</span>
+        {[0.07, 0.15, 0.24, 0.33, 0.45].map((a, i) => (
+          <div
+            key={i}
+            style={{
+              width: 12,
+              height: 12,
+              borderRadius: 3,
+              background: `rgba(34,197,94,${a})`,
+              border: `1px solid rgba(34,197,94,${a + 0.1})`,
+            }}
+          />
+        ))}
+        <span style={{ color: T.faint, fontSize: 10 }}>More</span>
+      </div>
+
+      {/* Selected day breakdown */}
+      {selectedDay && (
+        <div
+          style={{
+            marginTop: 16,
+            borderTop: `1px solid ${T.border}`,
+            paddingTop: 16,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 12,
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <p
+              style={{
+                color: T.cream,
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: "'Cinzel',serif",
+              }}
+            >
+              {new Date(selectedDay + "T12:00:00").toLocaleDateString("en-PH", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+            {selectedStats ? (
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <span
+                  style={{
+                    color: T.green,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    fontFamily: "'Cinzel',serif",
+                  }}
+                >
+                  {fmt(selectedStats.revenue)}
+                </span>
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  {selectedStats.count} order
+                  {selectedStats.count !== 1 ? "s" : ""}
+                </span>
+              </div>
+            ) : (
+              <span style={{ color: T.faint, fontSize: 12 }}>No sales</span>
+            )}
+          </div>
+          {selectedStats ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                maxHeight: 240,
+                overflowY: "auto",
+              }}
+            >
+              {[...selectedStats.orders]
+                .sort(
+                  (a, b) =>
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime(),
+                )
+                .map((o) => (
+                  <div
+                    key={o._id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "9px 13px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 8,
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 12,
+                          color: T.cream,
+                          fontWeight: 700,
+                        }}
+                      >
+                        #{o.orderNumber}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color:
+                            o.type === "delivery"
+                              ? T.gold
+                              : o.type === "takeout"
+                                ? T.blue
+                                : T.green,
+                          background:
+                            o.type === "delivery"
+                              ? "rgba(212,168,67,0.1)"
+                              : o.type === "takeout"
+                                ? "rgba(91,155,213,0.1)"
+                                : "rgba(34,197,94,0.1)",
+                          padding: "2px 7px",
+                          borderRadius: 4,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: ".06em",
+                        }}
+                      >
+                        {o.type}
+                      </span>
+                      {o.customerName && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: T.muted,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            maxWidth: 110,
+                          }}
+                        >
+                          {o.customerName}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
+                      <span style={{ fontSize: 11, color: T.faint }}>
+                        {new Date(o.createdAt).toLocaleTimeString("en-PH", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 13,
+                          color: T.gold,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {fmt(o.total)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p
+              style={{
+                color: T.faint,
+                fontSize: 13,
+                textAlign: "center",
+                padding: "16px 0",
+              }}
+            >
+              No completed orders on this day
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── TODAY'S REPORT ────────────────────────────────────────────────────────────
+function TodayReport({ orders }: { orders: Order[] }) {
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const todayOrders = orders.filter((o) => {
+    const d = new Date(o.createdAt);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return k === todayKey;
+  });
+
+  const completed = todayOrders.filter((o) => o.status === "completed");
+  const revenue = completed.reduce((s, o) => s + o.total, 0);
+  const active = todayOrders.filter(
+    (o) => o.status !== "completed" && o.status !== "cancelled",
+  ).length;
+  const cancelled = todayOrders.filter((o) => o.status === "cancelled").length;
+
+  // Top items
+  const itemMap: Record<string, { qty: number; revenue: number }> = {};
+  completed.forEach((o) => {
+    o.items.forEach((it) => {
+      if (!itemMap[it.name]) itemMap[it.name] = { qty: 0, revenue: 0 };
+      itemMap[it.name].qty += it.quantity;
+      itemMap[it.name].revenue += it.price * it.quantity;
+    });
+  });
+  const topItems = Object.entries(itemMap)
+    .sort((a, b) => b[1].revenue - a[1].revenue)
+    .slice(0, 6);
+
+  // Payment split
+  const cashOrders = completed.filter((o) => o.paymentMethod === "cash");
+  const gcashOrders = completed.filter((o) => o.paymentMethod === "gcash");
+  const cashRev = cashOrders.reduce((s, o) => s + o.total, 0);
+  const gcashRev = gcashOrders.reduce((s, o) => s + o.total, 0);
+
+  // Order type revenue
+  const deliveryRev = completed
+    .filter((o) => o.type === "delivery")
+    .reduce((s, o) => s + o.total, 0);
+  const dineInRev = completed
+    .filter((o) => o.type === "dine-in")
+    .reduce((s, o) => s + o.total, 0);
+  const takeoutRev = completed
+    .filter((o) => o.type === "takeout")
+    .reduce((s, o) => s + o.total, 0);
+
+  // Delivery fees collected today
+  const deliveryFeesTotal = completed
+    .filter((o) => o.type === "delivery")
+    .reduce((s, o) => s + ((o as any).deliveryFee || 0), 0);
+
+  // Hourly breakdown
+  const hourly: Record<number, number> = {};
+  completed.forEach((o) => {
+    const h = new Date(o.createdAt).getHours();
+    hourly[h] = (hourly[h] || 0) + o.total;
+  });
+  const maxHourRev = Math.max(...Object.values(hourly), 1);
+  const peakHourEntry = Object.entries(hourly).sort(
+    (a, b) => Number(b[1]) - Number(a[1]),
+  )[0];
+
+  function fmtHour(h: number) {
+    if (h === 0) return "12AM";
+    if (h < 12) return `${h}AM`;
+    if (h === 12) return "12PM";
+    return `${h - 12}PM`;
+  }
+
+  const dateStr = today.toLocaleDateString("en-PH", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const w = useWindowWidth();
+  const isMobile = w < 640;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Hero revenue */}
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg,rgba(212,168,67,0.09) 0%,rgba(34,197,94,0.04) 100%)",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 16,
+          padding: "22px 24px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 14,
+          }}
+        >
+          <div>
+            <p
+              style={{
+                color: T.gold,
+                fontSize: 10,
+                letterSpacing: ".2em",
+                textTransform: "uppercase",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 4,
+              }}
+            >
+              ◆ Today's Report
+            </p>
+            <p style={{ color: T.muted, fontSize: 12, marginBottom: 14 }}>
+              {dateStr}
+            </p>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: "clamp(2.2rem,6vw,3.8rem)",
+                fontWeight: 700,
+                color: T.gold,
+                lineHeight: 1,
+              }}
+            >
+              {fmt(revenue)}
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                marginTop: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ color: T.green, fontSize: 12 }}>
+                ✓ {completed.length} completed
+              </span>
+              {active > 0 && (
+                <span style={{ color: "#f59e0b", fontSize: 12 }}>
+                  ⏳ {active} active
+                </span>
+              )}
+              {cancelled > 0 && (
+                <span style={{ color: T.red, fontSize: 12 }}>
+                  ✗ {cancelled} cancelled
+                </span>
+              )}
+              {deliveryFeesTotal > 0 && (
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  🛵 {fmt(deliveryFeesTotal)} delivery fees
+                </span>
+              )}
+            </div>
+          </div>
+          {peakHourEntry && (
+            <div
+              style={{
+                background: "rgba(212,168,67,0.08)",
+                border: `1px solid ${T.border}`,
+                borderRadius: 12,
+                padding: "14px 20px",
+                textAlign: "center",
+                flexShrink: 0,
+              }}
+            >
+              <p
+                style={{
+                  color: T.muted,
+                  fontSize: 9,
+                  letterSpacing: ".15em",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 8,
+                }}
+              >
+                PEAK HOUR
+              </p>
+              <p
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: 26,
+                  fontWeight: 700,
+                  color: T.cream,
+                  lineHeight: 1,
+                }}
+              >
+                {fmtHour(parseInt(peakHourEntry[0]))}
+              </p>
+              <p style={{ color: T.gold, fontSize: 12, marginTop: 6 }}>
+                {fmt(Number(peakHourEntry[1]))}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Hourly chart */}
+      {Object.keys(hourly).length > 0 && (
+        <div
+          style={{
+            background: T.bgCard,
+            border: `1px solid ${T.border}`,
+            borderRadius: 14,
+            padding: 20,
+          }}
+        >
+          <p
+            style={{
+              color: T.gold,
+              fontSize: 11,
+              letterSpacing: ".15em",
+              textTransform: "uppercase",
+              fontFamily: "'Cinzel',serif",
+              marginBottom: 16,
+            }}
+          >
+            ◆ Revenue by Hour
+          </p>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 2,
+              height: 72,
+            }}
+          >
+            {Array.from({ length: 24 }, (_, h) => {
+              const rev = hourly[h] || 0;
+              const pct = rev / maxHourRev;
+              const isNow = h === today.getHours();
+              return (
+                <div
+                  key={h}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
+                  <div
+                    title={
+                      rev > 0 ? `${fmtHour(h)} — ${fmt(rev)}` : `${fmtHour(h)}`
+                    }
+                    style={{
+                      width: "100%",
+                      height: `${Math.max(pct * 56, rev > 0 ? 4 : 0)}px`,
+                      background: isNow
+                        ? T.gold
+                        : rev > 0
+                          ? `rgba(34,197,94,${0.25 + pct * 0.75})`
+                          : "rgba(255,255,255,0.03)",
+                      borderRadius: "3px 3px 0 0",
+                      border: isNow ? `1px solid ${T.gold}` : "none",
+                      cursor: rev > 0 ? "pointer" : "default",
+                      transition: "height .3s",
+                    }}
+                  />
+                  {h % 6 === 0 && (
+                    <span
+                      style={{
+                        fontSize: 7,
+                        color: T.faint,
+                        lineHeight: 1,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {fmtHour(h)}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr",
+          gap: 12,
+        }}
+      >
+        {/* Top items */}
+        <div
+          style={{
+            background: T.bgCard,
+            border: `1px solid ${T.border}`,
+            borderRadius: 14,
+            padding: 20,
+          }}
+        >
+          <p
+            style={{
+              color: T.gold,
+              fontSize: 11,
+              letterSpacing: ".15em",
+              textTransform: "uppercase",
+              fontFamily: "'Cinzel',serif",
+              marginBottom: 14,
+            }}
+          >
+            ◆ Top Items
+          </p>
+          {topItems.length === 0 ? (
+            <p style={{ color: T.faint, fontSize: 12 }}>
+              No completed orders yet
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {topItems.map(([name, s], i) => (
+                <div key={name}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: 5,
+                      gap: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 10,
+                          color: i === 0 ? T.gold : T.faint,
+                          fontWeight: 700,
+                          minWidth: 14,
+                          flexShrink: 0,
+                        }}
+                      >
+                        #{i + 1}
+                      </span>
+                      <span
+                        style={{
+                          color: T.cream,
+                          fontSize: 12,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {name}
+                      </span>
+                      <span
+                        style={{ color: T.faint, fontSize: 10, flexShrink: 0 }}
+                      >
+                        {s.qty}×
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        color: i === 0 ? T.gold : T.cream,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {fmt(s.revenue)}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: 4,
+                      background: "rgba(255,255,255,0.04)",
+                      borderRadius: 99,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: 4,
+                        borderRadius: 99,
+                        background:
+                          i === 0 ? T.gold : `rgba(34,197,94,${0.8 - i * 0.1})`,
+                        width: `${(s.revenue / (topItems[0][1].revenue || 1)) * 100}%`,
+                        transition: "width .4s",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Payment split */}
+        <div
+          style={{
+            background: T.bgCard,
+            border: `1px solid ${T.border}`,
+            borderRadius: 14,
+            padding: 20,
+          }}
+        >
+          <p
+            style={{
+              color: T.gold,
+              fontSize: 11,
+              letterSpacing: ".15em",
+              textTransform: "uppercase",
+              fontFamily: "'Cinzel',serif",
+              marginBottom: 14,
+            }}
+          >
+            ◆ Payment
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[
+              {
+                label: "Cash",
+                value: cashRev,
+                count: cashOrders.length,
+                color: T.green,
+              },
+              {
+                label: "GCash",
+                value: gcashRev,
+                count: gcashOrders.length,
+                color: T.gold,
+              },
+            ].map((s) => (
+              <div key={s.label}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 5,
+                  }}
+                >
+                  <span style={{ color: T.muted, fontSize: 12 }}>
+                    {s.label}{" "}
+                    <span style={{ color: T.faint, fontSize: 10 }}>
+                      ({s.count})
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      color: s.color,
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {fmt(s.value)}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: 5,
+                    background: "rgba(255,255,255,0.04)",
+                    borderRadius: 99,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 5,
+                      borderRadius: 99,
+                      background: s.color,
+                      width:
+                        revenue > 0 ? `${(s.value / revenue) * 100}%` : "0%",
+                      transition: "width .4s",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Order type revenue */}
+        <div
+          style={{
+            background: T.bgCard,
+            border: `1px solid ${T.border}`,
+            borderRadius: 14,
+            padding: 20,
+          }}
+        >
+          <p
+            style={{
+              color: T.gold,
+              fontSize: 11,
+              letterSpacing: ".15em",
+              textTransform: "uppercase",
+              fontFamily: "'Cinzel',serif",
+              marginBottom: 14,
+            }}
+          >
+            ◆ By Type
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[
+              { label: "Dine-In", value: dineInRev, color: T.green },
+              { label: "Delivery", value: deliveryRev, color: T.gold },
+              { label: "Takeout", value: takeoutRev, color: T.blue },
+            ].map((s) => (
+              <div key={s.label}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 5,
+                  }}
+                >
+                  <span style={{ color: T.muted, fontSize: 12 }}>
+                    {s.label}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      color: s.color,
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {fmt(s.value)}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: 5,
+                    background: "rgba(255,255,255,0.04)",
+                    borderRadius: 99,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 5,
+                      borderRadius: 99,
+                      background: s.color,
+                      width:
+                        revenue > 0 ? `${(s.value / revenue) * 100}%` : "0%",
+                      transition: "width .4s",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── ANALYTICS TAB ────────────────────────────────────────────────────────────
 function AnalyticsTab({ orders }: { orders: Order[] }) {
   const w = useWindowWidth();
@@ -4074,279 +5156,342 @@ function AnalyticsTab({ orders }: { orders: Order[] }) {
   });
   const crewList = Object.entries(crewMap).sort((a, b) => b[1] - a[1]);
 
+  const [analyticsView, setAnalyticsView] = useState<"today" | "alltime">(
+    "today",
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))",
-          gap: 12,
-        }}
-      >
-        {[
-          { label: "Total Revenue", value: fmt(revenue), color: T.gold },
-          {
-            label: "Completed",
-            value: String(completed.length),
-            color: T.green,
-          },
-          { label: "Avg Order", value: fmt(avgOrder), color: T.blue },
-          { label: "Delivery", value: String(deliveryCount), color: T.purple },
-        ].map((s) => (
-          <div
-            key={s.label}
-            style={{
-              background: T.bgCard,
-              border: `1px solid ${T.border}`,
-              borderRadius: 12,
-              padding: "16px 18px",
-            }}
-          >
-            <p
+      {/* Sub-tab switcher */}
+      <div style={{ display: "flex", gap: 6 }}>
+        {(
+          [
+            ["today", "Today"],
+            ["alltime", "All Time"],
+          ] as const
+        ).map(([id, label]) => {
+          const a = analyticsView === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setAnalyticsView(id)}
               style={{
-                color: T.muted,
-                fontSize: 10,
+                padding: "8px 20px",
+                borderRadius: 8,
+                cursor: "pointer",
+                background: a ? T.gold : "rgba(255,255,255,0.04)",
+                border: `1px solid ${a ? T.gold : T.border}`,
+                color: a ? "#0a0f0a" : T.muted,
+                fontFamily: "'Cinzel',serif",
+                fontSize: 11,
+                fontWeight: a ? 700 : 400,
                 letterSpacing: ".1em",
-                textTransform: "uppercase",
-                marginBottom: 8,
-                fontFamily: "'Cinzel',serif",
               }}
             >
-              {s.label}
-            </p>
-            <p
-              style={{
-                fontFamily: "'Cinzel',serif",
-                fontSize: 20,
-                fontWeight: 700,
-                color: s.color,
-              }}
-            >
-              {s.value}
-            </p>
-          </div>
-        ))}
+              {label.toUpperCase()}
+            </button>
+          );
+        })}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-          gap: 12,
-        }}
-      >
-        <div
-          style={{
-            background: T.bgCard,
-            border: `1px solid ${T.border}`,
-            borderRadius: 14,
-            padding: 20,
-          }}
-        >
-          <p
+      {analyticsView === "today" ? (
+        <TodayReport orders={orders} />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div
             style={{
-              color: T.gold,
-              fontSize: 11,
-              letterSpacing: ".15em",
-              textTransform: "uppercase",
-              fontFamily: "'Cinzel',serif",
-              marginBottom: 16,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))",
+              gap: 12,
             }}
           >
-            ◆ Orders by Status
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {byStatus.map(({ status, label, color, count }) => (
-              <div key={status}>
-                <div
+            {[
+              { label: "Total Revenue", value: fmt(revenue), color: T.gold },
+              {
+                label: "Completed",
+                value: String(completed.length),
+                color: T.green,
+              },
+              { label: "Avg Order", value: fmt(avgOrder), color: T.blue },
+              {
+                label: "Delivery",
+                value: String(deliveryCount),
+                color: T.purple,
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  background: T.bgCard,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 12,
+                  padding: "16px 18px",
+                }}
+              >
+                <p
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 5,
+                    color: T.muted,
+                    fontSize: 10,
+                    letterSpacing: ".1em",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                    fontFamily: "'Cinzel',serif",
                   }}
                 >
-                  <span style={{ color: T.muted, fontSize: 12 }}>{label}</span>
-                  <span
-                    style={{ color: T.cream, fontSize: 12, fontWeight: 600 }}
-                  >
-                    {count}
-                  </span>
-                </div>
-                <div
+                  {s.label}
+                </p>
+                <p
                   style={{
-                    height: 6,
-                    background: "rgba(255,255,255,0.05)",
-                    borderRadius: 99,
+                    fontFamily: "'Cinzel',serif",
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: s.color,
                   }}
                 >
-                  <div
-                    style={{
-                      height: 6,
-                      borderRadius: 99,
-                      background: color,
-                      width: `${(count / maxCount) * 100}%`,
-                      transition: "width .5s",
-                    }}
-                  />
-                </div>
+                  {s.value}
+                </p>
               </div>
             ))}
           </div>
-        </div>
 
-        <div
-          style={{
-            background: T.bgCard,
-            border: `1px solid ${T.border}`,
-            borderRadius: 14,
-            padding: 20,
-          }}
-        >
-          <p
+          <div
             style={{
-              color: T.gold,
-              fontSize: 11,
-              letterSpacing: ".15em",
-              textTransform: "uppercase",
-              fontFamily: "'Cinzel',serif",
-              marginBottom: 16,
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: 12,
             }}
           >
-            ◆ Crew Orders
-          </p>
-          {crewList.length === 0 ? (
-            <p style={{ color: T.faint, fontSize: 12 }}>No crew orders yet</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {crewList.map(([name, count]) => (
-                <div key={name}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 5,
-                    }}
-                  >
-                    <span style={{ color: T.muted, fontSize: 12 }}>
-                      <Users
-                        size={11}
-                        style={{
-                          display: "inline",
-                          verticalAlign: "middle",
-                          marginRight: 4,
-                        }}
-                      />
-                      {name}
-                    </span>
-                    <span
-                      style={{ color: T.cream, fontSize: 12, fontWeight: 600 }}
+            <div
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 20,
+              }}
+            >
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 16,
+                }}
+              >
+                ◆ Orders by Status
+              </p>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
+                {byStatus.map(({ status, label, color, count }) => (
+                  <div key={status}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 5,
+                      }}
                     >
-                      {count}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      height: 6,
-                      background: "rgba(255,255,255,0.05)",
-                      borderRadius: 99,
-                    }}
-                  >
+                      <span style={{ color: T.muted, fontSize: 12 }}>
+                        {label}
+                      </span>
+                      <span
+                        style={{
+                          color: T.cream,
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {count}
+                      </span>
+                    </div>
                     <div
                       style={{
                         height: 6,
+                        background: "rgba(255,255,255,0.05)",
                         borderRadius: 99,
-                        background: T.blue,
-                        width: `${(count / (crewList[0][1] || 1)) * 100}%`,
-                        transition: "width .5s",
                       }}
-                    />
+                    >
+                      <div
+                        style={{
+                          height: 6,
+                          borderRadius: 99,
+                          background: color,
+                          width: `${(count / maxCount) * 100}%`,
+                          transition: "width .5s",
+                        }}
+                      />
+                    </div>
                   </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 20,
+              }}
+            >
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 16,
+                }}
+              >
+                ◆ Crew Orders
+              </p>
+              {crewList.length === 0 ? (
+                <p style={{ color: T.faint, fontSize: 12 }}>
+                  No crew orders yet
+                </p>
+              ) : (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                >
+                  {crewList.map(([name, count]) => (
+                    <div key={name}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: 5,
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 12 }}>
+                          <Users
+                            size={11}
+                            style={{
+                              display: "inline",
+                              verticalAlign: "middle",
+                              marginRight: 4,
+                            }}
+                          />
+                          {name}
+                        </span>
+                        <span
+                          style={{
+                            color: T.cream,
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {count}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: 6,
+                          background: "rgba(255,255,255,0.05)",
+                          borderRadius: 99,
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: 6,
+                            borderRadius: 99,
+                            background: T.blue,
+                            width: `${(count / (crewList[0][1] || 1)) * 100}%`,
+                            transition: "width .5s",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: T.bgCard,
+              border: `1px solid ${T.border}`,
+              borderRadius: 14,
+              padding: 20,
+            }}
+          >
+            <p
+              style={{
+                color: T.gold,
+                fontSize: 11,
+                letterSpacing: ".15em",
+                textTransform: "uppercase",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 16,
+              }}
+            >
+              ◆ Order Type Split
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              {[
+                {
+                  label: "Dine-In",
+                  count: dineInCount,
+                  color: T.green,
+                  icon: <Armchair size={24} />,
+                },
+                {
+                  label: "Delivery",
+                  count: deliveryCount,
+                  color: T.gold,
+                  icon: <Bike size={24} />,
+                },
+                {
+                  label: "Takeout",
+                  count: takeoutCount,
+                  color: T.blue,
+                  icon: <Coffee size={24} />,
+                },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  style={{
+                    flex: 1,
+                    background: "rgba(255,255,255,0.03)",
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 10,
+                    padding: 14,
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      marginBottom: 6,
+                      color: s.color,
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {s.icon}
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      fontSize: 20,
+                      fontWeight: 700,
+                      color: s.color,
+                    }}
+                  >
+                    {s.count}
+                  </p>
+                  <p style={{ color: T.muted, fontSize: 11, marginTop: 3 }}>
+                    {s.label}
+                  </p>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+          <SalesCalendar orders={orders} />
         </div>
-      </div>
-
-      <div
-        style={{
-          background: T.bgCard,
-          border: `1px solid ${T.border}`,
-          borderRadius: 14,
-          padding: 20,
-        }}
-      >
-        <p
-          style={{
-            color: T.gold,
-            fontSize: 11,
-            letterSpacing: ".15em",
-            textTransform: "uppercase",
-            fontFamily: "'Cinzel',serif",
-            marginBottom: 16,
-          }}
-        >
-          ◆ Order Type Split
-        </p>
-        <div style={{ display: "flex", gap: 12 }}>
-          {[
-            {
-              label: "Dine-In",
-              count: dineInCount,
-              color: T.green,
-              icon: <Armchair size={24} />,
-            },
-            {
-              label: "Delivery",
-              count: deliveryCount,
-              color: T.gold,
-              icon: <Bike size={24} />,
-            },
-            {
-              label: "Takeout",
-              count: takeoutCount,
-              color: T.blue,
-              icon: <Coffee size={24} />,
-            },
-          ].map((s) => (
-            <div
-              key={s.label}
-              style={{
-                flex: 1,
-                background: "rgba(255,255,255,0.03)",
-                border: `1px solid ${T.border}`,
-                borderRadius: 10,
-                padding: 14,
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  marginBottom: 6,
-                  color: s.color,
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
-                {s.icon}
-              </div>
-              <p
-                style={{
-                  fontFamily: "'Cinzel',serif",
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: s.color,
-                }}
-              >
-                {s.count}
-              </p>
-              <p style={{ color: T.muted, fontSize: 11, marginTop: 3 }}>
-                {s.label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -7094,46 +8239,83 @@ export default function AdminDashboard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isAdmin && (
-            <button
-              onClick={async () => {
-                if (shopToggling) return;
-                const next = !shopOpen;
-                if (!next) {
-                  setConfirmPauseShop(true);
-                  return;
-                }
-                toggleShop(true);
-              }}
-              style={{
-                padding: "7px 14px",
-                background: shopOpen
-                  ? "rgba(34,197,94,0.1)"
-                  : "rgba(248,113,113,0.1)",
-                border: `1px solid ${shopOpen ? "rgba(34,197,94,0.4)" : "rgba(248,113,113,0.4)"}`,
-                borderRadius: 8,
-                color: shopOpen ? T.green : "#f87171",
-                fontSize: 11,
-                fontWeight: 700,
-                fontFamily: "'Cinzel',serif",
-                letterSpacing: ".06em",
-                cursor: shopToggling ? "wait" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              {shopToggling ? (
-                "…"
-              ) : shopOpen ? (
-                <>
-                  <Power size={12} /> OPEN
-                </>
-              ) : (
-                <>
-                  <PowerOff size={12} /> PAUSED
-                </>
-              )}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {/* Status pill — shows current state, not clickable */}
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 10px",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  fontFamily: "'Cinzel',serif",
+                  letterSpacing: ".08em",
+                  background: shopOpen
+                    ? "rgba(34,197,94,0.12)"
+                    : "rgba(248,113,113,0.12)",
+                  border: `1px solid ${shopOpen ? "rgba(34,197,94,0.35)" : "rgba(248,113,113,0.35)"}`,
+                  color: shopOpen ? T.green : "#f87171",
+                  pointerEvents: "none",
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: shopOpen ? T.green : "#f87171",
+                    boxShadow: shopOpen
+                      ? "0 0 6px rgba(34,197,94,0.8)"
+                      : "0 0 6px rgba(248,113,113,0.8)",
+                    flexShrink: 0,
+                  }}
+                />
+                {shopOpen ? "STORE OPEN" : "STORE PAUSED"}
+              </span>
+              {/* Action button — always shows what clicking will DO */}
+              <button
+                onClick={async () => {
+                  if (shopToggling) return;
+                  const next = !shopOpen;
+                  if (!next) {
+                    setConfirmPauseShop(true);
+                    return;
+                  }
+                  toggleShop(true);
+                }}
+                style={{
+                  padding: "7px 13px",
+                  background: shopOpen
+                    ? "rgba(245,158,11,0.12)"
+                    : "rgba(34,197,94,0.12)",
+                  border: `1px solid ${shopOpen ? "rgba(245,158,11,0.45)" : "rgba(34,197,94,0.45)"}`,
+                  borderRadius: 8,
+                  color: shopOpen ? "#f59e0b" : T.green,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: "'Cinzel',serif",
+                  letterSpacing: ".06em",
+                  cursor: shopToggling ? "wait" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                {shopToggling ? (
+                  "…"
+                ) : shopOpen ? (
+                  <>
+                    <PowerOff size={12} /> PAUSE ORDERS
+                  </>
+                ) : (
+                  <>
+                    <Power size={12} /> RESUME ORDERS
+                  </>
+                )}
+              </button>
+            </div>
           )}
           {!isMobile && (
             <button

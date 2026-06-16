@@ -45,13 +45,20 @@ const ERR = "rgba(248,113,113,0.8)";
 function getDeliveryFee(distanceKm: number): number {
   if (distanceKm <= 1) return 30;
   if (distanceKm <= 3) return 50;
-  return 100;
+  if (distanceKm <= 10) return 100;
+  return 150;
 }
 
 /* ─── CUSTOMIZATION CONFIG ────────────────────────────────────────────────── */
 const MILK_SUBS = [
   { label: "Regular Milk", price: 0 },
   { label: "Oat Milk", price: 30 },
+];
+const DRINK_ADDONS = [
+  { label: "Add Espresso Shot", price: 30 },
+  { label: "Add Syrup", price: 30 },
+  { label: "Add Sauce", price: 30 },
+  { label: "Add Vanilla Ice Cream", price: 30 },
 ];
 type CustomizationConfig = {
   substitutions?: { label: string; price: number }[];
@@ -63,9 +70,16 @@ function getCategoryCustomizations(
   category: string,
   liveSauces?: { name: string; image: string }[],
   liveEggStyles?: { name: string; image: string }[],
+  itemName?: string,
 ): CustomizationConfig | null {
   const c = category.toLowerCase().trim();
-  if (c.includes("3rd space")) return { substitutions: MILK_SUBS };
+  const n = (itemName || "").toLowerCase();
+
+  // Americano: no milk sub, just drink add-ons
+  if (n.includes("americano")) return { addons: DRINK_ADDONS };
+
+  if (c.includes("3rd space"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
   if (c.includes("appetizer") || c.includes("snack"))
     return {
       sauces:
@@ -82,11 +96,12 @@ function getCategoryCustomizations(
             ].map((name) => ({ name, image: "" })),
       addons: [{ label: "Extra Serving", price: 30 }],
     };
-  if (c.includes("brain fuel")) return null;
+  if (c.includes("brain fuel")) return { addons: DRINK_ADDONS };
   if (c.includes("oat"))
-    return { addons: [{ label: "Add Espresso Shot", price: 35 }] };
-  if (c.includes("coffee")) return { substitutions: MILK_SUBS };
-  if (c.includes("flavored soda")) return null;
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("coffee"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("flavored soda")) return { addons: DRINK_ADDONS };
   if (c.includes("house plate"))
     return {
       addons: [
@@ -94,8 +109,10 @@ function getCategoryCustomizations(
         { label: "Add Egg", price: 15 },
       ],
     };
-  if (c.includes("matcha")) return { substitutions: MILK_SUBS };
-  if (c.includes("non")) return { substitutions: MILK_SUBS };
+  if (c.includes("matcha"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("non"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
   if (c.includes("noodle") || c.includes("soup"))
     return {
       addons: [
@@ -126,7 +143,7 @@ function getCategoryCustomizations(
       ],
     };
   if (c.includes("tea"))
-    return { addons: [{ label: "Add Espresso Shot", price: 35 }] };
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
   return null;
 }
 
@@ -204,14 +221,16 @@ function TopNav({
         padding: "0 clamp(12px,4vw,20px)",
       }}
     >
-      <img
-        src="/logo.png"
-        alt="3rd Space"
-        style={{ height: 34, width: "auto", objectFit: "contain" }}
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = "none";
-        }}
-      />
+      <a href="/" style={{ display: "flex", alignItems: "center" }}>
+        <img
+          src="/logo.png"
+          alt="3rd Space"
+          style={{ height: 34, width: "auto", objectFit: "contain" }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </a>
       <button
         onClick={onCartOpen}
         style={{
@@ -973,18 +992,21 @@ function ModeSelectScreen({
         background: `radial-gradient(ellipse at 55% 20%, rgba(212,168,67,.08) 0%, transparent 60%), ${BG}`,
       }}
     >
-      <img
-        src="/logo.png"
-        alt="3rd Space"
-        style={{
-          height: "clamp(72px,18vw,104px)",
-          objectFit: "contain",
-          marginBottom: 20,
-        }}
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = "none";
-        }}
-      />
+      <a href="/" style={{ display: "block", marginBottom: 20 }}>
+        <img
+          src="/logo.png"
+          alt="3rd Space"
+          style={{
+            height: "clamp(48px,12vw,72px)",
+            maxHeight: 72,
+            objectFit: "contain",
+            display: "block",
+          }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </a>
       {!shopOpen && (
         <div
           style={{
@@ -1540,7 +1562,7 @@ function VariantSheet({
   onClose,
 }: {
   item: MenuItem;
-  onSelect: (variant: string) => void;
+  onSelect: (variant: string, price?: number | null) => void;
   onClose: () => void;
 }) {
   return (
@@ -1629,35 +1651,54 @@ function VariantSheet({
             gap: 8,
           }}
         >
-          {(item.variants || []).map((v) => (
-            <button
-              key={v}
-              onClick={() => onSelect(v)}
-              style={{
-                padding: "14px 16px",
-                borderRadius: 12,
-                border: `1.5px solid ${BR}`,
-                background: "transparent",
-                cursor: "pointer",
-                textAlign: "left",
-                color: C,
-                fontSize: 14,
-                fontFamily: "'Cinzel',serif",
-                letterSpacing: ".04em",
-                transition: "all .15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = G;
-                e.currentTarget.style.background = GD;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = BR;
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              {v}
-            </button>
-          ))}
+          {((item.variants || []) as any[]).map((v) => {
+            const label = typeof v === "string" ? v : v.label;
+            const price =
+              typeof v === "object" && v.price != null ? v.price : null;
+            return (
+              <button
+                key={label}
+                onClick={() => onSelect(label, price)}
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: 12,
+                  border: `1.5px solid ${BR}`,
+                  background: "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  color: C,
+                  fontSize: 14,
+                  fontFamily: "'Cinzel',serif",
+                  letterSpacing: ".04em",
+                  transition: "all .15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = G;
+                  e.currentTarget.style.background = GD;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = BR;
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span>{label}</span>
+                {price != null && (
+                  <span
+                    style={{
+                      color: G,
+                      fontFamily: "'Cinzel',serif",
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}
+                  >
+                    ₱{price}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </>
@@ -1721,14 +1762,44 @@ function MenuScreen({
     )
     .map((i: MenuItem) => ({ name: i.name, image: i.image }));
 
+  const ITEM_VARIANTS: Record<string, { label: string; price?: number }[]> = {
+    longganisa: [
+      { label: "Garlic" },
+      { label: "Hamonado" },
+      { label: "Mixed" },
+    ],
+    tapa: [{ label: "Chicken" }, { label: "Beef" }],
+    "pancake classic": [
+      { label: "Classic 2pcs", price: 40 },
+      { label: "Classic 4pcs", price: 70 },
+    ],
+    "pancake caramel": [
+      { label: "Caramel 2pcs", price: 65 },
+      { label: "Caramel 4pcs", price: 100 },
+    ],
+    "pancake biscoff": [
+      { label: "Biscoff 2 pcs", price: 80 },
+      { label: "Biscoff 4pcs", price: 125 },
+    ],
+  };
+
   const handleAddToCartWithCustomization = (item: MenuItem) => {
-    if (item.variants && item.variants.length > 0) {
-      setVariantItem(item);
+    const nameKey = item.name.toLowerCase();
+    const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
+      nameKey.includes(k),
+    )?.[1];
+    const effectiveVariants =
+      item.variants && item.variants.length > 0
+        ? item.variants.map((v) => ({ label: v }))
+        : nameVariants;
+    if (effectiveVariants && effectiveVariants.length > 0) {
+      setVariantItem({ ...item, variants: effectiveVariants as any });
     } else {
       const config = getCategoryCustomizations(
         item.category,
         liveSauces,
         liveEggStyles,
+        item.name,
       );
       if (config) {
         setCustomizingItem(item);
@@ -2236,16 +2307,18 @@ function MenuScreen({
         <VariantSheet
           item={variantItem}
           onClose={() => setVariantItem(null)}
-          onSelect={(variant) => {
+          onSelect={(variant, price) => {
             const itemWithVariant = {
               ...variantItem,
               name: `${variantItem.name} (${variant})`,
+              ...(price != null ? { price } : {}),
             };
             setVariantItem(null);
             const config = getCategoryCustomizations(
               variantItem.category,
               liveSauces,
               liveEggStyles,
+              itemWithVariant.name,
             );
             if (config) {
               setCustomizingItem(itemWithVariant);
@@ -2963,7 +3036,9 @@ function DeliveryAddressPicker({
                   ? "Zone 1 (within 1 km)"
                   : (value.distanceKm ?? 0) <= 3
                     ? "Zone 2 (1–3 km)"
-                    : "Zone 3 (3 km+)"}
+                    : (value.distanceKm ?? 0) <= 10
+                      ? "Zone 3 (3–10 km)"
+                      : "Zone 4 (10 km+)"}
               </span>
               <span>Delivery fee</span>
               <span

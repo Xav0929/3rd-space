@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 
@@ -32,6 +33,7 @@ interface Post {
   title: string;
   body: string;
   image?: string;
+  link?: string;
   tilt?: number; // degrees, subtle card tilt
   size?: "sm" | "md" | "lg";
 }
@@ -167,6 +169,8 @@ function PostCard({
   onDelete?: (id: number) => void;
   isAdmin: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const tag = TAG_STYLES[post.tag];
   const tilt = post.tilt ?? 0;
 
@@ -226,11 +230,15 @@ function PostCard({
           <img
             src={post.image}
             alt={post.title}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightbox(post.image!);
+            }}
             style={{
               width: "100%",
               display: "block",
-              objectFit: "cover",
-              maxHeight: 180,
+              objectFit: "contain",
+              cursor: "zoom-in",
             }}
           />
         </div>
@@ -287,18 +295,154 @@ function PostCard({
         {post.title}
       </h3>
 
-      <p
-        style={{
-          fontFamily: DM,
-          fontSize: "clamp(0.78rem, 1.2vw, 0.875rem)",
-          color: GOLD_DIM,
-          lineHeight: 1.65,
-          margin: 0,
-          flex: 1,
-        }}
-      >
-        {post.body}
-      </p>
+      <div style={{ flex: 1 }}>
+        <p
+          style={{
+            fontFamily: DM,
+            fontSize: "clamp(0.78rem, 1.2vw, 0.875rem)",
+            color: GOLD_DIM,
+            lineHeight: 1.65,
+            margin: 0,
+            whiteSpace: "pre-wrap",
+            overflow: "hidden",
+            maxHeight: expanded ? "none" : "4.8em",
+          }}
+        >
+          {post.body}
+        </p>
+        {post.body.length > 100 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((v) => !v);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: ACCENT,
+              fontFamily: DM,
+              fontSize: "0.7rem",
+              letterSpacing: "0.08em",
+              cursor: "pointer",
+              padding: "4px 0 0",
+              opacity: 0.75,
+            }}
+          >
+            {expanded ? "Show less ↑" : "Read more ↓"}
+          </button>
+        )}
+        {post.link && (
+          <a
+            href={post.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: "0.75rem",
+              fontFamily: DM,
+              fontSize: "0.7rem",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: ACCENT,
+              textDecoration: "none",
+              border: `1px solid rgba(212,168,67,0.35)`,
+              padding: "6px 14px",
+              background: "rgba(212,168,67,0.07)",
+            }}
+          >
+            ↗ Visit Link
+          </a>
+        )}
+      </div>
+
+      {lightbox &&
+        createPortal(
+          <div
+            onClick={() => setLightbox(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 2000,
+              background: "rgba(0,0,0,0.95)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding:
+                "env(safe-area-inset-top, 16px) 12px env(safe-area-inset-bottom, 16px)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              touchAction: "pinch-zoom",
+            }}
+          >
+            {/* close bar — fat tap target on mobile */}
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                padding: "12px 16px",
+                display: "flex",
+                justifyContent: "flex-end",
+                zIndex: 2001,
+              }}
+            >
+              <button
+                onClick={() => setLightbox(null)}
+                style={{
+                  background: "rgba(232,213,163,0.12)",
+                  border: "1px solid rgba(232,213,163,0.22)",
+                  borderRadius: 6,
+                  width: 44,
+                  height: 44,
+                  color: "#e8d5a3",
+                  fontSize: 20,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <img
+              src={lightbox}
+              alt="Full view"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: "100vw",
+                maxHeight: "88vh",
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+                borderRadius: 6,
+                boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+                touchAction: "pinch-zoom",
+              }}
+            />
+
+            <p
+              style={{
+                fontFamily: DM,
+                fontSize: "0.65rem",
+                color: "rgba(232,213,163,0.25)",
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                marginTop: 14,
+                userSelect: "none",
+              }}
+            >
+              Tap outside to close
+            </p>
+          </div>,
+          document.body,
+        )}
 
       {/* Admin delete */}
       {isAdmin && onDelete && (
@@ -493,6 +637,7 @@ function AdminModal({
   const [pinned, setPinned] = useState(false);
   const [image, setImage] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [link, setLink] = useState("");
 
   const handleSubmit = () => {
     if (!title.trim() || !body.trim()) return;
@@ -510,6 +655,7 @@ function AdminModal({
       title,
       body,
       image: image || undefined,
+      link: link || undefined,
       tilt,
       size,
     });
@@ -798,6 +944,17 @@ function AdminModal({
           </label>
         </div>
 
+        {/* Link */}
+        <div style={{ marginBottom: "1rem" }}>
+          <label style={labelStyle}>Link (optional)</label>
+          <input
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://..."
+            style={inputStyle}
+          />
+        </div>
+
         <button
           onClick={handleSubmit}
           disabled={!title.trim() || !body.trim() || uploading}
@@ -1019,7 +1176,7 @@ export default function BulletinPage() {
         <header
           style={{
             borderBottom: `1px solid ${BR}`,
-            padding: `clamp(4rem, 8vw, 7rem) ${SITE_PADDING} clamp(2rem, 4vw, 3rem)`,
+            padding: `clamp(1.5rem, 3vw, 2.5rem) ${SITE_PADDING} clamp(1rem, 2vw, 1.5rem)`,
             maxWidth: MAX_WIDTH,
             margin: "0 auto",
             boxSizing: "border-box",
@@ -1091,7 +1248,7 @@ export default function BulletinPage() {
                 style={{
                   fontFamily: YK,
                   fontWeight: 700,
-                  fontSize: "clamp(2.6rem, 6.5vw, 6rem)",
+                  fontSize: "clamp(1.6rem, 3.5vw, 2.8rem)",
                   lineHeight: 0.88,
                   letterSpacing: "0.01em",
                   color: GOLD,
