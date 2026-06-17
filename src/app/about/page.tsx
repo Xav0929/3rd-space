@@ -5,8 +5,8 @@ import Link from "next/link";
 
 const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 const MAX_WIDTH = 1280;
-const YK = "'Yanone Kaffeesatz', sans-serif";
-const DM = "'DM Sans', sans-serif";
+const YK = "var(--font-yanone), 'Yanone Kaffeesatz', sans-serif";
+const DM = "var(--font-dm), 'DM Sans', sans-serif";
 
 // Fade-in on scroll hook
 function useFadeIn() {
@@ -90,7 +90,6 @@ export default function AboutPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@300;400;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0f1a0f; }
         ::selection { background: #d4a843; color: #0f1a0f; }
