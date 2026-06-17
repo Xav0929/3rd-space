@@ -1202,6 +1202,7 @@ function MenuCard({
         <img
           src={item.image || undefined}
           alt={item.name}
+          loading="lazy"
           className="menu-card-img"
           style={{
             width: "100%",

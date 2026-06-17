@@ -1358,7 +1358,6 @@ export default function BulletinPage() {
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap');
         * { box-sizing: border-box; }
         ::placeholder { color: rgba(232,213,163,0.25) !important; }
         textarea, input { caret-color: #d4a843; }
