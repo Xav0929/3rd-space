@@ -31,8 +31,8 @@ const sharp = require("sharp");
 const fs = require("fs");
 const path = require("path");
 
-const INPUT_DIR = "./public";
-const OUTPUT_DIR = "./public-compressed";
+const INPUT_DIR = "./public/gallery-original";
+const OUTPUT_DIR = "./public/gallery-compressed";
 const MAX_WIDTH = 1600;
 const QUALITY = 80;
 
@@ -73,17 +73,11 @@ async function processDir(inputDir, outputDir) {
         pipeline = pipeline.resize({ width: MAX_WIDTH });
       }
 
-      if (ext === ".png") {
-        pipeline = pipeline.png({ quality: QUALITY, compressionLevel: 9 });
-      } else if (ext === ".jpg" || ext === ".jpeg") {
-        pipeline = pipeline.jpeg({ quality: QUALITY, mozjpeg: true });
-      } else if (ext === ".webp") {
-        pipeline = pipeline.webp({ quality: QUALITY });
-      }
+      pipeline = pipeline.webp({ quality: QUALITY });
+      const webpOutputPath = outputPath.replace(/\.(png|jpg|jpeg)$/i, ".webp");
+      await pipeline.toFile(webpOutputPath);
 
-      await pipeline.toFile(outputPath);
-
-      const afterStat = await fs.promises.stat(outputPath);
+      const afterStat = await fs.promises.stat(webpOutputPath);
       totalBefore += beforeStat.size;
       totalAfter += afterStat.size;
 

@@ -8,35 +8,35 @@ const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 const MAX_WIDTH = 1440;
 
 const GALLERY_ITEMS = [
-  { id: 1, src: "/gallery/g1.png" },
-  { id: 2, src: "/gallery/g2.png" },
-  { id: 3, src: "/gallery/g3.png" },
-  { id: 4, src: "/gallery/g4.png" },
-  { id: 5, src: "/gallery/g5.png" },
-  { id: 6, src: "/gallery/g6.png" },
-  { id: 7, src: "/gallery/g7.png" },
-  { id: 8, src: "/gallery/g8.png" },
-  { id: 9, src: "/gallery/g9.png" },
-  { id: 10, src: "/gallery/g10.png" },
-  { id: 11, src: "/gallery/g11.png" },
-  { id: 12, src: "/gallery/g12.png" },
-  { id: 13, src: "/gallery/g13.png" },
-  { id: 14, src: "/gallery/g14.png" },
-  { id: 15, src: "/gallery/g15.png" },
-  { id: 16, src: "/gallery/g16.png" },
-  { id: 17, src: "/gallery/g17.png" },
-  { id: 18, src: "/gallery/g18.png" },
-  { id: 19, src: "/gallery/g19.png" },
-  { id: 20, src: "/gallery/g20.png" },
-  { id: 21, src: "/gallery/g21.png" },
-  { id: 22, src: "/gallery/g22.png" },
-  { id: 23, src: "/gallery/g23.png" },
-  { id: 24, src: "/gallery/g24.png" },
-  { id: 25, src: "/gallery/g25.png" },
-  { id: 26, src: "/gallery/g26.png" },
-  { id: 27, src: "/gallery/g27.png" },
-  { id: 28, src: "/gallery/g28.png" },
-  { id: 29, src: "/gallery/g29.png" },
+  { id: 1, src: "/gallery/g1.webp" },
+  { id: 2, src: "/gallery/g2.webp" },
+  { id: 3, src: "/gallery/g3.webp" },
+  { id: 4, src: "/gallery/g4.webp" },
+  { id: 5, src: "/gallery/g5.webp" },
+  { id: 6, src: "/gallery/g6.webp" },
+  { id: 7, src: "/gallery/g7.webp" },
+  { id: 8, src: "/gallery/g8.webp" },
+  { id: 9, src: "/gallery/g9.webp" },
+  { id: 10, src: "/gallery/g10.webp" },
+  { id: 11, src: "/gallery/g11.webp" },
+  { id: 12, src: "/gallery/g12.webp" },
+  { id: 13, src: "/gallery/g13.webp" },
+  { id: 14, src: "/gallery/g14.webp" },
+  { id: 15, src: "/gallery/g15.webp" },
+  { id: 16, src: "/gallery/g16.webp" },
+  { id: 17, src: "/gallery/g17.webp" },
+  { id: 18, src: "/gallery/g18.webp" },
+  { id: 19, src: "/gallery/g19.webp" },
+  { id: 20, src: "/gallery/g20.webp" },
+  { id: 21, src: "/gallery/g21.webp" },
+  { id: 22, src: "/gallery/g22.webp" },
+  { id: 23, src: "/gallery/g23.webp" },
+  { id: 24, src: "/gallery/g24.webp" },
+  { id: 25, src: "/gallery/g25.webp" },
+  { id: 26, src: "/gallery/g26.webp" },
+  { id: 27, src: "/gallery/g27.webp" },
+  { id: 28, src: "/gallery/g28.webp" },
+  { id: 29, src: "/gallery/g29.webp" },
 ];
 
 const BENTO_PREVIEW = [
@@ -143,6 +143,7 @@ function Tile({
       <img
         src={src}
         alt=""
+        loading="lazy"
         onLoad={() => setLoaded(true)}
         onContextMenu={(e) => e.preventDefault()}
         draggable={false}
