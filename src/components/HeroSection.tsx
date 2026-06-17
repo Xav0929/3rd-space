@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 const SITE_PADDING = "clamp(1.5rem, 5vw, 4rem)";
 const MAX_WIDTH = 1280;
@@ -119,10 +118,11 @@ export default function HeroSection() {
           overflow: "hidden",
         }}
       >
-        {/* Video */}
+        {/* Video — poster shows instantly (fixes LCP), overlay fades out when video plays */}
         <video
           ref={videoRef}
           src="https://cdn.3rdspace.shop/hero.mp4"
+          poster="https://cdn.3rdspace.shop/hero-poster.webp"
           loop
           playsInline
           style={{
@@ -134,8 +134,6 @@ export default function HeroSection() {
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            opacity: loaded ? 1 : 0,
-            transition: "opacity 1s ease",
             zIndex: 0,
           }}
         />
