@@ -202,7 +202,7 @@ const partners: Partner[] = [
     description:
       "Local homegrown eats & street bites. Check their page for daily specials and collab menus with 3rd Space.",
     fbHref: "https://facebook.com",
-    emoji: "🍢",
+    emoji: "ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â¢",
   },
   {
     id: 2,
@@ -210,15 +210,15 @@ const partners: Partner[] = [
     description:
       "Handmade pastillas straight from the province. Sold exclusively at 3rd Space every weekend.",
     fbHref: "https://facebook.com",
-    emoji: "🍬",
+    emoji: "ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â¬",
   },
   {
     id: 3,
     name: "Brain Fuel Co.",
     description:
-      "Productivity tools, planners & merch for students and creatives. Look for their pop-up at our café.",
+      "Productivity tools, planners & merch for students and creatives. Look for their pop-up at our cafÃƒÆ’Ã‚Â©.",
     fbHref: "https://facebook.com",
-    emoji: "🧠",
+    emoji: "ÃƒÂ°Ã…Â¸Ã‚Â§Ã‚Â ",
   },
 ];
 
@@ -226,22 +226,22 @@ const TAG_STYLES: Record<Tag, { bg: string; color: string; label: string }> = {
   PINNED: {
     bg: "#d4a843",
     color: "#0b150b",
-    label: "📌 PINNED",
+    label: "ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…â€™ PINNED",
   },
   PROMO: {
     bg: "rgba(212,168,67,0.18)",
     color: "#d4a843",
-    label: "✦ PROMO",
+    label: "ÃƒÂ¢Ã…â€œÃ‚Â¦ PROMO",
   },
   EVENT: {
     bg: "rgba(100,180,120,0.14)",
     color: "#7ecb93",
-    label: "◉ EVENT",
+    label: "ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â° EVENT",
   },
   UPDATE: {
     bg: "rgba(232,213,163,0.08)",
     color: "rgba(232,213,163,0.55)",
-    label: "↑ UPDATE",
+    label: "ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ UPDATE",
   },
 };
 
@@ -264,7 +264,7 @@ const STATUS_CFG: Record<
 };
 
 function fmt(n: number) {
-  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+  return `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±${n.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
 }
 function ago(d: string) {
   const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
@@ -443,7 +443,7 @@ function BoardPostCard({
             borderRadius: 4,
           }}
         >
-          ↗ Visit Link
+          ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€ Visit Link
         </a>
       )}
 
@@ -467,7 +467,7 @@ function BoardPostCard({
             borderRadius: 2,
           }}
         >
-          ✕
+          ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
         </button>
       )}
     </div>
@@ -658,7 +658,7 @@ function BoardPostModal({
               fontSize: 18,
             }}
           >
-            ✕
+            ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢
           </button>
         </div>
         <div style={{ marginBottom: "1rem" }}>
@@ -850,7 +850,7 @@ function BoardPostModal({
             }}
           >
             {uploading
-              ? "Uploading…"
+              ? "UploadingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
               : image
                 ? "Replace image"
                 : "Upload image"}
@@ -1020,7 +1020,7 @@ function BoardTab({
   );
 }
 
-// ── IMAGE LIGHTBOX ───────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ IMAGE LIGHTBOX ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -1081,7 +1081,7 @@ function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
-// ── CONFIRM MODAL ────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ CONFIRM MODAL ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function ConfirmModal({
   message,
   onConfirm,
@@ -1379,7 +1379,7 @@ function CancelReasonModal({
           <textarea
             value={other}
             onChange={(e) => setOther(e.target.value)}
-            placeholder="Describe the reason…"
+            placeholder="Describe the reasonÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
             rows={3}
             style={{
               width: "100%",
@@ -1488,7 +1488,7 @@ function DeliveryMapPanel({
           box-shadow:0 0 14px rgba(212,168,67,0.8);
           display:flex;align-items:center;justify-content:center;
           font-size:18px;
-        ">🏍</div>`,
+        ">ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â</div>`,
         className: "",
         iconSize: [36, 36],
         iconAnchor: [18, 18],
@@ -1548,7 +1548,7 @@ function DeliveryMapPanel({
 
       L.marker([lat, lng], { icon }).addTo(map);
 
-      // Café marker
+      // CafÃƒÆ’Ã‚Â© marker
       L.circleMarker([CAFE_LAT, CAFE_LNG], {
         radius: 7,
         fillColor: "#d4a843",
@@ -1571,7 +1571,7 @@ function DeliveryMapPanel({
             }).addTo(mapObjRef.current);
             const km = (data.routes[0].distance / 1000).toFixed(1);
             const mins = Math.round(data.routes[0].duration / 60);
-            setRouteDistance(`${km} km · ~${mins} min by road`);
+            setRouteDistance(`${km} km Ãƒâ€šÃ‚Â· ~${mins} min by road`);
             mapObjRef.current.fitBounds(routeLayer.getBounds(), {
               padding: [30, 30],
             });
@@ -1668,7 +1668,7 @@ function DeliveryMapPanel({
                 animation: "spin .7s linear infinite",
               }}
             />
-            Loading map…
+            Loading mapÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
           </div>
         )}
         {ready && (
@@ -1707,7 +1707,7 @@ function DeliveryMapPanel({
         >
           {routeDistance && (
             <span style={{ color: "#4ade80", fontSize: 12, fontWeight: 600 }}>
-              📍 {routeDistance}
+              ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â {routeDistance}
             </span>
           )}
           {riderPos && (
@@ -1829,7 +1829,7 @@ function DeliveryMapPanel({
                 cursor: "pointer",
               }}
             >
-              🏍 NAVIGATE TO CUSTOMER
+              ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â NAVIGATE TO CUSTOMER
             </button>
           </div>
         </div>
@@ -1838,7 +1838,7 @@ function DeliveryMapPanel({
   );
 }
 
-// ── RIDER TRACKING BUTTON ────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RIDER TRACKING BUTTON ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 // Paste this component somewhere ABOVE the OrderCard function in dashboard/page.tsx
 
 function RiderTrackingButton({
@@ -1880,7 +1880,7 @@ function RiderTrackingButton({
     } catch {}
   };
 
-  // 3rd Space fixed coordinates — update these to the actual café location
+  // 3rd Space fixed coordinates ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â update these to the actual cafÃƒÆ’Ã‚Â© location
   const CAFE_LAT = 15.461629;
   const CAFE_LNG = 120.9492521;
 
@@ -1939,7 +1939,7 @@ function RiderTrackingButton({
             marginBottom: 8,
           }}
         >
-          📍 {activeRider} is currently tracking this order
+          ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â {activeRider} is currently tracking this order
         </div>
       ) : (
         <button
@@ -1977,17 +1977,17 @@ function RiderTrackingButton({
                   flexShrink: 0,
                 }}
               />
-              STOP TRACKING · #{orderNumber}
+              STOP TRACKING Ãƒâ€šÃ‚Â· #{orderNumber}
             </>
           ) : (
-            <>📍 START RIDER TRACKING</>
+            <>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â START RIDER TRACKING</>
           )}
         </button>
       )}
       {!someoneElseTracking && tracking && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <p style={{ color: T.muted, fontSize: 11, textAlign: "center" }}>
-            Broadcasting your location · Customer can see you live
+            Broadcasting your location Ãƒâ€šÃ‚Â· Customer can see you live
           </p>
           <button
             onClick={async () => {
@@ -2012,7 +2012,7 @@ function RiderTrackingButton({
               letterSpacing: ".06em",
             }}
           >
-            📍 I'M HERE — ARRIVED AT CUSTOMER
+            ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â I'M HERE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ARRIVED AT CUSTOMER
           </button>
         </div>
       )}
@@ -2026,7 +2026,7 @@ function RiderTrackingButton({
   );
 }
 
-// ── ORDER CARD ───────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ORDER CARD ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function OrderCard({
   order,
   menuItems,
@@ -2067,14 +2067,14 @@ function OrderCard({
       .map(
         (it) =>
           `<tr>
-        <td style="padding:3px 0;font-size:12px;">${it.quantity}× ${it.name}</td>
-        <td style="padding:3px 0;text-align:right;font-size:12px;">₱${(it.price * it.quantity).toFixed(2)}</td>
+        <td style="padding:3px 0;font-size:12px;">${it.quantity}ÃƒÆ’Ã¢â‚¬â€ ${it.name}</td>
+        <td style="padding:3px 0;text-align:right;font-size:12px;">ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±${(it.price * it.quantity).toFixed(2)}</td>
       </tr>`,
       )
       .join("");
     const typeLabel =
       order.type === "dine-in"
-        ? `Dine-in · Table ${order.tableNumber || "?"}`
+        ? `Dine-in Ãƒâ€šÃ‚Â· Table ${order.tableNumber || "?"}`
         : order.type === "takeout"
           ? "Takeout"
           : "Delivery";
@@ -2083,7 +2083,7 @@ function OrderCard({
         ? "Cash"
         : order.paymentMethod === "gcash"
           ? "GCash"
-          : "—";
+          : "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â";
 
     win.document.write(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
@@ -2125,15 +2125,15 @@ function OrderCard({
     ${
       (order as any).deliveryFee > 0
         ? `
-    <tr><td style="color:#555;">Subtotal</td><td style="text-align:right;color:#555;">₱${(order.total - (order as any).deliveryFee).toFixed(2)}</td></tr>
-    <tr><td style="color:#555;">Delivery fee</td><td style="text-align:right;color:#555;">₱${(order as any).deliveryFee}</td></tr>`
+    <tr><td style="color:#555;">Subtotal</td><td style="text-align:right;color:#555;">ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±${(order.total - (order as any).deliveryFee).toFixed(2)}</td></tr>
+    <tr><td style="color:#555;">Delivery fee</td><td style="text-align:right;color:#555;">ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±${(order as any).deliveryFee}</td></tr>`
         : ""
     }
-    <tr class="total-row"><td>TOTAL</td><td style="text-align:right;">₱${order.total.toFixed(2)}</td></tr>
+    <tr class="total-row"><td>TOTAL</td><td style="text-align:right;">ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±${order.total.toFixed(2)}</td></tr>
     <tr><td style="font-size:9px;color:#555;padding-top:1mm;">Payment</td><td style="font-size:9px;color:#555;text-align:right;padding-top:1mm;">${payLabel}</td></tr>
   </table>
   <hr class="divider-solid"/>
-  <div class="footer">Thank you for visiting!<br/>3rd Space Cafe · Nueva Ecija<br/>================================</div>
+  <div class="footer">Thank you for visiting!<br/>3rd Space Cafe Ãƒâ€šÃ‚Â· Nueva Ecija<br/>================================</div>
   <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};}<\/script>
 </body></html>`);
     win.document.close();
@@ -2331,7 +2331,7 @@ function OrderCard({
                 : order.type === "takeout"
                   ? order.customerName || "Takeout"
                   : `Table ${order.tableNumber || "N/A"}`}
-              {" · "}
+              {" Ãƒâ€šÃ‚Â· "}
               {ago(order.createdAt)}
             </p>
             <div
@@ -2421,7 +2421,7 @@ function OrderCard({
                             (e.currentTarget.style.opacity = "0")
                           }
                         >
-                          🔍
+                          ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â
                         </span>
                       </div>
                     </div>
@@ -2438,8 +2438,8 @@ function OrderCard({
               }}
             >
               {order.items
-                .map((it) => `${it.quantity}× ${it.name}`)
-                .join(" · ")}
+                .map((it) => `${it.quantity}ÃƒÆ’Ã¢â‚¬â€ ${it.name}`)
+                .join(" Ãƒâ€šÃ‚Â· ")}
             </p>
           </div>
           <span
@@ -2492,7 +2492,7 @@ function OrderCard({
               </div>
             )}
 
-            {/* ── CUSTOMER / ORDER DETAILS ── */}
+            {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ CUSTOMER / ORDER DETAILS ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
             <div
               style={{
                 background: "rgba(255,255,255,0.02)",
@@ -2662,12 +2662,12 @@ function OrderCard({
                           fontFamily: "'Cinzel',serif",
                         }}
                       >
-                        ₱{(order as any).deliveryFee}
+                        ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±{(order as any).deliveryFee}
                       </span>
                       {(order as any).deliveryAddressDetails?.distanceKm !=
                         null && (
                         <span style={{ color: T.muted, fontSize: 11 }}>
-                          ·{" "}
+                          Ãƒâ€šÃ‚Â·{" "}
                           {(
                             (order as any).deliveryAddressDetails
                               .distanceKm as number
@@ -2755,10 +2755,10 @@ function OrderCard({
                     style={{ display: "flex", justifyContent: "space-between" }}
                   >
                     <span style={{ color: T.muted, fontSize: 12 }}>
-                      {it.quantity}× {it.name}
+                      {it.quantity}ÃƒÆ’Ã¢â‚¬â€ {it.name}
                     </span>
                     <span style={{ color: T.cream, fontSize: 12 }}>
-                      ₱{(it.price * it.quantity).toFixed(2)}
+                      ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±{(it.price * it.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -2784,7 +2784,7 @@ function OrderCard({
                           Items subtotal
                         </span>
                         <span style={{ color: T.cream, fontSize: 12 }}>
-                          ₱
+                          ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
                           {(order.total - (order as any).deliveryFee).toFixed(
                             2,
                           )}
@@ -2806,7 +2806,7 @@ function OrderCard({
                             fontWeight: 600,
                           }}
                         >
-                          ₱{(order as any).deliveryFee}
+                          ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±{(order as any).deliveryFee}
                         </span>
                       </div>
                     </>
@@ -2832,14 +2832,14 @@ function OrderCard({
                         fontFamily: "'Cinzel',serif",
                       }}
                     >
-                      ₱{order.total.toFixed(2)}
+                      ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±{order.total.toFixed(2)}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ── PAYMENT SECTION ── */}
+            {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ PAYMENT SECTION ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
             <div
               style={{
                 background: "rgba(255,255,255,0.02)",
@@ -2892,11 +2892,11 @@ function OrderCard({
                   }}
                 >
                   {order.paymentStatus === "confirmed"
-                    ? "✓ Paid"
-                    : "⏳ Payment Pending"}
+                    ? "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Paid"
+                    : "ÃƒÂ¢Ã‚ÂÃ‚Â³ Payment Pending"}
                 </span>
 
-                {/* Method badge — only show if method is known (cash or gcash) */}
+                {/* Method badge ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â only show if method is known (cash or gcash) */}
                 {methodKnown && (
                   <span
                     style={{
@@ -3031,7 +3031,7 @@ function OrderCard({
                 )}
               </div>
 
-              {/* Row 2: Actions — only show if not yet paid */}
+              {/* Row 2: Actions ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â only show if not yet paid */}
               {order.paymentStatus !== "confirmed" && (
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 8 }}
@@ -3046,7 +3046,7 @@ function OrderCard({
                           marginBottom: 6,
                         }}
                       >
-                        Step 1 — Ask customer how they'll pay:
+                        Step 1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Ask customer how they'll pay:
                       </p>
                       <div style={{ display: "flex", gap: 8 }}>
                         {(["cash", "gcash"] as const).map((m) => (
@@ -3117,7 +3117,7 @@ function OrderCard({
                             marginBottom: 6,
                           }}
                         >
-                          Step 2 — Collect{" "}
+                          Step 2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Collect{" "}
                           {order.paymentMethod === "cash"
                             ? "cash"
                             : "GCash transfer"}{" "}
@@ -3179,14 +3179,14 @@ function OrderCard({
                           letterSpacing: ".06em",
                         }}
                       >
-                        ✓ CONFIRM PAYMENT RECEIVED
+                        ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ CONFIRM PAYMENT RECEIVED
                       </button>
                     )}
                 </div>
               )}
             </div>
 
-            {/* ── RIDER TRACKING ── */}
+            {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RIDER TRACKING ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
             {isDeliveryOpen && order.status !== "cancelled" && (
               <RiderTrackingButton
                 orderId={order._id}
@@ -3195,7 +3195,7 @@ function OrderCard({
               />
             )}
 
-            {/* ── STATUS ACTIONS ── */}
+            {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STATUS ACTIONS ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {nextStatus && (
                 <button
@@ -3217,7 +3217,7 @@ function OrderCard({
                     cursor: "pointer",
                   }}
                 >
-                  → {STATUS_CFG[nextStatus].label}
+                  ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ {STATUS_CFG[nextStatus].label}
                 </button>
               )}
               {order.status !== "cancelled" && order.status !== "completed" && (
@@ -3268,7 +3268,7 @@ function OrderCard({
   );
 }
 
-// ── MENU ITEM FORM ───────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ MENU ITEM FORM ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function MenuItemForm({
   item,
   onSave,
@@ -3323,7 +3323,10 @@ function MenuItemForm({
     setSaving(true);
     const ok = await onSave(form);
     setSaving(false);
-    if (!ok) setErr("Failed to save — check your connection and try again.");
+    if (!ok)
+      setErr(
+        "Failed to save ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â check your connection and try again.",
+      );
   }
 
   const inputStyle: React.CSSProperties = {
@@ -3395,7 +3398,7 @@ function MenuItemForm({
         }}
       >
         {[
-          { k: "name", label: "Name *", placeholder: "Café Latte" },
+          { k: "name", label: "Name *", placeholder: "CafÃƒÆ’Ã‚Â© Latte" },
           { k: "category", label: "Category *", placeholder: "Coffee" },
         ].map(({ k, label, placeholder }) => (
           <div key={k}>
@@ -3418,7 +3421,7 @@ function MenuItemForm({
         }}
       >
         <div>
-          <label style={labelStyle}>PRICE (₱) *</label>
+          <label style={labelStyle}>PRICE (ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±) *</label>
           <input
             type="number"
             value={form.price || ""}
@@ -3445,14 +3448,16 @@ function MenuItemForm({
               fontWeight: 700,
             }}
           >
-            {form.available ? "✓ Available" : "✗ Unavailable"}
+            {form.available
+              ? "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Available"
+              : "ÃƒÂ¢Ã…â€œÃ¢â‚¬â€ Unavailable"}
           </button>
         </div>
       </div>
 
       <div>
         <label style={labelStyle}>
-          VARIANTS (optional — e.g. Chicken, Tuna)
+          VARIANTS (optional ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â e.g. Chicken, Tuna)
         </label>
         <div
           style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}
@@ -3489,7 +3494,7 @@ function MenuItemForm({
                   lineHeight: 1,
                 }}
               >
-                ×
+                ÃƒÆ’Ã¢â‚¬â€
               </button>
             </span>
           ))}
@@ -3507,7 +3512,7 @@ function MenuItemForm({
                 setVariantInput("");
               }
             }}
-            placeholder="e.g. Chicken — press Enter to add"
+            placeholder="e.g. Chicken ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â press Enter to add"
             style={{ ...inputStyle, flex: 1 }}
           />
           <button
@@ -3610,7 +3615,7 @@ function MenuItemForm({
             <ImageIcon size={14} color={T.gold} />
             <span style={{ color: uploading ? T.gold : T.cream }}>
               {uploading
-                ? "Uploading…"
+                ? "UploadingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
                 : form.image
                   ? "Replace image"
                   : "Upload image or paste (Ctrl+V)"}
@@ -3635,10 +3640,12 @@ function MenuItemForm({
                     const data = await res.json();
                     set("image", data.url);
                   } else {
-                    alert("Upload failed — check your R2 config.");
+                    alert(
+                      "Upload failed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â check your R2 config.",
+                    );
                   }
                 } catch {
-                  alert("Upload failed — network error.");
+                  alert("Upload failed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â network error.");
                 } finally {
                   setUploading(false);
                 }
@@ -3685,7 +3692,7 @@ function MenuItemForm({
             cursor: valid && !saving ? "pointer" : "not-allowed",
           }}
         >
-          {saving ? "SAVING…" : "SAVE ITEM"}
+          {saving ? "SAVINGÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : "SAVE ITEM"}
         </button>
         <button
           onClick={onCancel}
@@ -3706,7 +3713,7 @@ function MenuItemForm({
   );
 }
 
-// ── MENU TAB ─────────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ MENU TAB ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function MenuTab({
   items,
   onRefresh,
@@ -3743,7 +3750,7 @@ function MenuTab({
       if (!res.ok) {
         const errBody = await res.text();
         console.error(
-          `[MenuTab.saveItem] ${method} ${url} → ${res.status}`,
+          `[MenuTab.saveItem] ${method} ${url} ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ${res.status}`,
           errBody,
         );
         return false;
@@ -3780,7 +3787,7 @@ function MenuTab({
         alert(`Delete failed (${res.status}).`);
       }
     } catch {
-      alert("Delete failed — network error.");
+      alert("Delete failed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â network error.");
     } finally {
       setBusyIds((s) => {
         const next = new Set(s);
@@ -3859,7 +3866,7 @@ function MenuTab({
         }}
       >
         <p style={{ color: T.muted, fontSize: 12 }}>
-          {localItems.length} items · {categories.length} categories
+          {localItems.length} items Ãƒâ€šÃ‚Â· {categories.length} categories
         </p>
         <div style={{ display: "flex", gap: 8 }}>
           <button
@@ -3926,7 +3933,7 @@ function MenuTab({
               marginBottom: 10,
             }}
           >
-            ──{cat}
+            ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â {cat}
           </p>
           <div
             style={{
@@ -4060,7 +4067,9 @@ function MenuTab({
                           gap: 4,
                         }}
                       >
-                        {item.available ? "✓ On Menu" : "✗ Hidden"}
+                        {item.available
+                          ? "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ On Menu"
+                          : "ÃƒÂ¢Ã…â€œÃ¢â‚¬â€ Hidden"}
                       </button>
                       <button
                         onClick={(e) => {
@@ -4124,7 +4133,7 @@ function MenuTab({
             style={{ margin: "0 auto 12px", opacity: 0.3 }}
           />
           <p style={{ fontSize: 14 }}>
-            No menu items yet — add your first one above
+            No menu items yet ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â add your first one above
           </p>
         </div>
       )}
@@ -4132,7 +4141,7 @@ function MenuTab({
   );
 }
 
-// ── SALES CALENDAR ────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SALES CALENDAR ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function SalesCalendar({
   orders,
   dailyReports,
@@ -4168,8 +4177,7 @@ function SalesCalendar({
   orders.forEach((o) => {
     if (o.status !== "completed") return;
     const d = new Date(o.createdAt);
-    const calKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const key = (o as any).shiftDate || calKey;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (!dailyStats[key] || !dailyStats[key].report) {
       if (!dailyStats[key])
         dailyStats[key] = { revenue: 0, count: 0, orders: [] };
@@ -4235,21 +4243,18 @@ function SalesCalendar({
       const blob: Blob = await new Promise((res) =>
         canvas.toBlob(res, "image/png"),
       );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `3rdspace-${monthPrefix}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
       try {
         await navigator.clipboard.write([
           new ClipboardItem({ "image/png": blob }),
         ]);
-        setCopying(false);
-      } catch {
-        // fallback: download if clipboard not supported
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `3rdspace-${monthPrefix}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-        setCopying(false);
-      }
+      } catch {}
+      setCopying(false);
     } catch (e) {
       console.error(e);
       setCopying(false);
@@ -4292,7 +4297,7 @@ function SalesCalendar({
               marginBottom: 6,
             }}
           >
-            ──Sales Calendar
+            ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Sales Calendar
           </p>
           <p
             style={{
@@ -4312,12 +4317,12 @@ function SalesCalendar({
                 fontWeight: 700,
               }}
             >
-              ₱
+              ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
               {monthRevenue.toLocaleString("en-PH", {
                 minimumFractionDigits: 2,
               })}
             </span>
-            {" · "}
+            {" Ãƒâ€šÃ‚Â· "}
             {monthOrders} order{monthOrders !== 1 ? "s" : ""}
           </p>
         </div>
@@ -4340,7 +4345,7 @@ function SalesCalendar({
               letterSpacing: ".06em",
             }}
           >
-            {copying ? "…" : "📷 COPY"}
+            {copying ? "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : "ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â· COPY"}
           </button>
           <button
             onClick={() => {
@@ -4361,7 +4366,7 @@ function SalesCalendar({
               justifyContent: "center",
             }}
           >
-            ‹
+            ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹
           </button>
           <button
             onClick={() => {
@@ -4382,7 +4387,7 @@ function SalesCalendar({
               justifyContent: "center",
             }}
           >
-            ›
+            ÃƒÂ¢Ã¢â€šÂ¬Ã‚Âº
           </button>
         </div>
       </div>
@@ -4429,8 +4434,7 @@ function SalesCalendar({
           const isToday = key === todayKey;
           const isSelected = key === selectedDay;
           const intensity = stats ? Math.min(stats.revenue / maxRev, 1) : 0;
-          const isFuture =
-            new Date(key + "T23:59:59") > today && key !== todayKey;
+          const isFuture = new Date(key + "T23:59:59") > today;
           return (
             <div
               key={key}
@@ -4439,7 +4443,7 @@ function SalesCalendar({
               }
               title={
                 stats
-                  ? `₱${stats.revenue.toLocaleString("en-PH", { minimumFractionDigits: 0 })} · ${stats.count} orders${isClosed ? " ✓ Closed" : ""}`
+                  ? `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±${stats.revenue.toLocaleString("en-PH", { minimumFractionDigits: 0 })} Ãƒâ€šÃ‚Â· ${stats.count} orders${isClosed ? " ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Closed" : ""}`
                   : undefined
               }
               style={{
@@ -4503,14 +4507,13 @@ function SalesCalendar({
               {stats && (
                 <span
                   style={{
-                    fontSize: "0.62rem",
+                    fontSize: "0.52rem",
                     color: isSelected ? T.gold : "#4ade80",
                     lineHeight: 1,
-                    marginTop: 2,
-                    fontWeight: 600,
+                    marginTop: 1,
                   }}
                 >
-                  ₱{fmtShort(stats.revenue)}
+                  ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±{fmtShort(stats.revenue)}
                 </span>
               )}
             </div>
@@ -4541,7 +4544,9 @@ function SalesCalendar({
           />
         ))}
         <span style={{ color: T.faint, fontSize: 10 }}>More</span>
-        <span style={{ color: T.faint, fontSize: 10, marginLeft: 8 }}>·</span>
+        <span style={{ color: T.faint, fontSize: 10, marginLeft: 8 }}>
+          Ãƒâ€šÃ‚Â·
+        </span>
         <div
           style={{
             width: 7,
@@ -4555,166 +4560,76 @@ function SalesCalendar({
 
       {selectedDay && (
         <div
-          onClick={() => setSelectedDay(null)}
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 2000,
-            background: "rgba(0,0,0,0.75)",
-            backdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
+            marginTop: 16,
+            borderTop: `1px solid ${T.border}`,
+            paddingTop: 16,
           }}
         >
           <div
-            onClick={(e) => e.stopPropagation()}
             style={{
-              background: "#0f1a0f",
-              border: `1px solid ${T.borderH}`,
-              borderRadius: 18,
-              padding: "24px",
-              width: "100%",
-              maxWidth: 560,
-              maxHeight: "85vh",
-              overflowY: "auto",
-              boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
               display: "flex",
-              flexDirection: "column",
-              gap: 16,
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 12,
+              flexWrap: "wrap",
+              gap: 8,
             }}
           >
-            <div
+            <p
               style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: -8,
+                color: T.cream,
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: "'Cinzel',serif",
               }}
             >
-              <button
-                onClick={() => setSelectedDay(null)}
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: `1px solid ${T.border}`,
-                  borderRadius: "50%",
-                  width: 32,
-                  height: 32,
-                  color: T.muted,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                  flexShrink: 0,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 12,
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-            >
-              <p
-                style={{
-                  color: T.cream,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  fontFamily: "'Cinzel',serif",
-                }}
-              >
-                {new Date(selectedDay + "T12:00:00").toLocaleDateString(
-                  "en-PH",
-                  {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  },
-                )}
-              </p>
-              {selectedStats ? (
-                <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                  <span
-                    style={{
-                      color: T.green,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      fontFamily: "'Cinzel',serif",
-                    }}
-                  >
-                    ₱
-                    {selectedStats.revenue.toLocaleString("en-PH", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
-                  <span style={{ color: T.muted, fontSize: 12 }}>
-                    {selectedStats.count} completed
-                  </span>
-                </div>
-              ) : (
-                <span style={{ color: T.faint, fontSize: 12 }}>No sales</span>
-              )}
-            </div>
-
-            {selectedStats?.report && (
-              <>
-                <div
+              {new Date(selectedDay + "T12:00:00").toLocaleDateString("en-PH", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+            {selectedStats ? (
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <span
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))",
-                    gap: 8,
-                    marginBottom: 12,
+                    color: T.green,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    fontFamily: "'Cinzel',serif",
                   }}
                 >
-                  {selectedStats.report.openedAt && (
-                    <div
-                      style={{
-                        background: "rgba(34,197,94,0.06)",
-                        border: "1px solid rgba(34,197,94,0.2)",
-                        borderRadius: 8,
-                        padding: "10px 12px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          color: T.muted,
-                          fontSize: 9,
-                          letterSpacing: ".1em",
-                          fontFamily: "'Cinzel',serif",
-                          marginBottom: 4,
-                        }}
-                      >
-                        OPENED AT
-                      </p>
-                      <p
-                        style={{
-                          color: T.green,
-                          fontSize: 14,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {new Date(
-                          selectedStats.report.openedAt,
-                        ).toLocaleTimeString("en-PH", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
-                      </p>
-                    </div>
-                  )}
+                  ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                  {selectedStats.revenue.toLocaleString("en-PH", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  {selectedStats.count} completed
+                </span>
+              </div>
+            ) : (
+              <span style={{ color: T.faint, fontSize: 12 }}>No sales</span>
+            )}
+          </div>
+
+          {selectedStats?.report && (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))",
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                {selectedStats.report.openedAt && (
                   <div
                     style={{
-                      background: "rgba(239,68,68,0.06)",
-                      border: "1px solid rgba(239,68,68,0.2)",
+                      background: "rgba(34,197,94,0.06)",
+                      border: "1px solid rgba(34,197,94,0.2)",
                       borderRadius: 8,
                       padding: "10px 12px",
                     }}
@@ -4728,11 +4643,13 @@ function SalesCalendar({
                         marginBottom: 4,
                       }}
                     >
-                      CLOSED AT
+                      OPENED AT
                     </p>
-                    <p style={{ color: T.red, fontSize: 14, fontWeight: 700 }}>
+                    <p
+                      style={{ color: T.green, fontSize: 14, fontWeight: 700 }}
+                    >
                       {new Date(
-                        selectedStats.report.closedAt,
+                        selectedStats.report.openedAt,
                       ).toLocaleTimeString("en-PH", {
                         hour: "numeric",
                         minute: "2-digit",
@@ -4740,725 +4657,492 @@ function SalesCalendar({
                       })}
                     </p>
                   </div>
-                  <div
-                    style={{
-                      background: T.bgCard,
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: T.muted,
-                        fontSize: 9,
-                        letterSpacing: ".1em",
-                        fontFamily: "'Cinzel',serif",
-                        marginBottom: 4,
-                      }}
-                    >
-                      NET SALES
-                    </p>
-                    <p
-                      style={{
-                        color: T.gold,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        fontFamily: "'Cinzel',serif",
-                      }}
-                    >
-                      ₱
-                      {(
-                        selectedStats.report.netRevenue ||
-                        selectedStats.report.revenue
-                      ).toLocaleString("en-PH", { minimumFractionDigits: 0 })}
-                    </p>
-                  </div>
-                  <div
-                    style={{
-                      background: T.bgCard,
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: T.muted,
-                        fontSize: 9,
-                        letterSpacing: ".1em",
-                        fontFamily: "'Cinzel',serif",
-                        marginBottom: 4,
-                      }}
-                    >
-                      AVG ORDER
-                    </p>
-                    <p
-                      style={{
-                        color: T.blue,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        fontFamily: "'Cinzel',serif",
-                      }}
-                    >
-                      ₱
-                      {Math.round(
-                        selectedStats.report.avgOrder || 0,
-                      ).toLocaleString("en-PH")}
-                    </p>
-                  </div>
-                  {selectedStats.report.deliveryFees > 0 && (
-                    <div
-                      style={{
-                        background: T.bgCard,
-                        border: `1px solid ${T.border}`,
-                        borderRadius: 8,
-                        padding: "10px 12px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          color: T.muted,
-                          fontSize: 9,
-                          letterSpacing: ".1em",
-                          fontFamily: "'Cinzel',serif",
-                          marginBottom: 4,
-                        }}
-                      >
-                        DELIVERY FEES
-                      </p>
-                      <p
-                        style={{ color: T.gold, fontSize: 13, fontWeight: 700 }}
-                      >
-                        ₱
-                        {selectedStats.report.deliveryFees.toLocaleString(
-                          "en-PH",
-                          { minimumFractionDigits: 0 },
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      background: T.bgCard,
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: T.muted,
-                        fontSize: 9,
-                        letterSpacing: ".1em",
-                        fontFamily: "'Cinzel',serif",
-                        marginBottom: 4,
-                      }}
-                    >
-                      CANCELLED
-                    </p>
-                    <p style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>
-                      {selectedStats.report.cancelledCount || 0}
-                    </p>
-                  </div>
-                </div>
-
+                )}
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
+                    background: "rgba(239,68,68,0.06)",
+                    border: "1px solid rgba(239,68,68,0.2)",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 9,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 4,
+                    }}
+                  >
+                    CLOSED AT
+                  </p>
+                  <p style={{ color: T.red, fontSize: 14, fontWeight: 700 }}>
+                    {new Date(selectedStats.report.closedAt).toLocaleTimeString(
+                      "en-PH",
+                      { hour: "numeric", minute: "2-digit", hour12: true },
+                    )}
+                  </p>
+                </div>
+                <div
+                  style={{
+                    background: T.bgCard,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 9,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 4,
+                    }}
+                  >
+                    NET SALES
+                  </p>
+                  <p
+                    style={{
+                      color: T.gold,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: "'Cinzel',serif",
+                    }}
+                  >
+                    ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                    {(
+                      selectedStats.report.netRevenue ||
+                      selectedStats.report.revenue
+                    ).toLocaleString("en-PH", { minimumFractionDigits: 0 })}
+                  </p>
+                </div>
+                <div
+                  style={{
+                    background: T.bgCard,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 9,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 4,
+                    }}
+                  >
+                    AVG ORDER
+                  </p>
+                  <p
+                    style={{
+                      color: T.blue,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: "'Cinzel',serif",
+                    }}
+                  >
+                    ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                    {Math.round(
+                      selectedStats.report.avgOrder || 0,
+                    ).toLocaleString("en-PH")}
+                  </p>
+                </div>
+                {selectedStats.report.deliveryFees > 0 && (
+                  <div
+                    style={{
+                      background: T.bgCard,
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 8,
+                      padding: "10px 12px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: T.muted,
+                        fontSize: 9,
+                        letterSpacing: ".1em",
+                        fontFamily: "'Cinzel',serif",
+                        marginBottom: 4,
+                      }}
+                    >
+                      DELIVERY FEES
+                    </p>
+                    <p style={{ color: T.gold, fontSize: 13, fontWeight: 700 }}>
+                      ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                      {selectedStats.report.deliveryFees.toLocaleString(
+                        "en-PH",
+                        { minimumFractionDigits: 0 },
+                      )}
+                    </p>
+                  </div>
+                )}
+                <div
+                  style={{
+                    background: T.bgCard,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 9,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 4,
+                    }}
+                  >
+                    CANCELLED
+                  </p>
+                  <p style={{ color: T.red, fontSize: 13, fontWeight: 700 }}>
+                    {selectedStats.report.cancelledCount || 0}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 8,
+                  marginBottom: 12,
+                }}
+              >
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.02)",
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 9,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 8,
+                    }}
+                  >
+                    PAYMENT
+                  </p>
+                  {[
+                    {
+                      label: "Cash",
+                      value: selectedStats.report.cashRev,
+                      color: T.green,
+                    },
+                    {
+                      label: "GCash",
+                      value: selectedStats.report.gcashRev,
+                      color: T.gold,
+                    },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 11 }}>
+                        {s.label}
+                      </span>
+                      <span
+                        style={{
+                          color: s.color,
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                        {s.value.toLocaleString("en-PH", {
+                          minimumFractionDigits: 0,
+                        })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.02)",
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 9,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 8,
+                    }}
+                  >
+                    BY TYPE
+                  </p>
+                  {[
+                    {
+                      label: "Dine-in",
+                      value: selectedStats.report.dineInRev,
+                      color: T.green,
+                    },
+                    {
+                      label: "Delivery",
+                      value: selectedStats.report.deliveryRev,
+                      color: T.gold,
+                    },
+                    {
+                      label: "Takeout",
+                      value: selectedStats.report.takeoutRev,
+                      color: T.blue,
+                    },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 3,
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 11 }}>
+                        {s.label}
+                      </span>
+                      <span
+                        style={{
+                          color: s.color,
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                        {s.value.toLocaleString("en-PH", {
+                          minimumFractionDigits: 0,
+                        })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {Object.keys(selectedStats.report.items || {}).length > 0 && (
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.02)",
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 8,
+                    padding: "10px 12px",
                     marginBottom: 12,
                   }}
                 >
-                  <div
+                  <p
                     style={{
-                      background: "rgba(255,255,255,0.02)",
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 8,
-                      padding: "10px 12px",
+                      color: T.muted,
+                      fontSize: 9,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                      marginBottom: 8,
                     }}
                   >
-                    <p
-                      style={{
-                        color: T.muted,
-                        fontSize: 9,
-                        letterSpacing: ".1em",
-                        fontFamily: "'Cinzel',serif",
-                        marginBottom: 8,
-                      }}
-                    >
-                      PAYMENT
-                    </p>
-                    {[
-                      {
-                        label: "Cash",
-                        value: selectedStats.report.cashRev,
-                        color: T.green,
-                      },
-                      {
-                        label: "GCash",
-                        value: selectedStats.report.gcashRev,
-                        color: T.gold,
-                      },
-                    ].map((s) => (
+                    TOP ITEMS
+                  </p>
+                  {Object.entries(selectedStats.report.items)
+                    .sort((a, b) => b[1].revenue - a[1].revenue)
+                    .slice(0, 5)
+                    .map(([name, s], i) => (
                       <div
-                        key={s.label}
+                        key={name}
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
                           marginBottom: 4,
                         }}
                       >
-                        <span style={{ color: T.muted, fontSize: 11 }}>
-                          {s.label}
+                        <span
+                          style={{
+                            color: i === 0 ? T.cream : T.muted,
+                            fontSize: 11,
+                          }}
+                        >
+                          #{i + 1} {name}{" "}
+                          <span style={{ color: T.faint }}>
+                            ÃƒÆ’Ã¢â‚¬â€{s.qty}
+                          </span>
                         </span>
                         <span
                           style={{
-                            color: s.color,
+                            color: i === 0 ? T.gold : T.cream,
                             fontSize: 11,
-                            fontWeight: 700,
+                            fontWeight: i === 0 ? 700 : 400,
                           }}
                         >
-                          ₱
-                          {s.value.toLocaleString("en-PH", {
+                          ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                          {s.revenue.toLocaleString("en-PH", {
                             minimumFractionDigits: 0,
                           })}
                         </span>
                       </div>
                     ))}
-                  </div>
-                  <div
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: T.muted,
-                        fontSize: 9,
-                        letterSpacing: ".1em",
-                        fontFamily: "'Cinzel',serif",
-                        marginBottom: 8,
-                      }}
-                    >
-                      BY TYPE
-                    </p>
-                    {[
-                      {
-                        label: "Dine-in",
-                        value: selectedStats.report.dineInRev,
-                        color: T.green,
-                      },
-                      {
-                        label: "Delivery",
-                        value: selectedStats.report.deliveryRev,
-                        color: T.gold,
-                      },
-                      {
-                        label: "Takeout",
-                        value: selectedStats.report.takeoutRev,
-                        color: T.blue,
-                      },
-                    ].map((s) => (
-                      <div
-                        key={s.label}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginBottom: 3,
-                        }}
-                      >
-                        <span style={{ color: T.muted, fontSize: 11 }}>
-                          {s.label}
-                        </span>
-                        <span
-                          style={{
-                            color: s.color,
-                            fontSize: 11,
-                            fontWeight: 700,
-                          }}
-                        >
-                          ₱
-                          {s.value.toLocaleString("en-PH", {
-                            minimumFractionDigits: 0,
-                          })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </>
+          )}
 
-            {selectedStats &&
-              (() => {
-                const orderList = selectedStats.report?.orders?.length
-                  ? selectedStats.report.orders
-                  : selectedStats.orders;
-                return (
-                  orderList.length > 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 10,
-                        maxHeight: 400,
-                        overflowY: "auto",
-                        marginTop: 8,
-                        paddingRight: 4,
-                      }}
-                    >
-                      {[...orderList]
-                        .sort(
-                          (a, b) =>
-                            new Date(b.createdAt).getTime() -
-                            new Date(a.createdAt).getTime(),
-                        )
-                        .map((o) => (
-                          <div
-                            key={o._id}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "14px 18px",
-                              background: "rgba(255,255,255,0.03)",
-                              border: `1px solid ${T.border}`,
-                              borderRadius: 12,
-                              flexWrap: "wrap",
-                              gap: 10,
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                minWidth: 0,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontFamily: "'Cinzel',serif",
-                                  fontSize: 12,
-                                  color: T.cream,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                #{o.orderNumber}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  color:
-                                    o.type === "delivery"
-                                      ? T.gold
-                                      : o.type === "takeout"
-                                        ? T.blue
-                                        : T.green,
-                                  background:
-                                    o.type === "delivery"
-                                      ? "rgba(212,168,67,0.1)"
-                                      : o.type === "takeout"
-                                        ? "rgba(91,155,213,0.1)"
-                                        : "rgba(34,197,94,0.1)",
-                                  padding: "2px 7px",
-                                  borderRadius: 4,
-                                  fontWeight: 600,
-                                  textTransform: "uppercase",
-                                  letterSpacing: ".06em",
-                                }}
-                              >
-                                {o.type}
-                              </span>
-                              {o.customerName && (
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    color: T.muted,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    maxWidth: 110,
-                                  }}
-                                >
-                                  {o.customerName}
-                                </span>
-                              )}
-                              {o.items?.length > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    color: T.faint,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    maxWidth: 180,
-                                  }}
-                                >
-                                  ·{" "}
-                                  {o.items
-                                    .map((it) => `${it.quantity}× ${it.name}`)
-                                    .join(", ")}
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                              }}
-                            >
-                              <span style={{ fontSize: 11, color: T.faint }}>
-                                {new Date(o.createdAt).toLocaleTimeString(
-                                  "en-PH",
-                                  {
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  },
-                                )}
-                              </span>
-                              <span
-                                style={{
-                                  fontFamily: "'Cinzel',serif",
-                                  fontSize: 13,
-                                  color: T.gold,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {fmt(o.total)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )
-                );
-              })()}
-
-            {!selectedStats && (
-              <p
+          {!selectedStats?.report &&
+            selectedStats &&
+            selectedStats.orders.length > 0 && (
+              <div
                 style={{
-                  color: T.faint,
-                  fontSize: 13,
-                  textAlign: "center",
-                  padding: "16px 0",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  maxHeight: 240,
+                  overflowY: "auto",
                 }}
               >
-                No completed orders on this day
-              </p>
+                {[...selectedStats.orders]
+                  .sort(
+                    (a, b) =>
+                      new Date(b.createdAt).getTime() -
+                      new Date(a.createdAt).getTime(),
+                  )
+                  .map((o) => (
+                    <div
+                      key={o._id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "9px 13px",
+                        background: "rgba(255,255,255,0.02)",
+                        border: `1px solid ${T.border}`,
+                        borderRadius: 8,
+                        flexWrap: "wrap",
+                        gap: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          minWidth: 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "'Cinzel',serif",
+                            fontSize: 12,
+                            color: T.cream,
+                            fontWeight: 700,
+                          }}
+                        >
+                          #{o.orderNumber}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color:
+                              o.type === "delivery"
+                                ? T.gold
+                                : o.type === "takeout"
+                                  ? T.blue
+                                  : T.green,
+                            background:
+                              o.type === "delivery"
+                                ? "rgba(212,168,67,0.1)"
+                                : o.type === "takeout"
+                                  ? "rgba(91,155,213,0.1)"
+                                  : "rgba(34,197,94,0.1)",
+                            padding: "2px 7px",
+                            borderRadius: 4,
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: ".06em",
+                          }}
+                        >
+                          {o.type}
+                        </span>
+                        {o.customerName && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: T.muted,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: 110,
+                            }}
+                          >
+                            {o.customerName}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <span style={{ fontSize: 11, color: T.faint }}>
+                          {new Date(o.createdAt).toLocaleTimeString("en-PH", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: "'Cinzel',serif",
+                            fontSize: 13,
+                            color: T.gold,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {fmt(o.total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
             )}
-          </div>
+
+          {!selectedStats && (
+            <p
+              style={{
+                color: T.faint,
+                fontSize: 13,
+                textAlign: "center",
+                padding: "16px 0",
+              }}
+            >
+              No completed orders on this day
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 }
-// ── TODAY'S REPORT ────────────────────────────────────────────────────────────
-function TodayReport({
-  orders,
-  activeShiftDate,
-  closedReport,
-}: {
-  orders: Order[];
-  activeShiftDate?: string | null;
-  closedReport?: DailyReport | null;
-}) {
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ TODAY'S REPORT ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+function TodayReport({ orders }: { orders: Order[] }) {
   const today = new Date();
-
-  if (closedReport) {
-    const topItems = Object.entries(closedReport.items || {})
-      .sort((a, b) => b[1].revenue - a[1].revenue)
-      .slice(0, 6);
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div
-          style={{
-            background: "rgba(239,68,68,0.06)",
-            border: "1px solid rgba(239,68,68,0.2)",
-            borderRadius: 10,
-            padding: "10px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            fontSize: 13,
-            color: T.muted,
-            flexWrap: "wrap",
-          }}
-        >
-          <PowerOff size={14} color={T.red} />
-          <span>
-            Store closed at{" "}
-            <strong style={{ color: T.red }}>
-              {new Date(closedReport.closedAt).toLocaleTimeString("en-PH", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })}
-            </strong>
-          </span>
-          {closedReport.openedAt && (
-            <span style={{ color: T.faint, fontSize: 12 }}>
-              · Opened at{" "}
-              {new Date(closedReport.openedAt).toLocaleTimeString("en-PH", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })}
-            </span>
-          )}
-        </div>
-
-        <div
-          style={{
-            background:
-              "linear-gradient(135deg,rgba(212,168,67,0.09) 0%,rgba(34,197,94,0.04) 100%)",
-            border: `1px solid ${T.borderH}`,
-            borderRadius: 16,
-            padding: "22px 24px",
-          }}
-        >
-          <p
-            style={{
-              color: T.gold,
-              fontSize: 10,
-              letterSpacing: ".2em",
-              textTransform: "uppercase",
-              fontFamily: "'Cinzel',serif",
-              marginBottom: 4,
-            }}
-          >
-            ──Today's Final Report
-          </p>
-          <p
-            style={{
-              fontFamily: "'Cinzel',serif",
-              fontSize: "clamp(2.2rem,6vw,3.8rem)",
-              fontWeight: 700,
-              color: T.gold,
-              lineHeight: 1,
-              marginBottom: 10,
-            }}
-          >
-            {fmt(closedReport.revenue)}
-          </p>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <span style={{ color: T.green, fontSize: 12 }}>
-              ✓ {closedReport.orderCount} completed
-            </span>
-            {closedReport.cancelledCount > 0 && (
-              <span style={{ color: T.red, fontSize: 12 }}>
-                ✗ {closedReport.cancelledCount} cancelled
-              </span>
-            )}
-            {closedReport.deliveryFees > 0 && (
-              <span style={{ color: T.muted, fontSize: 12 }}>
-                🛵 {fmt(closedReport.deliveryFees)} delivery fees
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
-            gap: 10,
-          }}
-        >
-          {[
-            {
-              label: "Net Revenue",
-              value: fmt(closedReport.netRevenue || closedReport.revenue),
-              color: T.green,
-            },
-            {
-              label: "Avg Order",
-              value: fmt(closedReport.avgOrder || 0),
-              color: T.blue,
-            },
-            { label: "Cash", value: fmt(closedReport.cashRev), color: T.green },
-            {
-              label: "GCash",
-              value: fmt(closedReport.gcashRev),
-              color: T.gold,
-            },
-            {
-              label: "Dine-In",
-              value: fmt(closedReport.dineInRev),
-              color: T.green,
-            },
-            {
-              label: "Delivery",
-              value: fmt(closedReport.deliveryRev),
-              color: T.gold,
-            },
-            ...(closedReport.takeoutRev > 0
-              ? [
-                  {
-                    label: "Takeout",
-                    value: fmt(closedReport.takeoutRev),
-                    color: T.blue,
-                  },
-                ]
-              : []),
-          ].map((s) => (
-            <div
-              key={s.label}
-              style={{
-                background: T.bgCard,
-                border: `1px solid ${T.border}`,
-                borderRadius: 10,
-                padding: "12px 14px",
-              }}
-            >
-              <p
-                style={{
-                  color: T.muted,
-                  fontSize: 9,
-                  letterSpacing: ".12em",
-                  fontFamily: "'Cinzel',serif",
-                  marginBottom: 6,
-                  textTransform: "uppercase",
-                }}
-              >
-                {s.label}
-              </p>
-              <p
-                style={{
-                  fontFamily: "'Cinzel',serif",
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: s.color,
-                }}
-              >
-                {s.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {topItems.length > 0 && (
-          <div
-            style={{
-              background: T.bgCard,
-              border: `1px solid ${T.border}`,
-              borderRadius: 14,
-              padding: 20,
-            }}
-          >
-            <p
-              style={{
-                color: T.gold,
-                fontSize: 11,
-                letterSpacing: ".15em",
-                textTransform: "uppercase",
-                fontFamily: "'Cinzel',serif",
-                marginBottom: 14,
-              }}
-            >
-              ──Top Items Today
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {topItems.map(([name, s], i) => (
-                <div key={name}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 5,
-                      gap: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        minWidth: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: "'Cinzel',serif",
-                          fontSize: 10,
-                          color: i === 0 ? T.gold : T.faint,
-                          fontWeight: 700,
-                          minWidth: 14,
-                          flexShrink: 0,
-                        }}
-                      >
-                        #{i + 1}
-                      </span>
-                      <span
-                        style={{
-                          color: T.cream,
-                          fontSize: 12,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {name}
-                      </span>
-                      <span
-                        style={{ color: T.faint, fontSize: 10, flexShrink: 0 }}
-                      >
-                        {s.qty}×
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontFamily: "'Cinzel',serif",
-                        color: i === 0 ? T.gold : T.cream,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {fmt(s.revenue)}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      height: 4,
-                      background: "rgba(255,255,255,0.04)",
-                      borderRadius: 99,
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 4,
-                        borderRadius: 99,
-                        background:
-                          i === 0 ? T.gold : `rgba(34,197,94,${0.8 - i * 0.1})`,
-                        width: `${(s.revenue / (topItems[0][1].revenue || 1)) * 100}%`,
-                        transition: "width .4s",
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const todayOrders = orders.filter((o) => {
     const d = new Date(o.createdAt);
-    const calKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const orderShift = (o as any).shiftDate;
-    const active = activeShiftDate ?? todayKey;
-    return orderShift ? orderShift === active : calKey === active;
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return k === todayKey;
   });
 
   const completed = todayOrders.filter((o) => o.status === "completed");
@@ -5563,7 +5247,7 @@ function TodayReport({
                 marginBottom: 4,
               }}
             >
-              ──Today's Report
+              ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Today's Report
             </p>
             <p style={{ color: T.muted, fontSize: 12, marginBottom: 14 }}>
               {dateStr}
@@ -5588,21 +5272,21 @@ function TodayReport({
               }}
             >
               <span style={{ color: T.green, fontSize: 12 }}>
-                ✓ {completed.length} completed
+                ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ {completed.length} completed
               </span>
               {active > 0 && (
                 <span style={{ color: "#f59e0b", fontSize: 12 }}>
-                  ⏳ {active} active
+                  ÃƒÂ¢Ã‚ÂÃ‚Â³ {active} active
                 </span>
               )}
               {cancelled > 0 && (
                 <span style={{ color: T.red, fontSize: 12 }}>
-                  ✗ {cancelled} cancelled
+                  ÃƒÂ¢Ã…â€œÃ¢â‚¬â€ {cancelled} cancelled
                 </span>
               )}
               {deliveryFeesTotal > 0 && (
                 <span style={{ color: T.muted, fontSize: 12 }}>
-                  🛵 {fmt(deliveryFeesTotal)} delivery fees
+                  ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂºÃ‚Âµ {fmt(deliveryFeesTotal)} delivery fees
                 </span>
               )}
             </div>
@@ -5668,7 +5352,7 @@ function TodayReport({
               marginBottom: 16,
             }}
           >
-            ──Revenue by Hour
+            ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Revenue by Hour
           </p>
           <div
             style={{
@@ -5695,7 +5379,9 @@ function TodayReport({
                 >
                   <div
                     title={
-                      rev > 0 ? `${fmtHour(h)} — ${fmt(rev)}` : `${fmtHour(h)}`
+                      rev > 0
+                        ? `${fmtHour(h)} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${fmt(rev)}`
+                        : `${fmtHour(h)}`
                     }
                     style={{
                       width: "100%",
@@ -5756,7 +5442,7 @@ function TodayReport({
               marginBottom: 14,
             }}
           >
-            ──Top Items
+            ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Top Items
           </p>
           {topItems.length === 0 ? (
             <p style={{ color: T.faint, fontSize: 12 }}>
@@ -5808,7 +5494,7 @@ function TodayReport({
                       <span
                         style={{ color: T.faint, fontSize: 10, flexShrink: 0 }}
                       >
-                        {s.qty}×
+                        {s.qty}ÃƒÆ’Ã¢â‚¬â€
                       </span>
                     </div>
                     <span
@@ -5866,7 +5552,7 @@ function TodayReport({
               marginBottom: 14,
             }}
           >
-            ──Payment
+            ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Payment
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[
@@ -5950,7 +5636,7 @@ function TodayReport({
               marginBottom: 14,
             }}
           >
-            ──By Type
+            ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â By Type
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[
@@ -6007,34 +5693,127 @@ function TodayReport({
   );
 }
 
-// ── ANALYTICS TAB ────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ANALYTICS TAB ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function AnalyticsTab({
   orders,
   dailyReports,
-  activeShiftDate,
 }: {
   orders: Order[];
   dailyReports: DailyReport[];
-  activeShiftDate?: string | null;
 }) {
   const w = useWindowWidth();
   const isMobile = w < 640;
-  const [analyticsView, setAnalyticsView] = useState<"today" | "history">(
+  const [analyticsView, setAnalyticsView] = useState<"today" | "alltime">(
     "today",
   );
 
-  const todayCalKey = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
-  const closedTodayReport = !activeShiftDate
-    ? (dailyReports.find((r) => r.dayKey === todayCalKey) ?? null)
-    : null;
+  const seen = new Set<string>();
+  const allTimeOrders: Order[] = [
+    ...orders,
+    ...dailyReports.flatMap((r) => r.orders || []),
+  ].filter((o) => {
+    if (seen.has(o._id)) return false;
+    seen.add(o._id);
+    return true;
+  });
 
-  const allTimeRevenue = dailyReports.reduce((s, r) => s + r.revenue, 0);
-  const allTimeCompleted = dailyReports.reduce((s, r) => s + r.orderCount, 0);
-  const daysOperated = dailyReports.length;
-  const avgDailyRevenue = daysOperated > 0 ? allTimeRevenue / daysOperated : 0;
+  const completed = allTimeOrders.filter((o) => o.status === "completed");
+  const cancelled = allTimeOrders.filter((o) => o.status === "cancelled");
+  const revenue = completed.reduce((s, o) => s + o.total, 0);
+  const deliveryFees = completed
+    .filter((o) => o.type === "delivery")
+    .reduce((s, o) => s + ((o as any).deliveryFee || 0), 0);
+  const netRevenue = revenue - deliveryFees;
+  const avgOrder = completed.length ? revenue / completed.length : 0;
+  const totalItemsSold = completed.reduce(
+    (s, o) => s + o.items.reduce((ss, it) => ss + it.quantity, 0),
+    0,
+  );
+  const cancellationRate = allTimeOrders.length
+    ? (cancelled.length / allTimeOrders.length) * 100
+    : 0;
+
+  const deliveryCount = allTimeOrders.filter(
+    (o) => o.type === "delivery",
+  ).length;
+  const dineInCount = allTimeOrders.filter((o) => o.type === "dine-in").length;
+  const takeoutCount = allTimeOrders.filter((o) => o.type === "takeout").length;
+
+  const cashRevAll = completed
+    .filter((o) => o.paymentMethod === "cash")
+    .reduce((s, o) => s + o.total, 0);
+  const gcashRevAll = completed
+    .filter((o) => o.paymentMethod === "gcash")
+    .reduce((s, o) => s + o.total, 0);
+
+  const bestDay =
+    dailyReports.length > 0
+      ? dailyReports.reduce(
+          (best, r) => (r.revenue > best.revenue ? r : best),
+          dailyReports[0],
+        )
+      : null;
+
+  const monthlyMap: Record<string, number> = {};
+  dailyReports.forEach((r) => {
+    const mk = r.dayKey.slice(0, 7);
+    monthlyMap[mk] = (monthlyMap[mk] || 0) + r.revenue;
+  });
+  orders
+    .filter((o) => o.status === "completed")
+    .forEach((o) => {
+      const d = new Date(o.createdAt);
+      const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      monthlyMap[mk] = (monthlyMap[mk] || 0) + o.total;
+    });
+  const monthlyData = Object.entries(monthlyMap)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 6)
+    .reverse();
+  const maxMonthRev = Math.max(...monthlyData.map(([, v]) => v), 1);
+
+  const allItemMap: Record<string, { qty: number; revenue: number }> = {};
+  completed.forEach((o) => {
+    o.items.forEach((it) => {
+      if (!allItemMap[it.name]) allItemMap[it.name] = { qty: 0, revenue: 0 };
+      allItemMap[it.name].qty += it.quantity;
+      allItemMap[it.name].revenue += it.price * it.quantity;
+    });
+  });
+  const topAllItems = Object.entries(allItemMap)
+    .sort((a, b) => b[1].revenue - a[1].revenue)
+    .slice(0, 8);
+
+  const byStatus = Object.entries(STATUS_CFG)
+    .map(([k, v]) => ({
+      status: k as OrderStatus,
+      label: v.label,
+      color: v.color,
+      count: allTimeOrders.filter((o) => o.status === k).length,
+    }))
+    .filter((x) => x.count > 0);
+  const maxCount = Math.max(...byStatus.map((x) => x.count), 1);
+
+  const crewMap: Record<string, number> = {};
+  allTimeOrders.forEach((o) => {
+    if (o.waiterName) crewMap[o.waiterName] = (crewMap[o.waiterName] || 0) + 1;
+  });
+  const crewList = Object.entries(crewMap).sort((a, b) => b[1] - a[1]);
+
+  const MONTHS_SHORT = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -6042,7 +5821,7 @@ function AnalyticsTab({
         {(
           [
             ["today", "Today"],
-            ["history", "History"],
+            ["alltime", "All Time"],
           ] as const
         ).map(([id, label]) => {
           const a = analyticsView === id;
@@ -6051,7 +5830,7 @@ function AnalyticsTab({
               key={id}
               onClick={() => setAnalyticsView(id)}
               style={{
-                padding: "8px 24px",
+                padding: "8px 20px",
                 borderRadius: 8,
                 cursor: "pointer",
                 background: a ? T.gold : "rgba(255,255,255,0.04)",
@@ -6070,73 +5849,664 @@ function AnalyticsTab({
       </div>
 
       {analyticsView === "today" ? (
-        <TodayReport
-          orders={orders}
-          activeShiftDate={activeShiftDate}
-          closedReport={closedTodayReport}
-        />
-      ) : daysOperated === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px 20px",
-            color: T.faint,
-            border: `1px solid ${T.border}`,
-            borderRadius: 14,
-          }}
-        >
-          <BarChart3
-            size={36}
-            style={{ margin: "0 auto 12px", opacity: 0.3 }}
-          />
-          <p style={{ fontSize: 14 }}>
-            No history yet — open the store, take orders, close the day
-          </p>
-        </div>
+        <TodayReport orders={orders} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? "140px" : "170px"},1fr))`,
+              gridTemplateColumns: "repeat(auto-fill,minmax(155px,1fr))",
               gap: 12,
             }}
           >
             {[
+              { label: "Gross Revenue", value: fmt(revenue), color: T.gold },
               {
-                label: "Total Revenue",
-                value: fmt(allTimeRevenue),
-                icon: <DollarSign size={20} />,
-                color: T.gold,
+                label: "Net Revenue",
+                value: fmt(netRevenue),
+                color: T.green,
+                sub:
+                  deliveryFees > 0
+                    ? `ÃƒÂ¢Ã‹â€ Ã¢â‚¬â„¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±${Math.round(deliveryFees)} fees`
+                    : undefined,
               },
+              { label: "Avg Order", value: fmt(avgOrder), color: T.blue },
               {
-                label: "Orders Completed",
-                value: String(allTimeCompleted),
-                icon: <Package size={20} />,
+                label: "Completed",
+                value: String(completed.length),
                 color: T.green,
               },
               {
-                label: "Days Operated",
-                value: String(daysOperated),
-                icon: <Clock size={20} />,
-                color: T.blue,
-              },
-              {
-                label: "Avg Daily Revenue",
-                value: fmt(avgDailyRevenue),
-                icon: <BarChart3 size={20} />,
+                label: "Items Sold",
+                value: String(totalItemsSold),
                 color: T.purple,
               },
+              {
+                label: "Cancelled",
+                value: String(cancelled.length),
+                color: T.red,
+                sub: `${cancellationRate.toFixed(1)}% rate`,
+              },
+              {
+                label: "Delivery",
+                value: String(deliveryCount),
+                color: T.gold,
+              },
+              { label: "Dine-In", value: String(dineInCount), color: T.green },
             ].map((s) => (
-              <StatCard
+              <div
                 key={s.label}
-                label={s.label}
-                value={s.value}
-                icon={s.icon}
-                accent={s.color}
-              />
+                style={{
+                  background: T.bgCard,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 12,
+                  padding: "16px 18px",
+                }}
+              >
+                <p
+                  style={{
+                    color: T.muted,
+                    fontSize: 10,
+                    letterSpacing: ".1em",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                    fontFamily: "'Cinzel',serif",
+                  }}
+                >
+                  {s.label}
+                </p>
+                <p
+                  style={{
+                    fontFamily: "'Cinzel',serif",
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: s.color,
+                  }}
+                >
+                  {s.value}
+                </p>
+                {s.sub && (
+                  <p style={{ color: T.faint, fontSize: 10, marginTop: 3 }}>
+                    {s.sub}
+                  </p>
+                )}
+              </div>
             ))}
           </div>
+
+          {bestDay && (
+            <div
+              style={{
+                background:
+                  "linear-gradient(135deg,rgba(212,168,67,0.08),rgba(34,197,94,0.04))",
+                border: `1px solid ${T.borderH}`,
+                borderRadius: 14,
+                padding: "16px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 12,
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    color: T.gold,
+                    fontSize: 10,
+                    letterSpacing: ".15em",
+                    fontFamily: "'Cinzel',serif",
+                    marginBottom: 4,
+                  }}
+                >
+                  ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â BEST SALES DAY
+                </p>
+                <p style={{ color: T.cream, fontSize: 14, fontWeight: 600 }}>
+                  {new Date(bestDay.dayKey + "T12:00:00").toLocaleDateString(
+                    "en-PH",
+                    {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    },
+                  )}
+                </p>
+                {bestDay.openedAt && (
+                  <p style={{ color: T.muted, fontSize: 11, marginTop: 3 }}>
+                    Open{" "}
+                    {new Date(bestDay.openedAt).toLocaleTimeString("en-PH", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}{" "}
+                    ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢{" "}
+                    {new Date(bestDay.closedAt).toLocaleTimeString("en-PH", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </p>
+                )}
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p
+                  style={{
+                    fontFamily: "'Cinzel',serif",
+                    fontSize: 26,
+                    fontWeight: 700,
+                    color: T.gold,
+                  }}
+                >
+                  {fmt(bestDay.revenue)}
+                </p>
+                <p style={{ color: T.muted, fontSize: 12 }}>
+                  {bestDay.orderCount} completed Ãƒâ€šÃ‚Â· avg{" "}
+                  {fmt(bestDay.avgOrder || 0)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {monthlyData.length > 0 && (
+            <div
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 20,
+              }}
+            >
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 16,
+                }}
+              >
+                ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Monthly Revenue
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-end",
+                  gap: 8,
+                  height: 90,
+                }}
+              >
+                {monthlyData.map(([mk, rev]) => {
+                  const pct = rev / maxMonthRev;
+                  const [y, m] = mk.split("-");
+                  const label = `${MONTHS_SHORT[parseInt(m) - 1]} '${y.slice(2)}`;
+                  return (
+                    <div
+                      key={mk}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: T.muted,
+                          fontSize: 8,
+                          textAlign: "center",
+                        }}
+                      >
+                        ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±
+                        {rev >= 1000
+                          ? `${(rev / 1000).toFixed(1)}k`
+                          : Math.round(rev)}
+                      </span>
+                      <div
+                        title={`${label}: ${fmt(rev)}`}
+                        style={{
+                          width: "100%",
+                          height: `${Math.max(pct * 60, 4)}px`,
+                          background: `rgba(212,168,67,${0.25 + pct * 0.75})`,
+                          borderRadius: "4px 4px 0 0",
+                          transition: "height .3s",
+                        }}
+                      />
+                      <span style={{ fontSize: 9, color: T.faint }}>
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 20,
+              }}
+            >
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 16,
+                }}
+              >
+                ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Orders by Status
+              </p>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
+                {byStatus.map(({ status, label, color, count }) => (
+                  <div key={status}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 5,
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 12 }}>
+                        {label}
+                      </span>
+                      <span
+                        style={{
+                          color: T.cream,
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {count}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 6,
+                        background: "rgba(255,255,255,0.05)",
+                        borderRadius: 99,
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 6,
+                          borderRadius: 99,
+                          background: color,
+                          width: `${(count / maxCount) * 100}%`,
+                          transition: "width .5s",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 20,
+              }}
+            >
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 16,
+                }}
+              >
+                ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Payment Breakdown
+              </p>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                {[
+                  { label: "Cash", value: cashRevAll, color: T.green },
+                  { label: "GCash", value: gcashRevAll, color: T.gold },
+                ].map((s) => (
+                  <div key={s.label}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 5,
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 12 }}>
+                        {s.label}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          color: s.color,
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {fmt(s.value)}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 6,
+                        background: "rgba(255,255,255,0.04)",
+                        borderRadius: 99,
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 6,
+                          borderRadius: 99,
+                          background: s.color,
+                          width:
+                            revenue > 0
+                              ? `${(s.value / revenue) * 100}%`
+                              : "0%",
+                          transition: "width .4s",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {crewList.length > 0 && (
+            <div
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 20,
+              }}
+            >
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 16,
+                }}
+              >
+                ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Crew Performance
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))",
+                  gap: 10,
+                }}
+              >
+                {crewList.map(([name, count]) => (
+                  <div key={name}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 5,
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 12 }}>
+                        <Users
+                          size={11}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 4,
+                          }}
+                        />
+                        {name}
+                      </span>
+                      <span
+                        style={{
+                          color: T.cream,
+                          fontSize: 12,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {count}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 6,
+                        background: "rgba(255,255,255,0.05)",
+                        borderRadius: 99,
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 6,
+                          borderRadius: 99,
+                          background: T.blue,
+                          width: `${(count / (crewList[0][1] || 1)) * 100}%`,
+                          transition: "width .5s",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {topAllItems.length > 0 && (
+            <div
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 20,
+              }}
+            >
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 16,
+                }}
+              >
+                ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Best Sellers ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â All Time
+              </p>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
+                {topAllItems.map(([name, s], i) => (
+                  <div key={name}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: 5,
+                        gap: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          minWidth: 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "'Cinzel',serif",
+                            fontSize: 10,
+                            color: i === 0 ? T.gold : T.faint,
+                            fontWeight: 700,
+                            minWidth: 14,
+                            flexShrink: 0,
+                          }}
+                        >
+                          #{i + 1}
+                        </span>
+                        <span
+                          style={{
+                            color: T.cream,
+                            fontSize: 12,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {name}
+                        </span>
+                        <span
+                          style={{
+                            color: T.faint,
+                            fontSize: 10,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {s.qty}ÃƒÆ’Ã¢â‚¬â€
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          color: i === 0 ? T.gold : T.cream,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {fmt(s.revenue)}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 4,
+                        background: "rgba(255,255,255,0.04)",
+                        borderRadius: 99,
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 4,
+                          borderRadius: 99,
+                          background:
+                            i === 0
+                              ? T.gold
+                              : `rgba(34,197,94,${0.8 - i * 0.08})`,
+                          width: `${(s.revenue / (topAllItems[0][1].revenue || 1)) * 100}%`,
+                          transition: "width .4s",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div
+            style={{
+              background: T.bgCard,
+              border: `1px solid ${T.border}`,
+              borderRadius: 14,
+              padding: 20,
+            }}
+          >
+            <p
+              style={{
+                color: T.gold,
+                fontSize: 11,
+                letterSpacing: ".15em",
+                textTransform: "uppercase",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 16,
+              }}
+            >
+              ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Order Type Split
+            </p>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {[
+                {
+                  label: "Dine-In",
+                  count: dineInCount,
+                  color: T.green,
+                  icon: <Armchair size={24} />,
+                },
+                {
+                  label: "Delivery",
+                  count: deliveryCount,
+                  color: T.gold,
+                  icon: <Bike size={24} />,
+                },
+                {
+                  label: "Takeout",
+                  count: takeoutCount,
+                  color: T.blue,
+                  icon: <Coffee size={24} />,
+                },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  style={{
+                    flex: 1,
+                    minWidth: 80,
+                    background: "rgba(255,255,255,0.03)",
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 10,
+                    padding: 14,
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      marginBottom: 6,
+                      color: s.color,
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {s.icon}
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      fontSize: 20,
+                      fontWeight: 700,
+                      color: s.color,
+                    }}
+                  >
+                    {s.count}
+                  </p>
+                  <p style={{ color: T.muted, fontSize: 11, marginTop: 3 }}>
+                    {s.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <SalesCalendar orders={orders} dailyReports={dailyReports} />
         </div>
       )}
@@ -6144,7 +6514,7 @@ function AnalyticsTab({
   );
 }
 
-// ── GCASH PAYMENT SCREEN ─────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ GCASH PAYMENT SCREEN ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function GCashPaymentScreen({
   total,
   orderNumber,
@@ -6332,14 +6702,14 @@ function GCashPaymentScreen({
             cursor: "pointer",
           }}
         >
-          ✓ PAYMENT RECEIVED — CONFIRM ORDER
+          ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ PAYMENT RECEIVED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â CONFIRM ORDER
         </button>
       </div>
     </div>
   );
 }
 
-// ── ACCOUNTS TAB ─────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ACCOUNTS TAB ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function AccountsTab() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -6636,7 +7006,9 @@ function AccountsTab() {
                       letterSpacing: ".06em",
                     }}
                   >
-                    {r === "admin" ? "⚙ ADMIN" : "👤 CREW"}
+                    {r === "admin"
+                      ? "ÃƒÂ¢Ã…Â¡Ã¢â€žÂ¢ ADMIN"
+                      : "ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¤ CREW"}
                   </button>
                 ))}
               </div>
@@ -6673,7 +7045,7 @@ function AccountsTab() {
                 cursor: "pointer",
               }}
             >
-              {saving ? "CREATING…" : "CREATE ACCOUNT"}
+              {saving ? "CREATINGÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : "CREATE ACCOUNT"}
             </button>
             <button
               onClick={() => setShowForm(false)}
@@ -6702,7 +7074,7 @@ function AccountsTab() {
             fontSize: 12,
           }}
         >
-          Loading…
+          LoadingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
         </div>
       ) : accounts.length === 0 ? (
         <div
@@ -6710,7 +7082,7 @@ function AccountsTab() {
         >
           <Users size={40} style={{ margin: "0 auto 12px", opacity: 0.3 }} />
           <p style={{ fontSize: 14 }}>
-            No accounts yet — create your first one above
+            No accounts yet ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â create your first one above
           </p>
         </div>
       ) : (
@@ -6779,7 +7151,7 @@ function AccountsTab() {
                     <span
                       style={{ marginLeft: 8, color: T.faint, fontSize: 11 }}
                     >
-                      · {ago(acc.createdAt)}
+                      Ãƒâ€šÃ‚Â· {ago(acc.createdAt)}
                     </span>
                   )}
                 </p>
@@ -6807,7 +7179,7 @@ function AccountsTab() {
   );
 }
 
-// ── CREW TAB ─────────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ CREW TAB ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function CrewTab({
   menuItems,
   onOrderPlaced,
@@ -7118,7 +7490,7 @@ function CrewTab({
                         fontSize: 16,
                       }}
                     >
-                      −
+                      ÃƒÂ¢Ã‹â€ Ã¢â‚¬â„¢
                     </button>
                     <span
                       style={{
@@ -7265,9 +7637,9 @@ function CrewTab({
                 }}
               >
                 {submitting ? (
-                  "PLACING…"
+                  "PLACINGÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
                 ) : paymentMethod === "cash" ? (
-                  "💵 PLACE CASH ORDER"
+                  "ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Âµ PLACE CASH ORDER"
                 ) : (
                   <>
                     <QrCode size={14} /> PLACE ORDER & SHOW QR
@@ -7295,31 +7667,6 @@ function CrewTab({
 
   return (
     <>
-      {cancelTarget && (
-        <CancelReasonModal
-          onConfirm={async (reason) => {
-            const id = cancelTarget;
-            setCancelTarget(null);
-            const res = await fetch(`/api/orders/${id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                status: "cancelled",
-                cancelReason: reason,
-              }),
-            });
-            if (res.ok)
-              setMyOrders((p) =>
-                p.map((o) =>
-                  o._id === id
-                    ? { ...o, status: "cancelled", cancelReason: reason }
-                    : o,
-                ),
-              );
-          }}
-          onCancel={() => setCancelTarget(null)}
-        />
-      )}
       {receiptSrc && (
         <ImageLightbox src={receiptSrc} onClose={() => setReceiptSrc(null)} />
       )}
@@ -7392,7 +7739,7 @@ function CrewTab({
                       padding: "5px 12px",
                       borderRadius: 999,
                       cursor: "pointer",
-                      flexShrink: 0, // ← I added this
+                      flexShrink: 0, // ÃƒÂ¢Ã¢â‚¬Â Ã‚Â I added this
                       border: `1px solid ${a ? T.gold : T.border}`,
                       background: a ? T.gold : "transparent",
                       color: a ? "#0a0f0a" : T.muted,
@@ -7541,7 +7888,7 @@ function CrewTab({
             >
               <UtensilsCrossed size={16} />
               {cartCount > 0
-                ? `VIEW ORDER · ${fmt(cartTotal)} (${cartCount} items)`
+                ? `VIEW ORDER Ãƒâ€šÃ‚Â· ${fmt(cartTotal)} (${cartCount} items)`
                 : "Cart is empty"}
             </button>
           </div>
@@ -7574,7 +7921,8 @@ function CrewTab({
                 fontFamily: "'Cinzel',serif",
               }}
             >
-              ◆My Orders ({staffName}) — {myOrders.length}
+              ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â My Orders ({staffName}) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â{" "}
+              {myOrders.length}
             </p>
             <button
               onClick={fetchMyOrders}
@@ -7604,7 +7952,7 @@ function CrewTab({
                 fontSize: 12,
               }}
             >
-              Loading…
+              LoadingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
             </div>
           ) : myOrders.length === 0 ? (
             <div
@@ -7615,7 +7963,7 @@ function CrewTab({
                 fontSize: 13,
               }}
             >
-              No orders yet — place your first one above
+              No orders yet ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â place your first one above
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -7744,7 +8092,7 @@ function CrewTab({
                     </div>
                     <p style={{ color: T.muted, fontSize: 11 }}>
                       {o.items
-                        .map((it) => `${it.quantity}× ${it.name}`)
+                        .map((it) => `${it.quantity}ÃƒÆ’Ã¢â‚¬â€ ${it.name}`)
                         .join(", ")}
                     </p>
                     {o.status !== "completed" && o.status !== "cancelled" && (
@@ -7767,7 +8115,7 @@ function CrewTab({
                               cursor: "pointer",
                             }}
                           >
-                            → {STATUS_CFG[nextStatus].label}
+                            ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ {STATUS_CFG[nextStatus].label}
                           </button>
                         )}
                         {o.paymentStatus === "pending" && (
@@ -7834,7 +8182,7 @@ function CrewTab({
   );
 }
 
-// ── VOUCHERS ADMIN TAB ────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ VOUCHERS ADMIN TAB ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function VouchersAdminTab() {
   const [data, setData] = useState<{
     drinkRemaining: number;
@@ -7888,7 +8236,7 @@ function VouchersAdminTab() {
       if (res.ok) {
         setVerifyResult({
           ok: true,
-          msg: `✓ Valid! ${result.type === "drink" ? "🥤 Drink" : "🍽 Food"} voucher for ${result.customerName}. Marked as used.`,
+          msg: `ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Valid! ${result.type === "drink" ? "ÃƒÂ°Ã…Â¸Ã‚Â¥Ã‚Â¤ Drink" : "ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â½ Food"} voucher for ${result.customerName}. Marked as used.`,
         });
         setVerifyCode("");
         fetchVouchers();
@@ -7903,7 +8251,9 @@ function VouchersAdminTab() {
 
   if (!data)
     return (
-      <div style={{ color: T.muted, fontSize: 13, padding: 20 }}>Loading…</div>
+      <div style={{ color: T.muted, fontSize: 13, padding: 20 }}>
+        LoadingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+      </div>
     );
 
   return (
@@ -7927,7 +8277,7 @@ function VouchersAdminTab() {
             marginBottom: 12,
           }}
         >
-          ──Verify Voucher Code
+          ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Verify Voucher Code
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
@@ -7965,7 +8315,7 @@ function VouchersAdminTab() {
               cursor: verifyCode.trim() ? "pointer" : "not-allowed",
             }}
           >
-            {verifying ? "CHECKING…" : "VERIFY"}
+            {verifying ? "CHECKINGÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : "VERIFY"}
           </button>
         </div>
         {verifyResult && (
@@ -8060,7 +8410,8 @@ function VouchersAdminTab() {
             marginBottom: 16,
           }}
         >
-          ◆All Codes Today — {data.allCodes?.length || 0}
+          ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â All Codes Today ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â{" "}
+          {data.allCodes?.length || 0}
         </p>
         {!data.allCodes || data.allCodes.length === 0 ? (
           <p style={{ color: T.faint, fontSize: 13 }}>
@@ -8098,12 +8449,14 @@ function VouchersAdminTab() {
                       fontWeight: 600,
                     }}
                   >
-                    {r.type === "drink" ? "🥤 Drink" : "🍽 Food"}
+                    {r.type === "drink"
+                      ? "ÃƒÂ°Ã…Â¸Ã‚Â¥Ã‚Â¤ Drink"
+                      : "ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â½ Food"}
                   </span>
                   <span
                     style={{ fontSize: 13, color: T.cream, fontWeight: 600 }}
                   >
-                    {r.customerName || "—"}
+                    {r.customerName || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                   </span>
                   {r.code && (
                     <span
@@ -8137,7 +8490,9 @@ function VouchersAdminTab() {
                       border: `1px solid ${r.used ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)"}`,
                     }}
                   >
-                    {r.used ? "✗ Used" : "✓ Active"}
+                    {r.used
+                      ? "ÃƒÂ¢Ã…â€œÃ¢â‚¬â€ Used"
+                      : "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Active"}
                   </span>
                   <span style={{ fontSize: 11, color: T.muted }}>
                     {ago(r.redeemedAt)}
@@ -8157,7 +8512,8 @@ function VouchersAdminTab() {
             marginBottom: 16,
           }}
         >
-          ◆Today&apos;s Claims — {data.todayRedemptions.length}
+          ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Today&apos;s Claims ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â{" "}
+          {data.todayRedemptions.length}
         </p>
         {data.todayRedemptions.length === 0 ? (
           <p style={{ color: T.faint, fontSize: 13 }}>No claims today yet.</p>
@@ -8186,12 +8542,15 @@ function VouchersAdminTab() {
                       fontWeight: 600,
                     }}
                   >
-                    {r.type === "drink" ? "🥤 Drink" : "🍽 Food"} Voucher
+                    {r.type === "drink"
+                      ? "ÃƒÂ°Ã…Â¸Ã‚Â¥Ã‚Â¤ Drink"
+                      : "ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â½ Food"}{" "}
+                    Voucher
                   </span>
                   <span
                     style={{ fontSize: 13, color: T.cream, fontWeight: 600 }}
                   >
-                    {r.customerName || "—"}
+                    {r.customerName || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"}
                   </span>
                   {r.code && (
                     <span
@@ -8223,7 +8582,7 @@ function VouchersAdminTab() {
   );
 }
 
-// ── ROOT ──────────────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ROOT ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 export default function AdminDashboard() {
   const w = useWindowWidth();
   const isMobile = w < 640;
@@ -8243,12 +8602,12 @@ export default function AdminDashboard() {
   const [showPass, setShowPass] = useState(false);
 
   const [shopOpen, setShopOpen] = useState(true);
-  const [confirmClose, setConfirmClose] = useState(false);
-  const [shiftDate, setShiftDate] = useState<string | null>(null);
   const [shopToggling, setShopToggling] = useState(false);
   const [confirmPauseShop, setConfirmPauseShop] = useState(false);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [shopOpenedAt, setShopOpenedAt] = useState<string | null>(null);
+  const [closingDay, setClosingDay] = useState(false);
+  const [confirmCloseDay, setConfirmCloseDay] = useState(false);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [activeConfirm, setActiveConfirm] = useState<{
@@ -8302,46 +8661,51 @@ export default function AdminDashboard() {
       if (res.ok) {
         setShopOpen(next);
         if (next && !shopOpenedAt && newOpenedAt) setShopOpenedAt(newOpenedAt);
-        if (next) {
-          const statusRes = await fetch("/api/shop-status");
-          const statusData = await statusRes.json();
-          if (statusData.shiftDate) setShiftDate(statusData.shiftDate);
-        }
-
-        if (!next) {
-          // pass the shiftDate from state into daily-close
-          console.log("[toggleShop] closing with shiftDate:", shiftDate);
-        }
-
-        // When pausing, automatically save the daily report
-        if (!next) {
-          const closeRes = await fetch("/api/daily-close", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ openedAt: shopOpenedAt }),
-          });
-          if (closeRes.ok) {
-            setShiftDate(null);
-            setShopOpenedAt(null);
-            await fetchData();
-            fetch("/api/daily-close", { method: "GET" })
-              .then((r) => (r.ok ? r.json() : []))
-              .then((data) => {
-                if (Array.isArray(data)) setDailyReports(data);
-              })
-              .catch(() => {});
-            showToast("🚫 Store closed · Today's report saved ✓");
-          } else {
-            showToast("🚫 Store paused · Report save failed", false);
-          }
-        } else {
-          showToast(next ? "✓ Store is now open" : "🚫 Store is now closed");
-        }
+        showToast(
+          next
+            ? "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Ordering resumed"
+            : "ÃƒÂ°Ã…Â¸Ã…Â¡Ã‚Â« Ordering paused",
+        );
       }
     } catch {
       showToast("Failed to toggle shop status", false);
     }
     setShopToggling(false);
+  }
+
+  async function closeForDay() {
+    setClosingDay(true);
+    try {
+      const res = await fetch("/api/daily-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openedAt: shopOpenedAt }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDailyReports((p) => [
+          data.report,
+          ...p.filter((r) => r.dayKey !== data.report.dayKey),
+        ]);
+        setOrders([]);
+        setShopOpen(false);
+        setShopOpenedAt(null);
+        await fetch("/api/shop-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ open: false, openedAt: null }),
+        });
+        showToast(
+          `ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Day closed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${fmt(data.report.revenue)} saved`,
+        );
+      } else {
+        showToast("Failed to close day", false);
+      }
+    } catch {
+      showToast("Failed to close day", false);
+    }
+    setClosingDay(false);
+    setConfirmCloseDay(false);
   }
 
   function showToast(msg: string, ok = true) {
@@ -8357,14 +8721,11 @@ export default function AdminDashboard() {
       .then((d) => {
         setShopOpen(d.open);
         if (d.openedAt) setShopOpenedAt(d.openedAt);
-        if (d.shiftDate) setShiftDate(d.shiftDate);
       })
       .catch(() => {});
-    fetch("/api/daily-close", { method: "GET" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        if (Array.isArray(data)) setDailyReports(data);
-      })
+    fetch("/api/daily-close")
+      .then((r) => r.json())
+      .then(setDailyReports)
       .catch(() => {});
     const savedRole = localStorage.getItem("3s_role") as Role;
     const savedName = localStorage.getItem("3s_name") || "";
@@ -8383,7 +8744,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!role) return;
 
-    // SSE for instant updates — no polling needed
+    // SSE for instant updates ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no polling needed
     const es = new EventSource("/api/orders/stream");
     es.onmessage = () => {
       setTimeout(() => fetchData(true), 300);
@@ -8515,7 +8876,7 @@ export default function AdminDashboard() {
             console.error("sound error", e);
           }
           showToast(
-            `🔔 ${newOrders.length} new order${newOrders.length > 1 ? "s" : ""}!`,
+            `ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Â ${newOrders.length} new order${newOrders.length > 1 ? "s" : ""}!`,
           );
         }
         prevOrderIdsRef.current = new Set(fetched.map((o) => o._id));
@@ -8550,7 +8911,7 @@ export default function AdminDashboard() {
             : o,
         ),
       );
-      showToast(`→ ${STATUS_CFG[status].label}`);
+      showToast(`ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ${STATUS_CFG[status].label}`);
     } catch (e) {
       showToast("Failed to update order status", false);
       console.error(e);
@@ -8568,7 +8929,7 @@ export default function AdminDashboard() {
       setOrders((p) =>
         p.map((o) => (o._id === id ? { ...o, paymentStatus: "confirmed" } : o)),
       );
-      showToast("Payment confirmed ✓");
+      showToast("Payment confirmed ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“");
     } catch {
       showToast("Failed to confirm payment", false);
     }
@@ -8583,7 +8944,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ paymentMethod: method }),
       });
       if (!res.ok) throw new Error(await res.text());
-      // Update local state — payment is still pending, only method is now known
+      // Update local state ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â payment is still pending, only method is now known
       setOrders((p) =>
         p.map((o) => (o._id === id ? { ...o, paymentMethod: method } : o)),
       );
@@ -8782,7 +9143,7 @@ export default function AdminDashboard() {
                 opacity: loginLoading ? 0.8 : 1,
               }}
             >
-              {loginLoading ? "LOGGING IN…" : "LOGIN"}
+              {loginLoading ? "LOGGING INÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : "LOGIN"}
             </button>
           </div>
         </div>
@@ -8796,24 +9157,9 @@ export default function AdminDashboard() {
   const doneOrders = orders.filter(
     (o) => o.status === "completed" || o.status === "cancelled",
   );
-
-  // If we're closed and already filed today's report, show that —
-  // don't let the header drop to 0 just because orders got archived.
-  const todayCalKey = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
-  const todaysClosedReport = !shiftDate
-    ? dailyReports.find((r) => r.dayKey === todayCalKey)
-    : null;
-
-  const liveRevenue = orders
+  const revenue = orders
     .filter((o) => o.status === "completed")
     .reduce((s, o) => s + o.total, 0);
-  const revenue = todaysClosedReport ? todaysClosedReport.revenue : liveRevenue;
-  const totalOrdersCount = todaysClosedReport
-    ? todaysClosedReport.totalOrders
-    : orders.length;
 
   const ALL_TABS: {
     id: Tab;
@@ -8881,13 +9227,13 @@ export default function AdminDashboard() {
         .account-row:hover{border-color:${T.borderH} !important;}
         @keyframes spin{to{transform:rotate(360deg);}}
 
-        /* ── RESPONSIVE ─────────────────────────── */
-        /* tiny phones ≤ 380px */
+        /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ RESPONSIVE ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
+        /* tiny phones ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â¤ 380px */
         @media(max-width:380px){
           .modal-inner{padding:16px 14px!important;}
           .modal-inner h2{font-size:1.05rem!important;}
         }
-        /* landscape phones — modals overflow the short viewport */
+        /* landscape phones ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â modals overflow the short viewport */
         @media(orientation:landscape)and(max-height:520px){
           .modal-inner{
             padding:12px 18px!important;
@@ -8898,7 +9244,7 @@ export default function AdminDashboard() {
           .dash-map{height:150px!important;}
           .dash-content{padding:10px 12px!important;}
         }
-        /* tablet portrait 641 – 1024px */
+        /* tablet portrait 641 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ 1024px */
         @media(min-width:641px)and(max-width:1024px){
           .dash-content{padding:18px 14px!important;}
         }`}</style>
@@ -8959,7 +9305,10 @@ export default function AdminDashboard() {
                 <Shield size={10} /> ADMIN
               </>
             ) : (
-              <>👤 {isMobile ? staffName.split(" ")[0] : staffName}</>
+              <>
+                ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¤{" "}
+                {isMobile ? staffName.split(" ")[0] : staffName}
+              </>
             )}
           </div>
           {activeOrders.length > 0 && (
@@ -8981,7 +9330,7 @@ export default function AdminDashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isAdmin && (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {/* Status pill — shows current state, not clickable */}
+              {/* Status pill ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â shows current state, not clickable */}
               <span
                 style={{
                   display: "flex",
@@ -9013,10 +9362,37 @@ export default function AdminDashboard() {
                     flexShrink: 0,
                   }}
                 />
-                {shopOpen ? "STORE OPEN" : "STORE CLOSED"}
+                {shopOpen ? "STORE OPEN" : "STORE PAUSED"}
               </span>
-
-              {/* Action button — always shows what clicking will DO */}
+              {/* Close for Day */}
+              <button
+                onClick={() => setConfirmCloseDay(true)}
+                disabled={closingDay}
+                style={{
+                  padding: "7px 13px",
+                  background: "rgba(239,68,68,0.1)",
+                  border: "1px solid rgba(239,68,68,0.35)",
+                  borderRadius: 8,
+                  color: T.red,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: "'Cinzel',serif",
+                  letterSpacing: ".06em",
+                  cursor: closingDay ? "wait" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  opacity: closingDay ? 0.6 : 1,
+                }}
+              >
+                <PowerOff size={12} />
+                {closingDay
+                  ? "CLOSINGÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
+                  : isMobile
+                    ? "EOD"
+                    : "CLOSE DAY"}
+              </button>
+              {/* Action button ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â always shows what clicking will DO */}
               <button
                 onClick={async () => {
                   if (shopToggling) return;
@@ -9046,67 +9422,17 @@ export default function AdminDashboard() {
                 }}
               >
                 {shopToggling ? (
-                  "…"
+                  "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
                 ) : shopOpen ? (
                   <>
-                    <PowerOff size={12} /> CLOSE STORE
+                    <PowerOff size={12} /> PAUSE ORDERS
                   </>
                 ) : (
                   <>
-                    <Power size={12} /> OPEN STORE
+                    <Power size={12} /> RESUME ORDERS
                   </>
                 )}
               </button>
-              {/* {isAdmin && (
-                <button
-                  onClick={async () => {
-                    await fetch("/api/debug/reset-shift", { method: "POST" });
-                    setShopOpen(false);
-                    setShiftDate(null);
-                    setShopOpenedAt(null);
-                    showToast("Shift reset — ready to test again");
-                  }}
-                  style={{
-                    padding: "7px 13px",
-                    background: "rgba(168,85,247,0.12)",
-                    border: "1px solid rgba(168,85,247,0.45)",
-                    borderRadius: 8,
-                    color: T.purple,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    fontFamily: "'Cinzel',serif",
-                    letterSpacing: ".06em",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  🧪 RESET SHIFT
-                </button>
-              )} */}
-              {!shopOpen && shiftDate && (
-                <button
-                  onClick={() => setConfirmClose(true)}
-                  style={{
-                    padding: "7px 13px",
-                    background: "rgba(239,68,68,0.12)",
-                    border: "1px solid rgba(239,68,68,0.45)",
-                    borderRadius: 8,
-                    color: T.red,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    fontFamily: "'Cinzel',serif",
-                    letterSpacing: ".06em",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  <PowerOff size={12} /> CLOSE DAY
-                </button>
-              )}
             </div>
           )}
           {!isMobile && (
@@ -9126,41 +9452,6 @@ export default function AdminDashboard() {
               }}
             >
               <RefreshCw size={13} /> Refresh
-            </button>
-          )}
-          {isAdmin && !isMobile && (
-            <button
-              onClick={async () => {
-                if (
-                  !confirm(
-                    "Wipe ALL orders and reports? This cannot be undone.",
-                  )
-                )
-                  return;
-                await fetch("/api/debug/wipe-data", { method: "POST" });
-                setOrders([]);
-                setDailyReports([]);
-                setShiftDate(null);
-                setShopOpenedAt(null);
-                showToast("All data wiped ✓");
-              }}
-              style={{
-                padding: "7px 13px",
-                background: "rgba(239,68,68,0.08)",
-                border: "1px solid rgba(239,68,68,0.3)",
-                borderRadius: 8,
-                color: T.red,
-                fontSize: 11,
-                fontWeight: 700,
-                fontFamily: "'Cinzel',serif",
-                letterSpacing: ".06em",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-              }}
-            >
-              <Trash2 size={12} /> WIPE DATA
             </button>
           )}
           <button
@@ -9207,7 +9498,7 @@ export default function AdminDashboard() {
           />
           <StatCard
             label="Total Orders"
-            value={String(totalOrdersCount)}
+            value={String(orders.length)}
             icon={<Clock size={20} />}
           />
           {isAdmin && (
@@ -9308,7 +9599,7 @@ export default function AdminDashboard() {
                   marginBottom: 12,
                 }}
               >
-                ◆Active — {activeOrders.length}
+                ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Active ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {activeOrders.length}
               </p>
               {/* Table grouping indicator */}
               {(() => {
@@ -9347,7 +9638,8 @@ export default function AdminDashboard() {
                           fontWeight: 600,
                         }}
                       >
-                        <Users size={13} /> Table {table} — {count} groups
+                        <Users size={13} /> Table {table} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â{" "}
+                        {count} groups
                       </div>
                     ))}
                   </div>
@@ -9402,7 +9694,8 @@ export default function AdminDashboard() {
                     marginTop: 8,
                   }}
                 >
-                  ◆Completed & Cancelled — {doneOrders.length}
+                  ÃƒÂ¢Ã¢â‚¬â€Ã¢â‚¬Â Completed & Cancelled ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â{" "}
+                  {doneOrders.length}
                 </p>
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 8 }}
@@ -9432,11 +9725,7 @@ export default function AdminDashboard() {
         ) : tab === "menu" ? (
           <MenuTab items={menuItems} onRefresh={() => fetchData(true)} />
         ) : tab === "analytics" ? (
-          <AnalyticsTab
-            orders={orders}
-            dailyReports={dailyReports}
-            activeShiftDate={shiftDate}
-          />
+          <AnalyticsTab orders={orders} dailyReports={dailyReports} />
         ) : tab === "board" ? (
           <BoardTab posts={posts} setPosts={setPosts} />
         ) : tab === "vouchers" ? (
@@ -9446,42 +9735,23 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {confirmCloseDay && (
+        <ConfirmModal
+          danger={true}
+          message={`Close for the day?\n\nThis will archive all ${orders.length} orders, save today's full report to the calendar, and clear the orders tab for tomorrow.\n\nToday's revenue: ${fmt(orders.filter((o) => o.status === "completed").reduce((s, o) => s + o.total, 0))}`}
+          onConfirm={closeForDay}
+          onCancel={() => setConfirmCloseDay(false)}
+        />
+      )}
       {confirmPauseShop && (
         <ConfirmModal
           danger={false}
-          message={`Close the store for ${shiftDate ?? "today"}? This will save today's report and archive all orders.`}
+          message="Pause all ordering? Customers won't be able to check out until you resume."
           onConfirm={() => {
             setConfirmPauseShop(false);
             toggleShop(false);
           }}
           onCancel={() => setConfirmPauseShop(false)}
-        />
-      )}
-      {confirmClose && (
-        <ConfirmModal
-          danger={false}
-          message={`Close the day for ${shiftDate}? This will archive all orders and save the daily report. This cannot be undone.`}
-          onConfirm={async () => {
-            setConfirmClose(false);
-            try {
-              const res = await fetch("/api/daily-close", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ openedAt: shopOpenedAt }),
-              });
-              if (res.ok) {
-                showToast("Day closed and report saved ✓");
-                setShiftDate(null);
-                fetchData();
-              } else {
-                const data = await res.json();
-                showToast(data.error || "Failed to close day", false);
-              }
-            } catch {
-              showToast("Failed to close day", false);
-            }
-          }}
-          onCancel={() => setConfirmClose(false)}
         />
       )}
       {activeConfirm?.type === "order" && (

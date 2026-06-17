@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  const query: any = {};
+  const query: any = { archived: { $ne: true } };
   if (status) query.status = status;
   if (type) query.type = type;
   if (from || to) {
@@ -51,23 +51,36 @@ export async function POST(req: NextRequest) {
   await connectDB();
   const body = await req.json();
 
-  // Block orders when shop is paused
+  // Block orders when shop is paused + resolve active shiftDate
+  const { default: mongoose } = await import("mongoose");
+  const Setting =
+    mongoose.models.Setting ||
+    mongoose.model(
+      "Setting",
+      new mongoose.Schema({
+        key: String,
+        open: Boolean,
+        openedAt: { type: String, default: null },
+        shiftDate: { type: String, default: null },
+      }),
+    );
+  const shopDoc = await Setting.findOne({ key: "shopStatus" }).lean();
+
   if (body.source !== "crew") {
-    const { default: mongoose } = await import("mongoose");
-    const Setting =
-      mongoose.models.Setting ||
-      mongoose.model(
-        "Setting",
-        new mongoose.Schema({ key: String, open: Boolean }),
-      );
-    const shopStatus = await Setting.findOne({ key: "shopStatus" }).lean();
-    if (shopStatus && (shopStatus as any).open === false) {
+    if (shopDoc && (shopDoc as any).open === false) {
       return NextResponse.json(
         { error: "Ordering is currently paused." },
         { status: 503 },
       );
     }
   }
+
+  const shiftDate =
+    (shopDoc as any)?.shiftDate ??
+    (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    })();
 
   const {
     type,
@@ -151,6 +164,7 @@ export async function POST(req: NextRequest) {
   const order = await Order.create({
     orderNumber: generateOrderNumber(),
     type,
+    shiftDate,
     items: normalizedItems,
     total,
     customerName,

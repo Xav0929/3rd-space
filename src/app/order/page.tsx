@@ -5404,6 +5404,7 @@ export default function OrderPage() {
   const [voucherType, setVoucherType] = useState<"drink" | "food" | null>(null);
   const [shopOpen, setShopOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState("");
   const [confirmed, setConfirmed] = useState<Order | null>(null);
   const [form, setForm] = useState<any>({
     customerName: "",
@@ -5420,6 +5421,15 @@ export default function OrderPage() {
       .then((r) => r.json())
       .then((d) => setShopOpen(d.open))
       .catch(() => {});
+
+    const interval = setInterval(() => {
+      fetch("/api/shop-status")
+        .then((r) => r.json())
+        .then((d) => setShopOpen(d.open))
+        .catch(() => {});
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   async function fetchMenu() {
@@ -5469,6 +5479,18 @@ export default function OrderPage() {
   async function submitOrder() {
     try {
       setSubmitting(true);
+      const statusCheck = await fetch("/api/shop-status")
+        .then((r) => r.json())
+        .catch(() => ({ open: true }));
+      if (!statusCheck.open) {
+        setShopOpen(false);
+        setOrderError(
+          "Store is currently closed — ordering is paused. Please try again later.",
+        );
+        setTimeout(() => setOrderError(""), 6000);
+        setSubmitting(false);
+        return;
+      }
       const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
       const deliveryFee =
         orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
@@ -5545,7 +5567,16 @@ export default function OrderPage() {
       setReceiptUrl("");
       setReceiptKey("");
     } catch (e: any) {
-      alert(e.message || "Something went wrong. Try again.");
+      const msg = e.message || "Something went wrong. Try again.";
+      const isClosedError =
+        msg.toLowerCase().includes("closed") ||
+        msg.toLowerCase().includes("paused");
+      setOrderError(
+        isClosedError
+          ? "Store is currently closed — please contact us directly to process your order."
+          : msg,
+      );
+      setTimeout(() => setOrderError(""), 6000);
     } finally {
       setSubmitting(false);
     }
@@ -5613,6 +5644,34 @@ export default function OrderPage() {
         .mode-card:hover .mode-card-title { color: ${G}; }
         .mode-card-title { transition: color .22s; }
       `}</style>
+      {orderError && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 100,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            background: "#1a0a0a",
+            border: "1px solid rgba(239,68,68,0.6)",
+            color: "#f87171",
+            borderRadius: 12,
+            padding: "14px 24px",
+            fontSize: 13,
+            fontWeight: 600,
+            backdropFilter: "blur(12px)",
+            maxWidth: "calc(100vw - 32px)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.8)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            whiteSpace: "normal",
+            textAlign: "center",
+          }}
+        >
+          <AlertCircle size={14} style={{ flexShrink: 0 }} /> {orderError}
+        </div>
+      )}
       {step === "mode-select" && (
         <ModeSelectScreen
           shopOpen={shopOpen}
@@ -5644,7 +5703,20 @@ export default function OrderPage() {
           orderType={orderType}
           form={form}
           onFormChange={changeForm}
-          onNext={() => setStep("payment")}
+          onNext={async () => {
+            const statusCheck = await fetch("/api/shop-status")
+              .then((r) => r.json())
+              .catch(() => ({ open: true }));
+            if (!statusCheck.open) {
+              setShopOpen(false);
+              setOrderError(
+                "Store is currently closed — ordering is paused. Please try again later.",
+              );
+              setTimeout(() => setOrderError(""), 6000);
+              return;
+            }
+            setStep("payment");
+          }}
           onBack={back}
           voucherCode={voucherCode}
           setVoucherCode={setVoucherCode}
