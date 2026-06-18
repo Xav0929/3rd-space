@@ -3828,13 +3828,11 @@ function MenuTab({
   function startEdit(item: MenuItem) {
     setShowForm(false);
     setEditItem(item);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function startAdd() {
     setEditItem(null);
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const formKey = editItem ? `edit-${editItem._id}` : "add-new";
@@ -3902,16 +3900,49 @@ function MenuTab({
         </div>
       </div>
 
-      {(showForm || editItem) && (
+      {showForm && (
         <MenuItemForm
-          key={formKey}
-          item={editItem || undefined}
+          key="add-new"
+          item={undefined}
           onSave={saveItem}
-          onCancel={() => {
-            setShowForm(false);
-            setEditItem(null);
-          }}
+          onCancel={() => setShowForm(false)}
         />
+      )}
+
+      {editItem && (
+        <div
+          onClick={(e) => e.target === e.currentTarget && setEditItem(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(0,0,0,0.78)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "90svh",
+              overflowY: "auto",
+              background: "#0f1a0f",
+              borderRadius: 16,
+              boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
+            }}
+          >
+            <MenuItemForm
+              key={`edit-${editItem._id}`}
+              item={editItem}
+              onSave={saveItem}
+              onCancel={() => setEditItem(null)}
+            />
+          </div>
+        </div>
       )}
 
       {categories.map((cat) => (
