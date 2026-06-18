@@ -28,10 +28,20 @@ export async function POST(req: NextRequest) {
         { status: 401 },
       );
 
-    return NextResponse.json({
+    const { signSession } = await import("@/lib/auth");
+    const token = signSession(account.role, account.displayName);
+    const res = NextResponse.json({
       role: account.role,
       displayName: account.displayName,
     });
+    res.cookies.set("3s_session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+    return res;
   } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }

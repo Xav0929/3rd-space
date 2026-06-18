@@ -8498,6 +8498,7 @@ export default function AdminDashboard() {
   }
 
   function logout() {
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     setRole(null);
     setStaffName("");
     setUsername("");
