@@ -8290,6 +8290,21 @@ export default function AdminDashboard() {
     type: "order";
   } | null>(null);
   const prevOrderIdsRef = useRef<Set<string>>(new Set());
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    const unlock = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
+      }
+      if (audioCtxRef.current.state === "suspended")
+        audioCtxRef.current.resume();
+    };
+    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("click", unlock, { once: true });
+  }, []);
 
   const playNotification = useRef<() => void>(() => {});
 
@@ -8416,19 +8431,22 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!role) return;
+    let es: EventSource;
 
-    // SSE for instant updates — no polling needed
-    const es = new EventSource("/api/orders/stream");
-    es.onmessage = () => {
-      setTimeout(() => fetchData(true), 300);
-    };
-    // Fallback: if SSE dies, poll every 30s instead of 15s
-    es.onerror = () => es.close();
-    const id = setInterval(() => fetchData(true), 30000);
+    function connect() {
+      es = new EventSource("/api/orders/stream");
+      es.onmessage = () => setTimeout(() => fetchData(true), 300);
+      es.onerror = () => {
+        es.close();
+        setTimeout(connect, 3000);
+      };
+    }
 
+    connect();
+    const id = setInterval(() => fetchData(true), 15000);
     return () => {
       clearInterval(id);
-      es.close();
+      es?.close();
     };
   }, [role]);
 
@@ -8525,9 +8543,11 @@ export default function AdminDashboard() {
         );
         if (prevOrderIdsRef.current.size > 0 && newOrders.length > 0) {
           try {
-            const ctx = new (
-              window.AudioContext || (window as any).webkitAudioContext
-            )();
+            const ctx =
+              audioCtxRef.current ||
+              new (window.AudioContext || (window as any).webkitAudioContext)();
+            audioCtxRef.current = ctx;
+            if (ctx.state === "suspended") await ctx.resume();
             const beep = (freq: number, start: number, dur: number) => {
               const o = ctx.createOscillator();
               const g = ctx.createGain();
@@ -8535,7 +8555,7 @@ export default function AdminDashboard() {
               g.connect(ctx.destination);
               o.frequency.value = freq;
               o.type = "sine";
-              g.gain.setValueAtTime(0.5, ctx.currentTime + start);
+              g.gain.setValueAtTime(1.0, ctx.currentTime + start);
               g.gain.exponentialRampToValueAtTime(
                 0.001,
                 ctx.currentTime + start + dur,
@@ -8543,9 +8563,9 @@ export default function AdminDashboard() {
               o.start(ctx.currentTime + start);
               o.stop(ctx.currentTime + start + dur + 0.05);
             };
-            beep(880, 0, 0.15);
-            beep(1100, 0.2, 0.15);
-            beep(1320, 0.4, 0.3);
+            beep(880, 0, 0.2);
+            beep(1100, 0.25, 0.2);
+            beep(1320, 0.5, 0.4);
           } catch (e) {
             console.error("sound error", e);
           }
@@ -9019,7 +9039,7 @@ export default function AdminDashboard() {
               {/* Status pill — shows current state, not clickable */}
               <span
                 style={{
-                  display: "flex",
+                  display: isMobile ? "none" : "flex",
                   alignItems: "center",
                   gap: 5,
                   padding: "5px 10px",
@@ -9084,11 +9104,23 @@ export default function AdminDashboard() {
                   "…"
                 ) : shopOpen ? (
                   <>
-                    <PowerOff size={12} /> CLOSE STORE
+                    {isMobile ? (
+                      <PowerOff size={14} />
+                    ) : (
+                      <>
+                        <PowerOff size={12} /> CLOSE STORE
+                      </>
+                    )}
                   </>
                 ) : (
                   <>
-                    <Power size={12} /> OPEN STORE
+                    {isMobile ? (
+                      <Power size={14} />
+                    ) : (
+                      <>
+                        <Power size={12} /> OPEN STORE
+                      </>
+                    )}
                   </>
                 )}
               </button>

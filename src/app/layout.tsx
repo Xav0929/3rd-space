@@ -38,10 +38,12 @@ export const metadata: Metadata = {
     default: "3RD SPACE — Your Cozy Corner Away From Home",
     template: "%s — 3RD SPACE",
   },
-  description: "A cozy café and community space. Relax, create, breathe.",
+  description:
+    "3RD SPACE is a cozy café and community hub in Cabanatuan City. Order ahead, browse our menu, and join the community.",
   openGraph: {
     title: "3RD SPACE — Your Cozy Corner Away From Home",
-    description: "A cozy café and community space. Relax, create, breathe.",
+    description:
+      "3RD SPACE is a cozy café and community hub in Cabanatuan City. Order ahead, browse our menu, and join the community.",
     url: "https://www.3rdspace.shop",
     siteName: "3RD SPACE",
     images: [
