@@ -34,6 +34,7 @@ import {
   Coffee,
   Power,
   PowerOff,
+  Copy as CopyIcon,
 } from "lucide-react";
 
 const T = {
@@ -4176,6 +4177,7 @@ function SalesCalendar({
 }) {
   const calendarRef = useRef<HTMLDivElement>(null);
   const [copying, setCopying] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -4274,6 +4276,8 @@ function SalesCalendar({
           new ClipboardItem({ "image/png": blob }),
         ]);
         setCopying(false);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       } catch {
         // fallback: download if clipboard not supported
         const url = URL.createObjectURL(blob);
@@ -4283,6 +4287,8 @@ function SalesCalendar({
         a.click();
         URL.revokeObjectURL(url);
         setCopying(false);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }
     } catch (e) {
       console.error(e);
@@ -4360,21 +4366,42 @@ function SalesCalendar({
             onClick={copyAsImage}
             disabled={copying}
             style={{
-              padding: "6px 12px",
-              background: "rgba(212,168,67,0.08)",
-              border: `1px solid ${T.borderH}`,
+              padding: "6px 14px",
+              minWidth: 92,
+              background: copied
+                ? "rgba(34,197,94,0.12)"
+                : "rgba(212,168,67,0.08)",
+              border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : T.borderH}`,
               borderRadius: 8,
-              color: T.gold,
+              color: copied ? T.green : T.gold,
               fontSize: 11,
               cursor: copying ? "wait" : "pointer",
               display: "flex",
               alignItems: "center",
-              gap: 5,
+              justifyContent: "center",
+              gap: 6,
               fontFamily: "'Cinzel',serif",
               letterSpacing: ".06em",
+              transition: "all .15s",
             }}
           >
-            {copying ? "…" : "📷 COPY"}
+            {copying ? (
+              <>
+                <RefreshCw
+                  size={12}
+                  style={{ animation: "spin .7s linear infinite" }}
+                />{" "}
+                COPYING
+              </>
+            ) : copied ? (
+              <>
+                <Check size={12} /> COPIED
+              </>
+            ) : (
+              <>
+                <CopyIcon size={12} /> COPY
+              </>
+            )}
           </button>
           <button
             onClick={() => {
@@ -8589,6 +8616,15 @@ export default function AdminDashboard() {
     status: OrderStatus,
     reason?: string,
   ) {
+    const prevOrders = orders;
+    setOrders((p) =>
+      p.map((o) =>
+        o._id === id
+          ? { ...o, status, ...(reason ? { cancelReason: reason } : {}) }
+          : o,
+      ),
+    );
+    showToast(`→ ${STATUS_CFG[status].label}`);
     try {
       const body: any = { status };
       if (reason) body.cancelReason = reason;
@@ -8598,21 +8634,19 @@ export default function AdminDashboard() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(await res.text());
-      setOrders((p) =>
-        p.map((o) =>
-          o._id === id
-            ? { ...o, status, ...(reason ? { cancelReason: reason } : {}) }
-            : o,
-        ),
-      );
-      showToast(`→ ${STATUS_CFG[status].label}`);
     } catch (e) {
+      setOrders(prevOrders);
       showToast("Failed to update order status", false);
       console.error(e);
     }
   }
 
   async function confirmPayment(id: string) {
+    const prevOrders = orders;
+    setOrders((p) =>
+      p.map((o) => (o._id === id ? { ...o, paymentStatus: "confirmed" } : o)),
+    );
+    showToast("Payment confirmed ✓");
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: "PATCH",
@@ -8620,17 +8654,19 @@ export default function AdminDashboard() {
         body: JSON.stringify({ paymentStatus: "confirmed" }),
       });
       if (!res.ok) throw new Error(await res.text());
-      setOrders((p) =>
-        p.map((o) => (o._id === id ? { ...o, paymentStatus: "confirmed" } : o)),
-      );
-      showToast("Payment confirmed ✓");
     } catch {
+      setOrders(prevOrders);
       showToast("Failed to confirm payment", false);
     }
   }
 
   // NEW: only updates the method, does NOT mark as paid
   async function setPaymentMethod(id: string, method: "cash" | "gcash") {
+    const prevOrders = orders;
+    setOrders((p) =>
+      p.map((o) => (o._id === id ? { ...o, paymentMethod: method } : o)),
+    );
+    showToast(`Payment method set to ${method}`);
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: "PATCH",
@@ -8638,12 +8674,8 @@ export default function AdminDashboard() {
         body: JSON.stringify({ paymentMethod: method }),
       });
       if (!res.ok) throw new Error(await res.text());
-      // Update local state — payment is still pending, only method is now known
-      setOrders((p) =>
-        p.map((o) => (o._id === id ? { ...o, paymentMethod: method } : o)),
-      );
-      showToast(`Payment method set to ${method}`);
     } catch {
+      setOrders(prevOrders);
       showToast("Failed to set payment method", false);
     }
   }
@@ -9152,28 +9184,6 @@ export default function AdminDashboard() {
                   🧪 RESET SHIFT
                 </button>
               )} */}
-              {!shopOpen && shiftDate && (
-                <button
-                  onClick={() => setConfirmClose(true)}
-                  style={{
-                    padding: "7px 13px",
-                    background: "rgba(239,68,68,0.12)",
-                    border: "1px solid rgba(239,68,68,0.45)",
-                    borderRadius: 8,
-                    color: T.red,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    fontFamily: "'Cinzel',serif",
-                    letterSpacing: ".06em",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  <PowerOff size={12} /> CLOSE DAY
-                </button>
-              )}
             </div>
           )}
           {!isMobile && (
