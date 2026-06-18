@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { notifyClients } from "@/lib/sse";
-import { isAdminAuthenticated } from "@/lib/auth";
 
 function generateOrderNumber() {
   const date = new Date();
@@ -219,9 +218,6 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!(await isAdminAuthenticated()))
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   await connectDB();
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
