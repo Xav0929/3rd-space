@@ -64,7 +64,13 @@ export const EVENTS: Event[] = [
       "Post-screening discussion (optional)",
       "Full drinks menu open throughout",
     ],
-    gallery: [],
+    gallery: [
+      "/images/events/gallery/film-1.png",
+      "/images/events/gallery/film-2.png",
+      "/images/events/gallery/film-3.png",
+      "/images/events/gallery/film-4.png",
+      "/images/events/gallery/film-5.png",
+    ],
   },
   {
     id: "sober-saturday",
@@ -85,7 +91,13 @@ export const EVENTS: Event[] = [
       "Board games and open seating",
       "Usually our most relaxed night of the week",
     ],
-    gallery: [],
+    gallery: [
+      "/images/events/gallery/sober-1.png",
+      "/images/events/gallery/sober-2.png",
+      "/images/events/gallery/sober-3.png",
+      "/images/events/gallery/sober-4.png",
+      "/images/events/gallery/sober-5.png",
+    ],
   },
   {
     id: "sing-sunday",

@@ -25,8 +25,15 @@ const cinzel = Cinzel({
   display: "swap",
 });
 
+export const viewport = {
+  themeColor: "#0b1510",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.3rdspace.shop"),
+  manifest: "/manifest.json",
   title: {
     default: "3RD SPACE — Your Cozy Corner Away From Home",
     template: "%s — 3RD SPACE",
