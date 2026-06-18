@@ -11,7 +11,7 @@ const STAFF_ROUTES = [
 const PROTECTED_WRITES = ["/api/menu", "/api/orders"];
 const WRITE_METHODS = ["POST", "PATCH", "PUT", "DELETE"];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const method = req.method;
 
@@ -39,7 +39,7 @@ export function middleware(req: NextRequest) {
 
   // ── GET SESSION ────────────────────────────────────────────────
   const token = req.cookies.get("3s_session")?.value;
-  const session = token ? verifySession(token) : null;
+  const session = token ? await verifySession(token) : null;
 
   // ── ADMIN-ONLY ─────────────────────────────────────────────────
   if (ADMIN_ROUTES.some((p) => pathname.startsWith(p))) {

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       );
 
     const { signSession } = await import("@/lib/auth");
-    const token = signSession(account.role, account.displayName);
+    const token = await signSession(account.role, account.displayName);
     const res = NextResponse.json({
       role: account.role,
       displayName: account.displayName,
