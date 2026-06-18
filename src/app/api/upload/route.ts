@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
   }
 
   const key = `menu/${uuidv4()}.${ext}`;
-  const url = await uploadToR2(key, buffer, contentType);
+  await uploadToR2(key, buffer, contentType);
+  const url = `https://cdn.3rdspace.shop/${key}`;
 
   return NextResponse.json({ url, key });
 }

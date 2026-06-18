@@ -27,7 +27,7 @@ const partners = [
     tagline: "Readings & Guidance",
     description:
       "Clarity through the cards. Spiritual insight for every seeker.",
-    href: "https://www.facebook.com/johnnystarot",
+    href: "https://www.tiktok.com/@johnnywitchcakes?_r=1&_t=ZS-97JkYzEVNC8",
     logo: "/partners/johnnys-tarot.png",
   },
 ];
