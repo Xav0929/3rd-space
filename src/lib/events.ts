@@ -119,7 +119,13 @@ export const EVENTS: Event[] = [
       "5-minute slots, extendable if space allows",
       "Supportive crowd, guaranteed",
     ],
-    gallery: [],
+    gallery: [
+      "/images/events/gallery/slow-1.png",
+      "/images/events/gallery/slow-2.png",
+      "/images/events/gallery/slow-3.png",
+      "/images/events/gallery/slow-4.png",
+      "/images/events/gallery/slow-5.png",
+    ],
   },
 ];
 
