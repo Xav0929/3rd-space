@@ -22,7 +22,7 @@ export const EVENTS: Event[] = [
     fullDay: "Thursday",
     name: "TAROT",
     label: "TAROT THURSDAY",
-    time: "7:00 – 10:00 PM",
+    time: "6:00 PM onwards",
     desc: "Pull a card. Sip something warm. Let the night tell you what you already know.",
     longDesc:
       "Every Thursday night, 3rd Space becomes a quieter version of itself. A resident reader sets up in the corner, cards face down. You order something warm, you sit, and maybe you ask a question you've been avoiding. No mysticism required — just curiosity and good coffee.",
@@ -50,7 +50,7 @@ export const EVENTS: Event[] = [
     fullDay: "Friday",
     name: "FILM",
     label: "FREE MIC & FILM FRIDAY",
-    time: "8:00 – 11:00 PM",
+    time: "6:00 PM onwards",
     desc: "Curated films. Dim lights. Great coffee. Something different every week.",
     longDesc:
       "Film Friday is not a movie theater — it's a conversation starter. We screen something short, strange, or overlooked every week. The kind of film that makes you want to talk to the person next to you afterward. Films announced every Thursday on Instagram.",
@@ -78,7 +78,7 @@ export const EVENTS: Event[] = [
     fullDay: "Saturday",
     name: "SOBER",
     label: "SOBER SATURDAY",
-    time: "6:00 – 11:00 PM",
+    time: "6:00 PM onwards",
     desc: "No alcohol. No pressure. Just people being present — and really good coffee.",
     longDesc:
       "One Saturday a month, we go fully alcohol-free. The full venue runs on mocktails, specialty coffee, and people who actually want to be there. No explanations needed for why you're not drinking — nobody's asking.",
