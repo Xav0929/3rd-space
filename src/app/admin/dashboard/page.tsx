@@ -2054,8 +2054,8 @@ function OrderCard({
   // Only mount map/tracking when card is open
   const isDeliveryOpen = open && order.type === "delivery";
 
-  function printReceipt() {
-    const receiptBytes = buildEscPosReceipt({
+async function printReceipt() {
+    const receiptBytes = await buildEscPosReceipt({
       orderNumber: order.orderNumber,
       type: order.type,
       tableNumber: order.tableNumber,

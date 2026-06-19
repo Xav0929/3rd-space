@@ -8,7 +8,60 @@ function textToBytes(str: string): number[] {
   });
 }
 
-export function buildEscPosReceipt(order: {
+function loadImageElement(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+export async function imageUrlToEscPosRaster(
+  url: string,
+  maxWidthPx = 240,
+): Promise<number[]> {
+  const img = await loadImageElement(url);
+
+  let width = Math.min(img.naturalWidth, maxWidthPx);
+  width = width - (width % 8); // must be multiple of 8 to pack cleanly
+  if (width <= 0) width = 8;
+  const height = Math.round((img.naturalHeight / img.naturalWidth) * width);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+
+  const { data } = ctx.getImageData(0, 0, width, height);
+  const widthBytes = width / 8;
+  const bitmap = new Array(widthBytes * height).fill(0);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const alpha = data[i + 3];
+      if (alpha > 127) {
+        const byteIndex = y * widthBytes + Math.floor(x / 8);
+        const bitIndex = 7 - (x % 8);
+        bitmap[byteIndex] |= 1 << bitIndex;
+      }
+    }
+  }
+
+  const GS = 0x1d;
+  const wL = widthBytes & 0xff;
+  const wH = (widthBytes >> 8) & 0xff;
+  const hL = height & 0xff;
+  const hH = (height >> 8) & 0xff;
+
+  return [GS, 0x76, 0x30, 0x00, wL, wH, hL, hH, ...bitmap];
+}
+
+export async function buildEscPosReceipt(order: {
   orderNumber: string;
   type: "delivery" | "dine-in" | "takeout";
   tableNumber?: string;
@@ -18,7 +71,7 @@ export function buildEscPosReceipt(order: {
   total: number;
   deliveryFee?: number;
   paymentMethod?: string;
-}): Uint8Array {
+}): Promise<Uint8Array> {
   const ESC = 0x1b;
   const GS = 0x1d;
   const bytes: number[] = [];
@@ -34,12 +87,15 @@ export function buildEscPosReceipt(order: {
 
   // Center align
   push(ESC, 0x61, 0x01);
-  // Bold on, double size
-  push(ESC, 0x45, 0x01);
-  push(GS, 0x21, 0x11);
-  line("3RD SPACE");
-  push(GS, 0x21, 0x00); // normal size
-  push(ESC, 0x45, 0x00); // bold off
+
+  // Logo image instead of plain "3RD SPACE" text
+  const logoBytes = await imageUrlToEscPosRaster(
+    `${window.location.origin}/logo.png`,
+    240,
+  );
+  push(...logoBytes);
+  push(0x0a); // feed one line after the image
+
   line("OFFICIAL RECEIPT");
   line("--------------------------------");
 
