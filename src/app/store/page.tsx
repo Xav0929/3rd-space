@@ -45,7 +45,7 @@ const BUSINESSES: Business[] = [
         name: "Chili Garlic Sauce",
         description:
           "Made from fresh chili, garlic, and pure coconut oil — no mushrooms, no soy, no fillers. Two heat levels: Mild for the cautious, Wild for everyone else. Goes on rice, noodles, fried anything.",
-        price: "₱199",
+        price: "₱95",
         tag: "Available: Mild & Wild",
         shopLink: "https://vt.tiktok.com/ZS9jfmAuVdJfN-GR8kg/",
         images: [
@@ -70,7 +70,7 @@ const BUSINESSES: Business[] = [
         name: "House Pastillas",
         description:
           "Made fresh, the slow way. Soft milk candy rolled to order — no artificial flavoring, no shortcuts. Comes in a pack that disappears faster than you'd think.",
-        price: "₱XXX",
+        price: "₱20",
         tag: "House Favorite",
         shopLink: "https://vt.tiktok.com/ZS9jfmfmY9kYf-GJxRx/",
         images: [

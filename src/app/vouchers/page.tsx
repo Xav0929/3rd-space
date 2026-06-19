@@ -1151,7 +1151,10 @@ export default function VouchersPage() {
                 >
                   {[
                     ["1", "Enter your name and claim a voucher above"],
-                    ["2", "Visit 3rd Space and dine in (Daily 9am – 12am)"],
+                    [
+                      "2",
+                      "Visit 3rd Space and dine in (Daily 8am – 12 Midnight)",
+                    ],
                     ["3", "Tell staff you have a voucher — they'll verify it"],
                     ["4", "Enjoy your discount!"],
                   ].map(([num, step]) => (

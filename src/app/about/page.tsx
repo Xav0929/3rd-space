@@ -759,7 +759,7 @@ export default function AboutPage() {
                       num: "10+",
                       label: "Events that brought people together",
                     },
-                    { num: "8am–12am", label: "Every single day, we're here" },
+                    { num: "8am–12mn", label: "Every single day, we're here" },
                   ].map((s) => (
                     <div
                       key={s.label}
