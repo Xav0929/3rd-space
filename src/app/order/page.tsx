@@ -173,7 +173,7 @@ interface Order {
   orderNumber: string;
   type: OrderType;
 }
-type PayMethod = "cash" | "gcash" | "pay-later";
+type PayMethod = "cash" | "gcash";
 type Step = "mode-select" | "menu" | "checkout" | "payment" | "confirmed";
 
 /* ─── PH PHONE HELPERS ────────────────────────────────────────────────────── */
@@ -4059,7 +4059,7 @@ function PaymentScreen({
    *   - gcash + delivery:        uploaded screenshot
    */
   const canConfirm: boolean =
-    effectiveMethod === "cash" || effectiveMethod === "pay-later"
+    effectiveMethod === "cash"
       ? true
       : effectiveMethod === "gcash" && orderType !== "delivery"
         ? hasCopied && sentConfirmed
@@ -4304,7 +4304,7 @@ function PaymentScreen({
                   />
                   {cart.map((item) => (
                     <div
-                      key={item._id}
+                      key={item.cartKey}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -4386,160 +4386,6 @@ function PaymentScreen({
               >
                 <Receipt size={16} />
                 {submitting ? "PLACING ORDER…" : "SUBMIT ORDER → GET RECEIPT"}
-              </button>
-            </>
-          )}
-
-          {/* ── PAY LATER ── */}
-          {effectiveMethod === "pay-later" && (
-            <>
-              <SectionTitle>Pay Later</SectionTitle>
-              <div
-                style={{
-                  background: CARD,
-                  border: `1px solid ${BR}`,
-                  borderRadius: 14,
-                  padding: "18px 16px",
-                  marginBottom: 18,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 12,
-                    marginBottom: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 999,
-                      background: GD,
-                      border: `1.5px solid ${G}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <HelpCircle size={18} color={G} />
-                  </div>
-                  <div>
-                    <p
-                      style={{
-                        color: C,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        marginBottom: 4,
-                      }}
-                    >
-                      No problem — decide when you're done eating.
-                    </p>
-                    <p style={{ color: CM, fontSize: 12, lineHeight: 1.6 }}>
-                      Your order will be placed now. When you're ready to pay,
-                      just let the staff know whether you'll pay cash or GCash.
-                    </p>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    background: "rgba(212,168,67,.05)",
-                    border: `1px solid ${BR}`,
-                    borderRadius: 10,
-                    padding: "12px 14px",
-                  }}
-                >
-                  {form.tableNumber && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: 6,
-                      }}
-                    >
-                      <span style={{ color: CM, fontSize: 12 }}>Table</span>
-                      <span style={{ color: C, fontSize: 12, fontWeight: 600 }}>
-                        {form.tableNumber}
-                      </span>
-                    </div>
-                  )}
-                  {cart.map((item) => (
-                    <div
-                      key={item._id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: 5,
-                        gap: 10,
-                      }}
-                    >
-                      <span style={{ color: CM, fontSize: 12, flex: 1 }}>
-                        {item.name} ×{item.quantity}
-                      </span>
-                      <span style={{ color: C, fontSize: 12, flexShrink: 0 }}>
-                        ₱{(item.price * item.quantity).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
-                  <div style={{ height: 1, background: BR, margin: "8px 0" }} />
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: "'Cinzel',serif",
-                        color: C,
-                        fontSize: 11,
-                        letterSpacing: ".08em",
-                      }}
-                    >
-                      TOTAL
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "'Cinzel',serif",
-                        color: G,
-                        fontSize: 18,
-                        fontWeight: 700,
-                      }}
-                    >
-                      ₱{total.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={onConfirm}
-                disabled={submitting}
-                style={{
-                  width: "100%",
-                  background: G,
-                  color: BG,
-                  border: "none",
-                  borderRadius: 14,
-                  padding: "clamp(14px,4vw,17px) 16px",
-                  fontFamily: "'Cinzel',serif",
-                  fontSize: "clamp(13px,3vw,14px)",
-                  letterSpacing: ".12em",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  opacity: submitting ? 0.6 : 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                  touchAction: "manipulation",
-                  minHeight: 52,
-                }}
-              >
-                <Receipt size={16} />
-                {submitting ? "PLACING ORDER…" : "PLACE ORDER → PAY LATER"}
               </button>
             </>
           )}
@@ -5150,7 +4996,6 @@ function ConfirmationScreen({
   onNewOrder: () => void;
 }) {
   const isCash = paymentMethod === "cash" && orderType === "dine-in";
-  const isPayLater = paymentMethod === "pay-later";
   const isDelivery = orderType === "delivery";
   const isTakeout = orderType === "takeout";
 
@@ -5160,31 +5005,14 @@ function ConfirmationScreen({
       .filter(Boolean)
       .join(", ");
   };
-  const headline =
-    isPayLater || isCash || isTakeout ? "ORDER PLACED!" : "ORDER CONFIRMED!";
-  const icon =
-    isCash || isPayLater ? (
-      <Receipt size={34} color={BG} strokeWidth={2} />
-    ) : (
-      <Check size={34} color={BG} strokeWidth={3} />
-    );
+  const headline = isCash || isTakeout ? "ORDER PLACED!" : "ORDER CONFIRMED!";
+  const icon = isCash ? (
+    <Receipt size={34} color={BG} strokeWidth={2} />
+  ) : (
+    <Check size={34} color={BG} strokeWidth={3} />
+  );
 
   const message = () => {
-    if (isPayLater)
-      return (
-        <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
-          Your order is in! Just let the staff know when you're ready to pay —
-          cash or GCash, your call.
-          {form.tableNumber && (
-            <>
-              {" "}
-              Sit tight at{" "}
-              <strong style={{ color: C }}>{form.tableNumber}</strong> and we'll
-              bring it over.
-            </>
-          )}
-        </p>
-      );
     if (isCash)
       return (
         <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
@@ -5520,7 +5348,7 @@ export default function OrderPage() {
         })),
         total,
         notes: form.notes || undefined,
-        paymentMethod: eff === "pay-later" ? "pending" : eff,
+        paymentMethod: eff,
       };
       if (orderType === "delivery") {
         Object.assign(payload, {
@@ -5600,7 +5428,7 @@ export default function OrderPage() {
     setCart([]);
     setReceiptUrl("");
     setReceiptKey("");
-    setPaymentMethod("pay-later");
+    setPaymentMethod("cash");
     setForm({
       customerName: "",
       customerContact: "",

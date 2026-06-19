@@ -91,14 +91,6 @@ interface Post {
   link?: string;
 }
 
-interface Partner {
-  id: number;
-  name: string;
-  description: string;
-  fbHref: string;
-  emoji: string;
-}
-
 type OrderStatus =
   | "pending"
   | "confirmed"
@@ -196,33 +188,6 @@ type Account = {
 };
 
 const INITIAL_POSTS: Post[] = [];
-
-const partners: Partner[] = [
-  {
-    id: 1,
-    name: "Chollibay",
-    description:
-      "Local homegrown eats & street bites. Check their page for daily specials and collab menus with 3rd Space.",
-    fbHref: "https://facebook.com",
-    emoji: "🍢",
-  },
-  {
-    id: 2,
-    name: "Pastillas ni Lola",
-    description:
-      "Handmade pastillas straight from the province. Sold exclusively at 3rd Space every weekend.",
-    fbHref: "https://facebook.com",
-    emoji: "🍬",
-  },
-  {
-    id: 3,
-    name: "Brain Fuel Co.",
-    description:
-      "Productivity tools, planners & merch for students and creatives. Look for their pop-up at our café.",
-    fbHref: "https://facebook.com",
-    emoji: "🧠",
-  },
-];
 
 const TAG_STYLES: Record<Tag, { bg: string; color: string; label: string }> = {
   PINNED: {
@@ -472,83 +437,6 @@ function BoardPostCard({
           ✕
         </button>
       )}
-    </div>
-  );
-}
-
-function BoardPartnerCard({ partner }: { partner: Partner }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${T.border}`,
-        padding: "clamp(1.1rem, 2.2vw, 1.5rem)",
-        display: "flex",
-        gap: "1rem",
-        alignItems: "flex-start",
-        background: "rgba(232,213,163,0.02)",
-        borderRadius: 8,
-      }}
-    >
-      <div
-        style={{
-          width: 44,
-          height: 44,
-          background: "rgba(212,168,67,0.18)",
-          border: "1px solid rgba(212,168,67,0.2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 20,
-          flexShrink: 0,
-          borderRadius: 4,
-        }}
-      >
-        {partner.emoji}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h4
-          style={{
-            fontFamily: "'Cinzel',serif",
-            fontWeight: 700,
-            fontSize: "1rem",
-            color: T.cream,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            margin: "0 0 0.3rem",
-          }}
-        >
-          {partner.name}
-        </h4>
-        <p
-          style={{
-            fontSize: "0.84rem",
-            color: T.muted,
-            lineHeight: 1.6,
-            margin: "0 0 0.75rem",
-          }}
-        >
-          {partner.description}
-        </p>
-        <a
-          href={partner.fbHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: "0.7rem",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            color: T.muted,
-            textDecoration: "none",
-            border: `1px solid ${T.border}`,
-            padding: "5px 12px",
-          }}
-        >
-          Visit Page
-        </a>
-      </div>
     </div>
   );
 }
@@ -2054,7 +1942,7 @@ function OrderCard({
   // Only mount map/tracking when card is open
   const isDeliveryOpen = open && order.type === "delivery";
 
-async function printReceipt() {
+  async function printReceipt() {
     const receiptBytes = await buildEscPosReceipt({
       orderNumber: order.orderNumber,
       type: order.type,
