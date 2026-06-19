@@ -416,14 +416,14 @@ export default function HeroSection() {
                   href="/order"
                   className="hero-order-mobile"
                   style={{
-                    marginTop: "1.4rem",
-                    padding: "0.85rem 2.2rem",
+                    marginTop: "1rem",
+                    padding: "0.6rem 1.5rem",
                     background: "#e8d5a3",
                     color: "#0f1a0f",
                     fontFamily: YK,
                     fontWeight: 700,
-                    fontSize: "1rem",
-                    letterSpacing: "0.15em",
+                    fontSize: "0.85rem",
+                    letterSpacing: "0.12em",
                     textTransform: "uppercase",
                     textDecoration: "none",
                     boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
