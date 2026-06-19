@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useRef } from "react";
+import { buildEscPosReceipt, escPosToRawBtUrl } from "@/lib/escpos";
 import {
   ChevronDown,
   ChevronUp,
@@ -2054,90 +2055,18 @@ function OrderCard({
   const isDeliveryOpen = open && order.type === "delivery";
 
   function printReceipt() {
-    const win = window.open("", "_blank", "width=400,height=600");
-    if (!win) return;
-    const now = new Date().toLocaleString("en-PH", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
+    const receiptBytes = buildEscPosReceipt({
+      orderNumber: order.orderNumber,
+      type: order.type,
+      tableNumber: order.tableNumber,
+      customerName: order.customerName,
+      items: order.items,
+      total: order.total,
+      deliveryFee: (order as any).deliveryFee,
+      paymentMethod: order.paymentMethod,
     });
-    const itemRows = order.items
-      .map(
-        (it) =>
-          `<tr>
-        <td style="padding:3px 0;font-size:12px;">${it.quantity}× ${it.name}</td>
-        <td style="padding:3px 0;text-align:right;font-size:12px;">₱${(it.price * it.quantity).toFixed(2)}</td>
-      </tr>`,
-      )
-      .join("");
-    const typeLabel =
-      order.type === "dine-in"
-        ? `Dine-in · Table ${order.tableNumber || "?"}`
-        : order.type === "takeout"
-          ? "Takeout"
-          : "Delivery";
-    const payLabel =
-      order.paymentMethod === "cash"
-        ? "Cash"
-        : order.paymentMethod === "gcash"
-          ? "GCash"
-          : "—";
-
-    win.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"/>
-<style>
-  @page { size: 58mm auto; margin: 1mm 2mm; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; width: 48mm; padding: 2mm 0; background: #fff; color: #000; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .logo { display: block; width: 44px; height: 44px; object-fit: contain; margin: 0 auto 2mm; filter: invert(1); }
-  .name { font-size: 14px; font-weight: 700; text-align: center; letter-spacing: .1em; font-family: sans-serif; }
-  .sub { font-size: 9px; text-align: center; color: #444; letter-spacing: .08em; margin-top: 1mm; }
-  .divider { border: none; border-top: 1px dashed #888; margin: 2mm 0; }
-  .divider-solid { border: none; border-top: 1px solid #000; margin: 2mm 0; }
-  .order-num { font-size: 15px; font-weight: bold; text-align: center; margin: 2mm 0 1mm; }
-  .meta { font-size: 10px; text-align: center; color: #444; line-height: 1.5; }
-  .badge { display: inline-block; border: 1px solid #000; padding: 0 2mm; font-size: 9px; font-weight: bold; letter-spacing: .06em; margin: 1mm 0; }
-  table { width: 100%; border-collapse: collapse; margin: 1mm 0; }
-  td { font-size: 10px; padding: 1mm 0; vertical-align: top; }
-  .total-row td { font-weight: bold; font-size: 12px; padding-top: 2mm; border-top: 1px dashed #888; }
-  .footer { font-size: 9px; text-align: center; color: #555; margin-top: 3mm; line-height: 1.7; }
-  @media print { html, body { width: 48mm; } }
-</style>
-</head><body>
-<img src="${window.location.origin}/logo.png" class="logo" onerror="this.style.display='none'" />
-  <div class="name">3RD SPACE</div>
-  <div class="sub">OFFICIAL RECEIPT</div>
-  <hr class="divider-solid"/>
-  <div class="order-num">#${order.orderNumber}</div>
-  <div class="meta">${now}</div>
-  <div class="meta"><span class="badge">${typeLabel.toUpperCase()}</span></div>
-  ${order.customerName ? `<div class="meta" style="margin-top:1mm;">${order.customerName}</div>` : ""}
-  ${order.type === "delivery" && order.deliveryAddress ? `<div class="meta" style="font-size:8px;margin-top:1mm;">${order.deliveryAddress}</div>` : ""}
-  <hr class="divider"/>
-  <table>
-    <tr><td style="font-weight:bold;font-size:9px;letter-spacing:.06em;">ITEM</td><td style="font-weight:bold;font-size:9px;letter-spacing:.06em;text-align:right;">AMT</td></tr>
-  </table>
-  <hr class="divider"/>
-  <table>${itemRows}</table>
-  <table>
-    ${
-      (order as any).deliveryFee > 0
-        ? `
-    <tr><td style="color:#555;">Subtotal</td><td style="text-align:right;color:#555;">₱${(order.total - (order as any).deliveryFee).toFixed(2)}</td></tr>
-    <tr><td style="color:#555;">Delivery fee</td><td style="text-align:right;color:#555;">₱${(order as any).deliveryFee}</td></tr>`
-        : ""
-    }
-    <tr class="total-row"><td>TOTAL</td><td style="text-align:right;">₱${order.total.toFixed(2)}</td></tr>
-    <tr><td style="font-size:9px;color:#555;padding-top:1mm;">Payment</td><td style="font-size:9px;color:#555;text-align:right;padding-top:1mm;">${payLabel}</td></tr>
-  </table>
-  <hr class="divider-solid"/>
-  <div class="footer">Thank you for visiting!<br/>3rd Space Cafe · Nueva Ecija<br/>================================</div>
-  <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};}<\/script>
-</body></html>`);
-    win.document.close();
+    const url = escPosToRawBtUrl(receiptBytes);
+    window.location.href = url;
   }
 
   // Determine what to show for payment method
