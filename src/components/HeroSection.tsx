@@ -85,11 +85,23 @@ export default function HeroSection() {
   return (
     <>
       <style>{`
-        .hero-bottom-row {
+.hero-bottom-row {
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
           padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
+        }
+.hero-order-mobile {
+          display: none;
+        }
+        .hero-headline-row {
+          align-items: center;
+        }
+        @media (max-width: 640px) {
+          .hero-headline-row {
+            align-items: flex-end;
+            padding-bottom: 0.5rem;
+          }
         }
         @media (max-width: 640px) {
           .hero-bottom-row {
@@ -100,6 +112,9 @@ export default function HeroSection() {
           }
           .hero-voucher {
             align-self: flex-start;
+          }
+          .hero-order-mobile {
+            display: inline-block;
           }
         }
         .voucher-cta:hover .voucher-preview-img {
@@ -346,10 +361,10 @@ export default function HeroSection() {
 
             {/* MIDDLE — headline */}
             <div
+              className="hero-headline-row"
               style={{
                 flex: 1,
                 display: "flex",
-                alignItems: "center",
                 justifyContent: "flex-end",
               }}
             >
@@ -397,6 +412,27 @@ export default function HeroSection() {
                   <br />
                   From Home
                 </h1>
+                <Link
+                  href="/order"
+                  className="hero-order-mobile"
+                  style={{
+                    marginTop: "1.4rem",
+                    padding: "0.85rem 2.2rem",
+                    background: "#e8d5a3",
+                    color: "#0f1a0f",
+                    fontFamily: YK,
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    letterSpacing: "0.15em",
+                    textTransform: "uppercase",
+                    textDecoration: "none",
+                    boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+                    opacity: loaded ? 1 : 0,
+                    transition: "opacity 0.8s ease 0.6s",
+                  }}
+                >
+                  Order Now →
+                </Link>
               </div>
             </div>
 
