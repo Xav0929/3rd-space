@@ -2292,8 +2292,11 @@ function OrderCard({
   }
 
   // Determine what to show for payment method
-  const methodKnown = order.paymentMethod && order.paymentMethod !== "pending";
-  const methodPending = order.paymentMethod === "pending";
+  // Anything that isn't explicitly "cash" or "gcash" counts as pending —
+  // this covers "pending", null, undefined, or any other stray value.
+  const methodKnown =
+    order.paymentMethod === "cash" || order.paymentMethod === "gcash";
+  const methodPending = !methodKnown;
 
   return (
     <>
@@ -2339,7 +2342,14 @@ function OrderCard({
           onConfirm={async (cashReceived, change) => {
             setShowCashRegister(false);
             await onCashConfirm(order._id, cashReceived, change);
-            printReceipt(1, { cashReceived, change });
+            // If the order was still "pending", this register run was
+            // triggered by the blue confirm button — advance it too.
+            if (order.status === "pending" && nextStatus) {
+              await onStatusChange(order._id, nextStatus);
+              printReceipt(2, { cashReceived, change });
+            } else {
+              printReceipt(1, { cashReceived, change });
+            }
           }}
           onCancel={() => setShowCashRegister(false)}
         />
@@ -3271,9 +3281,8 @@ function OrderCard({
                     </div>
                   )}
 
-                  {/* Step 2: Once method is known (or was always known), confirm payment */}
-                  {(methodKnown ||
-                    (!methodPending && order.paymentMethod == null)) && (
+                  {/* Step 2: Once method is known, confirm payment */}
+                  {methodKnown && (
                     <div>
                       {methodKnown && (
                         <p
@@ -3341,33 +3350,6 @@ function OrderCard({
                       </button>
                     </div>
                   )}
-
-                  {/* Edge case: method not set at all (gcash/cash orders without receiptUrl) */}
-                  {!methodKnown &&
-                    !methodPending &&
-                    order.paymentMethod == null && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onPaymentConfirm(order._id);
-                        }}
-                        style={{
-                          width: "100%",
-                          padding: "10px 12px",
-                          background: "rgba(34,197,94,0.12)",
-                          border: "1px solid rgba(34,197,94,0.4)",
-                          color: T.green,
-                          borderRadius: 8,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontFamily: "'Cinzel',serif",
-                          letterSpacing: ".06em",
-                        }}
-                      >
-                        ✓ CONFIRM PAYMENT RECEIVED
-                      </button>
-                    )}
                 </div>
               )}
             </div>
@@ -3387,6 +3369,16 @@ function OrderCard({
                 <button
                   onClick={async (e) => {
                     e.stopPropagation();
+                    // Unpaid cash order — send them to the register instead
+                    // of silently advancing without collecting the money.
+                    if (
+                      order.status === "pending" &&
+                      order.paymentMethod === "cash" &&
+                      order.paymentStatus !== "confirmed"
+                    ) {
+                      setShowCashRegister(true);
+                      return;
+                    }
                     const shouldPrint = order.status === "pending";
                     await onStatusChange(order._id, nextStatus);
                     if (shouldPrint) printReceipt(2);
