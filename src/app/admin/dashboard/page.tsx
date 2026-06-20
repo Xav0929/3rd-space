@@ -3362,16 +3362,6 @@ function OrderCard({
                 <button
                   onClick={async (e) => {
                     e.stopPropagation();
-                    // Unpaid cash order — send them to the register instead
-                    // of silently advancing without collecting the money.
-                    if (
-                      order.status === "pending" &&
-                      order.paymentMethod === "cash" &&
-                      order.paymentStatus !== "confirmed"
-                    ) {
-                      setShowCashRegister(true);
-                      return;
-                    }
                     const shouldPrint = order.status === "pending";
                     await onStatusChange(order._id, nextStatus);
                     if (shouldPrint) printReceipt(2);
@@ -5433,11 +5423,9 @@ function TodayReport({
         `<tr><td>${label}</td><td style="text-align:right;font-weight:700;">${value}</td></tr>`;
       const cashReconRows = hasCashRecon
         ? `
-            <tr class="section"><td colspan="2">CASH RECONCILIATION</td></tr>
+<tr class="section"><td colspan="2">CASH RECONCILIATION</td></tr>
             ${row("Starting cash", `₱${(closedReport.startingCash || 0).toFixed(2)}`)}
             ${row("Cash sales", `₱${closedReport.cashRev.toFixed(2)}`)}
-            ${row("Paid in", `+₱${(closedReport.paidInTotal || 0).toFixed(2)}`)}
-            ${row("Paid out", `−₱${(closedReport.paidOutTotal || 0).toFixed(2)}`)}
             ${row("Expected cash", `₱${(closedReport.expectedCash || 0).toFixed(2)}`)}
             ${row("Counted cash", closedReport.countedCash != null ? `₱${closedReport.countedCash.toFixed(2)}` : "—")}
             ${row(
@@ -5575,8 +5563,6 @@ function TodayReport({
               {[
                 ["Starting cash", fmt(closedReport.startingCash || 0), T.cream],
                 ["Cash sales", fmt(closedReport.cashRev), T.green],
-                ["Paid in", `+${fmt(closedReport.paidInTotal || 0)}`, T.green],
-                ["Paid out", `−${fmt(closedReport.paidOutTotal || 0)}`, T.red],
                 ["Expected cash", fmt(closedReport.expectedCash || 0), T.gold],
                 [
                   "Counted cash",
@@ -9310,7 +9296,6 @@ function CashLogModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── CLOSE SHIFT MODAL ────────────────────────────────────────────────────────
 function CloseShiftModal({
   cashRevToday,
   onConfirm,
@@ -9322,8 +9307,6 @@ function CloseShiftModal({
 }) {
   const [loading, setLoading] = useState(true);
   const [startingCash, setStartingCash] = useState(0);
-  const [paidInTotal, setPaidInTotal] = useState(0);
-  const [paidOutTotal, setPaidOutTotal] = useState(0);
   const [countedInput, setCountedInput] = useState("");
 
   useEffect(() => {
@@ -9331,16 +9314,6 @@ function CloseShiftModal({
       .then((r) => r.json())
       .then((d) => {
         setStartingCash(d.startingCash || 0);
-        const pi = (d.paidIn || []).reduce(
-          (s: number, e: any) => s + (e.amount || 0),
-          0,
-        );
-        const po = (d.paidOut || []).reduce(
-          (s: number, e: any) => s + (e.amount || 0),
-          0,
-        );
-        setPaidInTotal(pi);
-        setPaidOutTotal(po);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -9352,7 +9325,7 @@ function CloseShiftModal({
     return () => window.removeEventListener("keydown", fn);
   }, [onCancel]);
 
-  const expected = startingCash + cashRevToday + paidInTotal - paidOutTotal;
+  const expected = startingCash + cashRevToday;
   const counted = parseFloat(countedInput);
   const hasCounted = countedInput !== "" && !isNaN(counted);
   const diff = hasCounted ? counted - expected : 0;
@@ -9435,9 +9408,6 @@ function CloseShiftModal({
           >
             {row("Starting cash", fmt(startingCash))}
             {row("Cash sales today", fmt(cashRevToday), T.green)}
-            {paidInTotal > 0 && row("Paid in", `+${fmt(paidInTotal)}`, T.green)}
-            {paidOutTotal > 0 &&
-              row("Paid out", `−${fmt(paidOutTotal)}`, T.red)}
             <div
               style={{
                 borderTop: `1px solid ${T.border}`,
@@ -9583,7 +9553,6 @@ export default function AdminDashboard() {
   const [confirmPauseShop, setConfirmPauseShop] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
-  const [showCashLogModal, setShowCashLogModal] = useState(false);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [shopOpenedAt, setShopOpenedAt] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
@@ -10480,29 +10449,6 @@ export default function AdminDashboard() {
                   </>
                 )}
               </button>
-              {shopOpen && (
-                <button
-                  onClick={() => setShowCashLogModal(true)}
-                  style={{
-                    padding: "7px 13px",
-                    background: "rgba(91,155,213,0.1)",
-                    border: "1px solid rgba(91,155,213,0.35)",
-                    borderRadius: 8,
-                    color: T.blue,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    fontFamily: "'Cinzel',serif",
-                    letterSpacing: ".06em",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  <Banknote size={12} />
-                  {!isMobile && " CASH IN/OUT"}
-                </button>
-              )}
               {/* {isAdmin && (
                 <button
                   onClick={async () => {
@@ -10894,9 +10840,6 @@ export default function AdminDashboard() {
           }}
           onCancel={() => setShowCloseShiftModal(false)}
         />
-      )}
-      {showCashLogModal && (
-        <CashLogModal onClose={() => setShowCashLogModal(false)} />
       )}
       {confirmPauseShop && (
         <ConfirmModal
