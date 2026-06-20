@@ -183,18 +183,7 @@ export async function buildEscPosReceipt(order: {
   line("--------------------------------");
   push(ESC, 0x61, 0x01); // center
 
-  // QR code — scan to visit the shop
-  try {
-    line("Visit 3rdspace.shop");
-    const qrBytes = await imageUrlToEscPosRaster(
-      `${window.location.origin}/qr-code.png`,
-      200,
-    );
-    push(...qrBytes);
-    push(0x0a);
-  } catch {
-    // missing/broken QR image — skip silently, don't block the receipt
-  }
+  line("Visit 3rdspace.shop");
 
   line("Thank you for visiting!");
   line("3rd Space Cafe - Nueva Ecija");
