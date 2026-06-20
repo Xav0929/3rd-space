@@ -71,6 +71,8 @@ export async function buildEscPosReceipt(order: {
   total: number;
   deliveryFee?: number;
   paymentMethod?: string;
+  cashReceived?: number;
+  change?: number;
 }): Promise<Uint8Array> {
   const ESC = 0x1b;
   const GS = 0x1d;
@@ -158,8 +160,35 @@ export async function buildEscPosReceipt(order: {
     line(`Payment: ${order.paymentMethod.toUpperCase()}`);
   }
 
+  if (order.paymentMethod === "cash" && order.cashReceived != null) {
+    const lC = "Cash Received";
+    const rC = `P${order.cashReceived.toFixed(2)}`;
+    line(lC + " ".repeat(Math.max(1, 32 - lC.length - rC.length)) + rC);
+
+    const changeAmt = order.change ?? order.cashReceived - order.total;
+    const lG = "Change";
+    const rG = `P${changeAmt.toFixed(2)}`;
+    push(ESC, 0x45, 0x01);
+    line(lG + " ".repeat(Math.max(1, 32 - lG.length - rG.length)) + rG);
+    push(ESC, 0x45, 0x00);
+  }
+
   line("--------------------------------");
   push(ESC, 0x61, 0x01); // center
+
+  // QR code — scan to order delivery
+  try {
+    line("SCAN TO ORDER DELIVERY");
+    const qrBytes = await imageUrlToEscPosRaster(
+      `${window.location.origin}/qr-code.png`,
+      200,
+    );
+    push(...qrBytes);
+    push(0x0a);
+  } catch {
+    // missing/broken QR image — skip silently, don't block the receipt
+  }
+
   line("Thank you for visiting!");
   line("3rd Space Cafe - Nueva Ecija");
   line("");

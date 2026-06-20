@@ -123,6 +123,8 @@ type Order = {
   waiterName?: string;
   cancelReason?: string;
   deliveryFee?: number;
+  cashReceived?: number;
+  changeGiven?: number;
   archived?: boolean;
   archivedAt?: string;
   deliveryAddressDetails?: {
@@ -445,7 +447,7 @@ function BoardPostModal({
   onPost,
   onClose,
 }: {
-  onPost: (post: Omit<Post, "id">) => void;
+  onPost: (post: Omit<Post, "id">) => Promise<void>;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState("");
@@ -457,27 +459,38 @@ function BoardPostModal({
   const [image, setImage] = useState("");
   const [link, setLink] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [postErr, setPostErr] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim() || !body.trim()) return;
     const tilt = Math.random() * 2.4 - 1.2;
     const date = new Date().toLocaleString("en-US", {
       month: "long",
       year: "numeric",
     });
-    onPost({
-      tag,
-      pinned,
-      pinColor,
-      date,
-      title,
-      body,
-      image: image || undefined,
-      link: link || undefined,
-      tilt,
-      size,
-    });
-    onClose();
+    setPosting(true);
+    setPostErr("");
+    try {
+      await onPost({
+        tag,
+        pinned,
+        pinColor,
+        date,
+        title,
+        body,
+        image: image || undefined,
+        link: link || undefined,
+        tilt,
+        size,
+      });
+      onClose();
+    } catch (err) {
+      console.error("[BoardPostModal] post failed", err);
+      setPostErr("Failed to post — check your connection and try again.");
+    } finally {
+      setPosting(false);
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -763,6 +776,45 @@ function BoardPostModal({
                   if (res.ok) {
                     const data = await res.json();
                     setImage(data.url);
+                  } else {
+                    const errText = await res.text().catch(() => "");
+                    console.error(
+                      "[BoardPostModal] upload failed",
+                      res.status,
+                      errText,
+                    );
+                    alert(
+                      `Image upload failed (${res.status}). Check console for details.`,
+                    );
+                  }
+                } catch (err) {
+                  console.error("[BoardPostModal] upload network error", err);
+                  alert("Image upload failed — network error.");
+                } finally {
+                  setUploading(false);
+                }
+                e.target.value = "";
+              }}
+            />{" "}
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(true);
+                const fd = new FormData();
+                fd.append("file", file);
+                try {
+                  const res = await fetch("/api/upload", {
+                    method: "POST",
+                    body: fd,
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setImage(data.url);
                   }
                 } catch {}
                 setUploading(false);
@@ -793,9 +845,27 @@ function BoardPostModal({
           />
         </div>
 
+        {postErr && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: "rgba(239,68,68,0.85)",
+              fontSize: 12,
+              background: "rgba(239,68,68,0.07)",
+              border: "1px solid rgba(239,68,68,0.2)",
+              borderRadius: 8,
+              padding: "9px 12px",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <AlertCircle size={13} /> {postErr}
+          </div>
+        )}
         <button
           onClick={handleSubmit}
-          disabled={!title.trim() || !body.trim() || uploading}
+          disabled={!title.trim() || !body.trim() || uploading || posting}
           style={{
             width: "100%",
             fontFamily: "'Cinzel',serif",
@@ -808,11 +878,14 @@ function BoardPostModal({
             color: title.trim() && body.trim() ? "#0a0f0a" : T.muted,
             border: "none",
             padding: "0.85rem",
-            cursor: title.trim() && body.trim() ? "pointer" : "not-allowed",
+            cursor:
+              title.trim() && body.trim() && !posting
+                ? "pointer"
+                : "not-allowed",
             borderRadius: 10,
           }}
         >
-          Pin It to The Board
+          {posting ? "Posting…" : "Pin It to The Board"}
         </button>
       </div>
     </div>
@@ -840,6 +913,11 @@ function BoardTab({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(postData),
     });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error("[BoardTab.handleNewPost] failed", res.status, errText);
+      throw new Error(`Failed to create post (${res.status})`);
+    }
     const saved = await res.json();
     setPosts((prev) => [{ ...saved, id: saved._id }, ...prev]);
   };
@@ -1322,6 +1400,239 @@ function CancelReasonModal({
             }}
           >
             Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CASH REGISTER MODAL ──────────────────────────────────────────────────────
+function CashRegisterModal({
+  total,
+  orderNumber,
+  onConfirm,
+  onCancel,
+}: {
+  total: number;
+  orderNumber: string;
+  onConfirm: (cashReceived: number, change: number) => void;
+  onCancel: () => void;
+}) {
+  const [cashInput, setCashInput] = useState("");
+  const cashReceived = parseFloat(cashInput) || 0;
+  const change = cashReceived - total;
+  const valid = cashReceived >= total;
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onCancel]);
+
+  const QUICK_AMOUNTS = [
+    total,
+    ...[20, 50, 100, 200, 500, 1000].filter((v) => v >= total),
+  ].slice(0, 5);
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 380,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <Banknote
+            size={32}
+            color={T.green}
+            style={{ margin: "0 auto 8px" }}
+          />
+          <p
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.cream,
+              fontSize: 14,
+              letterSpacing: ".1em",
+              marginBottom: 2,
+            }}
+          >
+            CASH REGISTER
+          </p>
+          <p style={{ color: T.muted, fontSize: 12 }}>Order #{orderNumber}</p>
+        </div>
+
+        <div
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: `1px solid ${T.border}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ color: T.muted, fontSize: 12 }}>Amount Due</span>
+          <span
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.gold,
+              fontSize: 20,
+              fontWeight: 700,
+            }}
+          >
+            {fmt(total)}
+          </span>
+        </div>
+
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            CASH RECEIVED
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={cashInput}
+            onChange={(e) => setCashInput(e.target.value)}
+            placeholder="0.00"
+            autoFocus
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 10,
+              padding: "12px 14px",
+              color: T.cream,
+              fontSize: 22,
+              fontFamily: "'Cinzel',serif",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {QUICK_AMOUNTS.map((amt) => (
+            <button
+              key={amt}
+              onClick={() => setCashInput(String(amt))}
+              style={{
+                flex: "1 1 60px",
+                padding: "7px 8px",
+                borderRadius: 8,
+                background: "rgba(212,168,67,0.08)",
+                border: `1px solid ${T.border}`,
+                color: T.gold,
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {amt === total ? "EXACT" : `₱${amt}`}
+            </button>
+          ))}
+        </div>
+
+        <div
+          style={{
+            background: valid
+              ? "rgba(34,197,94,0.08)"
+              : "rgba(255,255,255,0.02)",
+            border: `1px solid ${valid ? "rgba(34,197,94,0.3)" : T.border}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ color: T.muted, fontSize: 12 }}>Change</span>
+          <span
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: valid ? T.green : T.muted,
+              fontSize: 20,
+              fontWeight: 700,
+            }}
+          >
+            {fmt(Math.max(change, 0))}
+          </span>
+        </div>
+
+        {cashInput !== "" && !valid && (
+          <p style={{ color: T.red, fontSize: 12, textAlign: "center" }}>
+            Cash received is less than the amount due.
+          </p>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => valid && onConfirm(cashReceived, change)}
+            disabled={!valid}
+            style={{
+              flex: 1,
+              padding: "12px",
+              background: valid ? T.green : "rgba(34,197,94,0.15)",
+              border: `1px solid ${valid ? T.green : T.border}`,
+              borderRadius: 10,
+              color: valid ? "#0a0f0a" : T.muted,
+              fontFamily: "'Cinzel',serif",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              cursor: valid ? "pointer" : "not-allowed",
+            }}
+          >
+            CONFIRM & PRINT
+          </button>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: "12px 18px",
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 10,
+              color: T.muted,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
           </button>
         </div>
       </div>
@@ -1922,6 +2233,7 @@ function OrderCard({
   menuItems,
   onStatusChange,
   onPaymentConfirm,
+  onCashConfirm,
   onSetPaymentMethod,
   onDelete,
   staffName,
@@ -1930,6 +2242,11 @@ function OrderCard({
   menuItems: MenuItem[];
   onStatusChange: (id: string, s: OrderStatus, reason?: string) => void;
   onPaymentConfirm: (id: string) => void;
+  onCashConfirm: (
+    id: string,
+    cashReceived: number,
+    change: number,
+  ) => Promise<void> | void;
   onSetPaymentMethod: (id: string, method: "cash" | "gcash") => void;
   onDelete: (id: string) => void;
   staffName: string;
@@ -1938,23 +2255,32 @@ function OrderCard({
   const [receiptSrc, setReceiptSrc] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showCashRegister, setShowCashRegister] = useState(false);
   const nextStatus = STATUS_CFG[order.status].next;
   // Only mount map/tracking when card is open
   const isDeliveryOpen = open && order.type === "delivery";
 
-  async function printReceipt() {
-    const receiptBytes = await buildEscPosReceipt({
-      orderNumber: order.orderNumber,
-      type: order.type,
-      tableNumber: order.tableNumber,
-      customerName: order.customerName,
-      items: order.items,
-      total: order.total,
-      deliveryFee: (order as any).deliveryFee,
-      paymentMethod: order.paymentMethod,
-    });
-    const url = escPosToRawBtUrl(receiptBytes);
-    window.location.href = url;
+  async function printReceipt(
+    copies = 1,
+    extra?: { cashReceived?: number; change?: number },
+  ) {
+    for (let i = 0; i < copies; i++) {
+      const receiptBytes = await buildEscPosReceipt({
+        orderNumber: order.orderNumber,
+        type: order.type,
+        tableNumber: order.tableNumber,
+        customerName: order.customerName,
+        items: order.items,
+        total: order.total,
+        deliveryFee: (order as any).deliveryFee,
+        paymentMethod: order.paymentMethod,
+        cashReceived: extra?.cashReceived,
+        change: extra?.change,
+      });
+      const url = escPosToRawBtUrl(receiptBytes);
+      window.location.href = url;
+      if (i < copies - 1) await new Promise((r) => setTimeout(r, 1200));
+    }
   }
 
   // Determine what to show for payment method
@@ -1996,6 +2322,18 @@ function OrderCard({
             );
           }}
           onCancel={() => setShowRejectModal(false)}
+        />
+      )}
+      {showCashRegister && (
+        <CashRegisterModal
+          total={order.total}
+          orderNumber={order.orderNumber}
+          onConfirm={async (cashReceived, change) => {
+            setShowCashRegister(false);
+            await onCashConfirm(order._id, cashReceived, change);
+            printReceipt(1, { cashReceived, change });
+          }}
+          onCancel={() => setShowCashRegister(false)}
         />
       )}
       <div
@@ -2148,7 +2486,9 @@ function OrderCard({
                 ? order.customerName
                 : order.type === "takeout"
                   ? order.customerName || "Takeout"
-                  : `Table ${order.tableNumber || "N/A"}`}
+                  : order.tableNumber
+                    ? `Table ${order.tableNumber}${order.customerName ? ` · ${order.customerName}` : ""}`
+                    : order.customerName || "Walk-in"}
               {" · "}
               {ago(order.createdAt)}
             </p>
@@ -2945,7 +3285,11 @@ function OrderCard({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onPaymentConfirm(order._id);
+                          if (order.paymentMethod === "cash") {
+                            setShowCashRegister(true);
+                          } else {
+                            onPaymentConfirm(order._id);
+                          }
                         }}
                         style={{
                           width: "100%",
@@ -2961,15 +3305,31 @@ function OrderCard({
                           letterSpacing: ".06em",
                         }}
                       >
-                        <Check
-                          size={13}
-                          style={{
-                            display: "inline",
-                            verticalAlign: "middle",
-                            marginRight: 6,
-                          }}
-                        />
-                        CONFIRM PAYMENT RECEIVED
+                        {order.paymentMethod === "cash" ? (
+                          <>
+                            <Banknote
+                              size={13}
+                              style={{
+                                display: "inline",
+                                verticalAlign: "middle",
+                                marginRight: 6,
+                              }}
+                            />
+                            OPEN CASH REGISTER
+                          </>
+                        ) : (
+                          <>
+                            <Check
+                              size={13}
+                              style={{
+                                display: "inline",
+                                verticalAlign: "middle",
+                                marginRight: 6,
+                              }}
+                            />
+                            CONFIRM PAYMENT RECEIVED
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
@@ -3021,7 +3381,7 @@ function OrderCard({
                     e.stopPropagation();
                     const shouldPrint = order.status === "pending";
                     await onStatusChange(order._id, nextStatus);
-                    if (shouldPrint) printReceipt();
+                    if (shouldPrint) printReceipt(2);
                   }}
                   style={{
                     flex: 1,
@@ -3039,6 +3399,25 @@ function OrderCard({
                   → {STATUS_CFG[nextStatus].label}
                 </button>
               )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  printReceipt(2);
+                }}
+                style={{
+                  padding: "9px 12px",
+                  background: "rgba(91,155,213,0.1)",
+                  border: "1px solid rgba(91,155,213,0.3)",
+                  color: T.blue,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                🖨️ Reprint ×2
+              </button>
               {order.status !== "cancelled" && order.status !== "completed" && (
                 <button
                   onClick={(e) => {
@@ -6218,6 +6597,118 @@ function GCashPaymentScreen({
   );
 }
 
+// ── CASH ORDER PLACED SCREEN ─────────────────────────────────────────────────
+function CashOrderPlacedScreen({
+  total,
+  orderNumber,
+  onDone,
+}: {
+  total: number;
+  orderNumber: string;
+  onDone: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 32,
+        background:
+          "radial-gradient(ellipse at 50% 30%,rgba(34,197,94,0.1) 0%,transparent 60%), #0a0f0a",
+      }}
+    >
+      <div style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
+        <Banknote size={48} color={T.green} style={{ margin: "0 auto 16px" }} />
+        <p
+          style={{
+            color: T.muted,
+            fontSize: 11,
+            letterSpacing: ".2em",
+            fontFamily: "'Cinzel',serif",
+            marginBottom: 8,
+          }}
+        >
+          ORDER PLACED
+        </p>
+        <p
+          style={{
+            fontFamily: "'Cinzel',serif",
+            fontSize: 13,
+            color: T.cream,
+            marginBottom: 24,
+            letterSpacing: ".06em",
+          }}
+        >
+          Order #{orderNumber}
+        </p>
+        <div
+          style={{
+            background: "rgba(34,197,94,0.08)",
+            border: `2px solid ${T.green}`,
+            borderRadius: 20,
+            padding: "20px 32px",
+            marginBottom: 28,
+          }}
+        >
+          <p
+            style={{
+              color: T.muted,
+              fontSize: 11,
+              letterSpacing: ".15em",
+              marginBottom: 4,
+            }}
+          >
+            AMOUNT DUE — CASH
+          </p>
+          <p
+            style={{
+              fontFamily: "'Cinzel',serif",
+              fontSize: "clamp(2rem,8vw,3.5rem)",
+              fontWeight: 700,
+              color: T.green,
+            }}
+          >
+            {fmt(total)}
+          </p>
+        </div>
+        <p
+          style={{
+            color: T.cream,
+            fontSize: 14,
+            lineHeight: 1.7,
+            marginBottom: 28,
+          }}
+        >
+          Please proceed to the counter to pay.
+        </p>
+        <button
+          onClick={onDone}
+          style={{
+            width: "100%",
+            padding: "15px",
+            background: T.green,
+            border: "none",
+            borderRadius: 14,
+            color: "#0a0f0a",
+            fontFamily: "'Cinzel',serif",
+            fontSize: 13,
+            letterSpacing: ".12em",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          ✓ DONE
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── ACCOUNTS TAB ─────────────────────────────────────────────────────────────
 function AccountsTab() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -6701,13 +7192,20 @@ function CrewTab({
   const isMobile = w < 768;
 
   const [tableNumber, setTableNumber] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [cart, setCart] = useState<{ item: MenuItem; qty: number }[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"gcash" | "cash">("gcash");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "gcash" | "cash" | "later"
+  >("gcash");
   const [showQR, setShowQR] = useState<{
     total: number;
     orderNumber: string;
     orderId: string;
+  } | null>(null);
+  const [showCashNote, setShowCashNote] = useState<{
+    total: number;
+    orderNumber: string;
   } | null>(null);
   const [activeCategory, setActiveCategory] = useState("");
   const [myOrders, setMyOrders] = useState<Order[]>([]);
@@ -6786,7 +7284,8 @@ function CrewTab({
   }
 
   async function placeOrder() {
-    if (!tableNumber.trim() || cart.length === 0) return;
+    if ((!tableNumber.trim() && !customerName.trim()) || cart.length === 0)
+      return;
     setSubmitting(true);
     try {
       const res = await fetch("/api/orders", {
@@ -6794,7 +7293,8 @@ function CrewTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "dine-in",
-          tableNumber: tableNumber.trim(),
+          tableNumber: tableNumber.trim() || undefined,
+          customerName: customerName.trim() || undefined,
           items: cart.map((c) => ({
             menuItemId: c.item._id,
             name: c.item.name,
@@ -6802,7 +7302,7 @@ function CrewTab({
             quantity: c.qty,
           })),
           total: cartTotal,
-          paymentMethod,
+          paymentMethod: paymentMethod === "later" ? "pending" : paymentMethod,
           paymentStatus: paymentMethod === "cash" ? "confirmed" : "pending",
           source: "crew",
           waiterName: staffName.trim(),
@@ -6810,17 +7310,20 @@ function CrewTab({
       });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
-      if (paymentMethod === "cash") {
-        setCart([]);
-        setTableNumber("");
-        onOrderPlaced();
-        fetchMyOrders();
-      } else {
+      if (paymentMethod === "gcash") {
         setShowQR({
           total: cartTotal,
           orderNumber: data.orderNumber,
           orderId: data._id,
         });
+      } else if (paymentMethod === "cash") {
+        setShowCashNote({ total: cartTotal, orderNumber: data.orderNumber });
+      } else {
+        setCart([]);
+        setTableNumber("");
+        setCustomerName("");
+        onOrderPlaced();
+        fetchMyOrders();
       }
     } catch {
       alert("Failed to place order. Please try again.");
@@ -6834,6 +7337,16 @@ function CrewTab({
     setShowQR(null);
     setCart([]);
     setTableNumber("");
+    setCustomerName("");
+    onOrderPlaced();
+    fetchMyOrders();
+  }
+
+  function handleCashNoteDone() {
+    setShowCashNote(null);
+    setCart([]);
+    setTableNumber("");
+    setCustomerName("");
     onOrderPlaced();
     fetchMyOrders();
   }
@@ -6847,6 +7360,15 @@ function CrewTab({
       />
     );
 
+  if (showCashNote)
+    return (
+      <CashOrderPlacedScreen
+        total={showCashNote.total}
+        orderNumber={showCashNote.orderNumber}
+        onDone={handleCashNoteDone}
+      />
+    );
+
   const OrderSummaryPanel = (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div
@@ -6855,38 +7377,73 @@ function CrewTab({
           border: `1px solid ${T.border}`,
           borderRadius: 14,
           padding: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
         }}
       >
-        <label
-          style={{
-            color: T.muted,
-            fontSize: 10,
-            letterSpacing: ".1em",
-            display: "block",
-            marginBottom: 8,
-            fontFamily: "'Cinzel',serif",
-          }}
-        >
-          TABLE NUMBER
-        </label>
-        <input
-          value={tableNumber}
-          onChange={(e) => setTableNumber(e.target.value)}
-          placeholder="e.g. 5"
-          style={{
-            width: "100%",
-            background: "rgba(255,255,255,0.04)",
-            border: `1px solid ${T.border}`,
-            borderRadius: 8,
-            padding: "10px 12px",
-            color: T.cream,
-            fontSize: 14,
-            outline: "none",
-            boxSizing: "border-box",
-            fontFamily: "'Cinzel',serif",
-            letterSpacing: ".04em",
-          }}
-        />
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 8,
+              fontFamily: "'Cinzel',serif",
+            }}
+          >
+            TABLE NUMBER
+          </label>
+          <input
+            value={tableNumber}
+            onChange={(e) => setTableNumber(e.target.value)}
+            placeholder="e.g. 5 (optional if name given)"
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              padding: "10px 12px",
+              color: T.cream,
+              fontSize: 14,
+              outline: "none",
+              boxSizing: "border-box",
+              fontFamily: "'Cinzel',serif",
+              letterSpacing: ".04em",
+            }}
+          />
+        </div>
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 8,
+              fontFamily: "'Cinzel',serif",
+            }}
+          >
+            CUSTOMER / FRIEND NAME
+          </label>
+          <input
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            placeholder="e.g. Kuya Jun (no table needed)"
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              padding: "10px 12px",
+              color: T.cream,
+              fontSize: 14,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
       </div>
       <div
         style={{
@@ -7061,8 +7618,10 @@ function CrewTab({
                 </span>
               </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                {(["cash", "gcash"] as const).map((m) => {
+                {(["cash", "gcash", "later"] as const).map((m) => {
                   const a = paymentMethod === m;
+                  const activeColor =
+                    m === "cash" ? T.green : m === "gcash" ? T.gold : T.blue;
                   return (
                     <button
                       key={m}
@@ -7075,10 +7634,12 @@ function CrewTab({
                         background: a
                           ? m === "cash"
                             ? "rgba(34,197,94,0.15)"
-                            : T.goldDim
+                            : m === "gcash"
+                              ? T.goldDim
+                              : "rgba(91,155,213,0.15)"
                           : "rgba(255,255,255,0.03)",
-                        border: `1px solid ${a ? (m === "cash" ? T.green : T.gold) : T.border}`,
-                        color: a ? (m === "cash" ? T.green : T.gold) : T.muted,
+                        border: `1px solid ${a ? activeColor : T.border}`,
+                        color: a ? activeColor : T.muted,
                         fontSize: 11,
                         fontWeight: 700,
                         fontFamily: "'Cinzel',serif",
@@ -7094,7 +7655,7 @@ function CrewTab({
                           <Banknote size={15} />
                           CASH
                         </>
-                      ) : (
+                      ) : m === "gcash" ? (
                         <>
                           <img
                             src="/images/gcash.png"
@@ -7108,6 +7669,11 @@ function CrewTab({
                           />
                           GCASH
                         </>
+                      ) : (
+                        <>
+                          <Clock size={15} />
+                          PAY LATER
+                        </>
                       )}
                     </button>
                   );
@@ -7116,17 +7682,23 @@ function CrewTab({
               <button
                 onClick={placeOrder}
                 disabled={
-                  !tableNumber.trim() || cart.length === 0 || submitting
+                  (!tableNumber.trim() && !customerName.trim()) ||
+                  cart.length === 0 ||
+                  submitting
                 }
                 style={{
                   width: "100%",
                   padding: "13px",
                   background:
-                    tableNumber.trim() && cart.length > 0
+                    (tableNumber.trim() || customerName.trim()) &&
+                    cart.length > 0
                       ? T.gold
                       : "rgba(212,168,67,0.25)",
                   color:
-                    tableNumber.trim() && cart.length > 0 ? "#0a0f0a" : T.muted,
+                    (tableNumber.trim() || customerName.trim()) &&
+                    cart.length > 0
+                      ? "#0a0f0a"
+                      : T.muted,
                   border: "none",
                   borderRadius: 12,
                   fontFamily: "'Cinzel',serif",
@@ -7134,7 +7706,8 @@ function CrewTab({
                   letterSpacing: ".12em",
                   fontWeight: 700,
                   cursor:
-                    tableNumber.trim() && cart.length > 0
+                    (tableNumber.trim() || customerName.trim()) &&
+                    cart.length > 0
                       ? "pointer"
                       : "not-allowed",
                   display: "flex",
@@ -7147,13 +7720,15 @@ function CrewTab({
                   "PLACING…"
                 ) : paymentMethod === "cash" ? (
                   "💵 PLACE CASH ORDER"
+                ) : paymentMethod === "later" ? (
+                  "🤝 PLACE ORDER — PAY LATER"
                 ) : (
                   <>
                     <QrCode size={14} /> PLACE ORDER & SHOW QR
                   </>
                 )}
               </button>
-              {!tableNumber.trim() && (
+              {!tableNumber.trim() && !customerName.trim() && (
                 <p
                   style={{
                     color: "rgba(245,158,11,0.7)",
@@ -7162,7 +7737,7 @@ function CrewTab({
                     marginTop: 6,
                   }}
                 >
-                  Enter table number to proceed
+                  Enter a table number or a name to proceed
                 </p>
               )}
             </div>
@@ -7552,7 +8127,9 @@ function CrewTab({
                           #{o.orderNumber}
                         </span>
                         <span style={{ fontSize: 11, color: T.muted }}>
-                          Table {o.tableNumber || "?"}
+                          {o.tableNumber
+                            ? `Table ${o.tableNumber}`
+                            : o.customerName || "Walk-in"}
                         </span>
                         <Badge status={o.status} />
                         <span style={{ fontSize: 11, color: T.muted }}>
@@ -8478,6 +9055,44 @@ export default function AdminDashboard() {
     }
   }
 
+  async function confirmCashPayment(
+    id: string,
+    cashReceived: number,
+    change: number,
+  ) {
+    const prevOrders = orders;
+    setOrders((p) =>
+      p.map((o) =>
+        o._id === id
+          ? {
+              ...o,
+              paymentStatus: "confirmed",
+              paymentMethod: "cash",
+              cashReceived,
+              changeGiven: change,
+            }
+          : o,
+      ),
+    );
+    showToast(`✓ Paid — Change: ${fmt(change)}`);
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentStatus: "confirmed",
+          paymentMethod: "cash",
+          cashReceived,
+          changeGiven: change,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch {
+      setOrders(prevOrders);
+      showToast("Failed to confirm cash payment", false);
+    }
+  }
+
   // NEW: only updates the method, does NOT mark as paid
   async function setPaymentMethod(id: string, method: "cash" | "gcash") {
     const prevOrders = orders;
@@ -9276,6 +9891,7 @@ export default function AdminDashboard() {
                       menuItems={menuItems}
                       onStatusChange={updateStatus}
                       onPaymentConfirm={confirmPayment}
+                      onCashConfirm={confirmCashPayment}
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
                       staffName={staffName}
@@ -9309,6 +9925,7 @@ export default function AdminDashboard() {
                       menuItems={menuItems}
                       onStatusChange={updateStatus}
                       onPaymentConfirm={confirmPayment}
+                      onCashConfirm={confirmCashPayment}
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
                       staffName={staffName}
