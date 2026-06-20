@@ -3017,10 +3017,11 @@ function OrderCard({
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {nextStatus && (
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    onStatusChange(order._id, nextStatus);
-                    if (order.status === "pending") printReceipt();
+                    const shouldPrint = order.status === "pending";
+                    await onStatusChange(order._id, nextStatus);
+                    if (shouldPrint) printReceipt();
                   }}
                   style={{
                     flex: 1,
