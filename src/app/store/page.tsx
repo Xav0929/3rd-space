@@ -18,6 +18,7 @@ type Product = {
   tag?: string;
   shopLink: string;
   images: string[];
+  inStoreOnly?: boolean;
 };
 
 type Business = {
@@ -28,6 +29,7 @@ type Business = {
   accentColor: string;
   shopLink: string;
   products: Product[];
+  inStoreOnly?: boolean;
 };
 
 const BUSINESSES: Business[] = [
@@ -52,6 +54,48 @@ const BUSINESSES: Business[] = [
           "/store/chilibog-1.png",
           "/store/chilibog-2.png",
           "/store/chilibog-3.png",
+        ],
+      },
+    ],
+  },
+  {
+    id: "bergel",
+    name: "Bergel",
+    tagline:
+      "Homemade energy gel, honey-based. 27g carbs, 105mg sodium, 110 calories per packet — real fuel for real performance. In-store only, made fresh.",
+    category: "Energy Gel · In-Store Only",
+    accentColor: "#c9826b",
+    shopLink: "",
+    inStoreOnly: true,
+    products: [
+      {
+        id: "bergel-banana",
+        name: "Banana Flavor",
+        description:
+          "Honey-based energy gel with a balanced 2:1 GI ratio for fast and steady energy. Banana flavor — smooth, natural, no artificial aftertaste.",
+        price: "₱60",
+        tag: "In-Store Only",
+        shopLink: "",
+        inStoreOnly: true,
+        images: [
+          "/store/bergel-1.png",
+          "/store/bergel-2.png",
+          "/store/bergel-3.png",
+        ],
+      },
+      {
+        id: "bergel-strawberry",
+        name: "Strawberry Flavor",
+        description:
+          "Honey-based energy gel with a balanced 2:1 GI ratio for fast and steady energy. Strawberry flavor — sweet, fruity, easy to take on the go.",
+        price: "₱60",
+        tag: "In-Store Only",
+        shopLink: "",
+        inStoreOnly: true,
+        images: [
+          "/store/bergel-1.png",
+          "/store/bergel-2.png",
+          "/store/bergel-3.png",
         ],
       },
     ],
@@ -566,42 +610,79 @@ function GridProductCard({
         </p>
       </div>
       <div style={{ padding: "0 1.25rem 1.25rem" }}>
-        <a
-          href={product.shopLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-            fontFamily: YK,
-            fontWeight: 700,
-            fontSize: "0.78rem",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            textDecoration: "none",
-            padding: "0.85rem 1rem",
-            background: `${accent}15`,
-            color: accent,
-            border: `1px solid ${accent}45`,
-            transition: "all 0.2s",
-            minHeight: 44,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = accent;
-            e.currentTarget.style.color = "#0f1a0f";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = `${accent}15`;
-            e.currentTarget.style.color = accent;
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
-          </svg>
-          Buy on TikTok Shop
-        </a>
+        {product.inStoreOnly ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+              fontFamily: YK,
+              fontWeight: 700,
+              fontSize: "0.78rem",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              padding: "0.85rem 1rem",
+              background: "rgba(232,213,163,0.04)",
+              color: "rgba(232,213,163,0.4)",
+              border: `1px dashed rgba(232,213,163,0.2)`,
+              minHeight: 44,
+            }}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z"
+              />
+            </svg>
+            Available In-Store Only
+          </div>
+        ) : (
+          <a
+            href={product.shopLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+              fontFamily: YK,
+              fontWeight: 700,
+              fontSize: "0.78rem",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+              padding: "0.85rem 1rem",
+              background: `${accent}15`,
+              color: accent,
+              border: `1px solid ${accent}45`,
+              transition: "all 0.2s",
+              minHeight: 44,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = accent;
+              e.currentTarget.style.color = "#0f1a0f";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = `${accent}15`;
+              e.currentTarget.style.color = accent;
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+            </svg>
+            Buy on TikTok Shop
+          </a>
+        )}
       </div>
     </div>
   );
@@ -695,36 +776,56 @@ function BusinessSection({ biz }: { biz: Business }) {
                 {biz.tagline}
               </p>
             </div>
-            <a
-              href={biz.shopLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontFamily: DM,
-                fontWeight: 500,
-                fontSize: "0.6rem",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-                textDecoration: "none",
-                color: "rgba(232,213,163,0.35)",
-                border: "1px solid rgba(232,213,163,0.12)",
-                padding: "8px 16px",
-                transition: "all 0.2s",
-                minHeight: 40,
-                display: "flex",
-                alignItems: "center",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#e8d5a3";
-                e.currentTarget.style.borderColor = "rgba(232,213,163,0.3)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(232,213,163,0.35)";
-                e.currentTarget.style.borderColor = "rgba(232,213,163,0.12)";
-              }}
-            >
-              View Shop →
-            </a>
+            {biz.inStoreOnly ? (
+              <span
+                style={{
+                  fontFamily: DM,
+                  fontWeight: 500,
+                  fontSize: "0.6rem",
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: "rgba(232,213,163,0.3)",
+                  border: "1px dashed rgba(232,213,163,0.18)",
+                  padding: "8px 16px",
+                  minHeight: 40,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                In-Store Only
+              </span>
+            ) : (
+              <a
+                href={biz.shopLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontFamily: DM,
+                  fontWeight: 500,
+                  fontSize: "0.6rem",
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  textDecoration: "none",
+                  color: "rgba(232,213,163,0.35)",
+                  border: "1px solid rgba(232,213,163,0.12)",
+                  padding: "8px 16px",
+                  transition: "all 0.2s",
+                  minHeight: 40,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#e8d5a3";
+                  e.currentTarget.style.borderColor = "rgba(232,213,163,0.3)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "rgba(232,213,163,0.35)";
+                  e.currentTarget.style.borderColor = "rgba(232,213,163,0.12)";
+                }}
+              >
+                View Shop →
+              </a>
+            )}
           </div>
           <div
             style={{

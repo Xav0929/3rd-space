@@ -4833,6 +4833,175 @@ function PaymentScreen({
                 </button>
               )}
 
+              {/* ── Non-delivery: optional screenshot upload ── */}
+              {orderType !== "delivery" && hasCopied && (
+                <div
+                  style={{
+                    background: CARD,
+                    border: `1px solid ${uploaded ? "rgba(74,222,128,.35)" : BR}`,
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 16,
+                    transition: "border-color .3s",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: CM,
+                        fontSize: 11,
+                        letterSpacing: ".1em",
+                        fontFamily: "'Cinzel',serif",
+                      }}
+                    >
+                      GCASH SCREENSHOT{" "}
+                      <span style={{ color: CF, fontWeight: 400 }}>
+                        (optional — speeds up verification)
+                      </span>
+                    </p>
+                    {uploaded && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          color: "#4ade80",
+                          fontSize: 11,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Check size={12} /> Uploaded
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFile}
+                    style={{ display: "none" }}
+                  />
+                  {preview ? (
+                    <div>
+                      <div style={{ position: "relative" }}>
+                        <img
+                          src={preview}
+                          alt="Receipt"
+                          style={{
+                            width: "100%",
+                            maxHeight: 180,
+                            objectFit: "cover",
+                            borderRadius: 10,
+                            border: `1px solid ${uploaded ? G : BR}`,
+                          }}
+                        />
+                        {uploaded && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 8,
+                              right: 8,
+                              background: G,
+                              borderRadius: 999,
+                              width: 26,
+                              height: 26,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Check size={13} color={BG} />
+                          </div>
+                        )}
+                        {uploading && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              background: "rgba(14,25,14,.6)",
+                              borderRadius: 10,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: G,
+                              fontSize: 12,
+                              fontFamily: "'Cinzel',serif",
+                              letterSpacing: ".1em",
+                            }}
+                          >
+                            UPLOADING…
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => fileRef.current?.click()}
+                        style={{
+                          marginTop: 8,
+                          width: "100%",
+                          padding: "9px",
+                          background: "transparent",
+                          border: `1px dashed ${BR}`,
+                          borderRadius: 8,
+                          color: CM,
+                          fontSize: 11,
+                          cursor: "pointer",
+                          touchAction: "manipulation",
+                        }}
+                      >
+                        <Edit3
+                          size={11}
+                          style={{ marginRight: 5, verticalAlign: "middle" }}
+                        />
+                        Change Screenshot
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      style={{
+                        width: "100%",
+                        padding: "18px 16px",
+                        background: "rgba(212,168,67,.05)",
+                        border: `2px dashed ${G}`,
+                        borderRadius: 12,
+                        color: G,
+                        cursor: uploading ? "wait" : "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 6,
+                        boxSizing: "border-box",
+                        touchAction: "manipulation",
+                        minHeight: 80,
+                        transition: "all .2s",
+                      }}
+                    >
+                      <Upload size={18} />
+                      <span
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 11,
+                          letterSpacing: ".1em",
+                        }}
+                      >
+                        {uploading ? "UPLOADING…" : "TAP TO UPLOAD SCREENSHOT"}
+                      </span>
+                      <span style={{ color: CF, fontSize: 11 }}>
+                        JPG, PNG accepted
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* ── Delivery: screenshot upload ── */}
               {orderType === "delivery" && (
                 <div

@@ -5436,6 +5436,68 @@ function TodayReport({
     const topItems = Object.entries(closedReport.items || {})
       .sort((a, b) => b[1].revenue - a[1].revenue)
       .slice(0, 6);
+
+    const printShiftReport = () => {
+      const win = window.open("", "_blank", "width=380,height=600");
+      if (!win) return;
+      const dateStr = new Date(closedReport.closedAt).toLocaleDateString(
+        "en-PH",
+        { month: "long", day: "numeric", year: "numeric" },
+      );
+      const openedStr = closedReport.openedAt
+        ? new Date(closedReport.openedAt).toLocaleTimeString("en-PH", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : "—";
+      const closedStr = new Date(closedReport.closedAt).toLocaleTimeString(
+        "en-PH",
+        { hour: "numeric", minute: "2-digit", hour12: true },
+      );
+      const row = (label: string, value: string) =>
+        `<tr><td>${label}</td><td style="text-align:right;font-weight:700;">${value}</td></tr>`;
+      win.document.write(`
+        <html>
+        <head>
+          <title>Shift Report — ${dateStr}</title>
+          <style>
+            body { font-family: 'Courier New', monospace; padding: 16px; color: #000; }
+            h1 { font-size: 16px; text-align: center; margin-bottom: 2px; }
+            p.sub { text-align: center; font-size: 11px; margin-bottom: 14px; }
+            table { width: 100%; border-collapse: collapse; font-size: 13px; }
+            td { padding: 4px 0; border-bottom: 1px dashed #999; }
+            tr.total td { border-top: 2px solid #000; border-bottom: none; font-size: 15px; padding-top: 8px; }
+            tr.section td { padding-top: 12px; font-weight: 700; border-bottom: 1px solid #000; }
+          </style>
+        </head>
+        <body>
+          <h1>3RD SPACE — SHIFT REPORT</h1>
+          <p class="sub">${dateStr}<br/>Opened ${openedStr} · Closed ${closedStr}</p>
+          <table>
+            <tr class="section"><td colspan="2">SALES SUMMARY</td></tr>
+            ${row("Gross sales", `₱${closedReport.revenue.toFixed(2)}`)}
+            ${row("Discounts", "₱0.00")}
+            ${row("Refunds", "₱0.00")}
+            ${row("Net sales", `₱${(closedReport.netRevenue || closedReport.revenue).toFixed(2)}`)}
+            <tr class="section"><td colspan="2">PAYMENT BREAKDOWN</td></tr>
+            ${row("Cash", `₱${closedReport.cashRev.toFixed(2)}`)}
+            ${row("GCash", `₱${closedReport.gcashRev.toFixed(2)}`)}
+            <tr class="section"><td colspan="2">ORDERS</td></tr>
+            ${row("Completed", String(closedReport.orderCount))}
+            ${row("Cancelled", String(closedReport.cancelledCount || 0))}
+            ${row("Avg order", `₱${Math.round(closedReport.avgOrder || 0)}`)}
+            ${row("Delivery fees", `₱${closedReport.deliveryFees || 0}`)}
+            <tr class="total"><td>TOTAL CASH IN DRAWER</td><td style="text-align:right;font-weight:700;">₱${closedReport.cashRev.toFixed(2)}</td></tr>
+          </table>
+        </body>
+        </html>
+      `);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 300);
+    };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div
@@ -5473,6 +5535,25 @@ function TodayReport({
               })}
             </span>
           )}
+          <button
+            onClick={printShiftReport}
+            style={{
+              marginLeft: "auto",
+              padding: "6px 14px",
+              background: "rgba(212,168,67,0.1)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 8,
+              color: T.gold,
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: "'Cinzel',serif",
+              letterSpacing: ".06em",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            🖨️ PRINT SHIFT REPORT
+          </button>
         </div>
 
         <div
