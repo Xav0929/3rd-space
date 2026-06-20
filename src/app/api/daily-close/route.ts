@@ -8,12 +8,7 @@ const DailyReport =
   mongoose.models.DailyReport ||
   mongoose.model("DailyReport", DailyReportSchema);
 
-const SettingSchema = new mongoose.Schema({
-  key: String,
-  open: Boolean,
-  openedAt: { type: String, default: null },
-  shiftDate: { type: String, default: null },
-});
+const SettingSchema = new mongoose.Schema({}, { strict: false });
 const Setting =
   mongoose.models.Setting || mongoose.model("Setting", SettingSchema);
 
@@ -24,13 +19,25 @@ function calendarKey(d = new Date()) {
 export async function POST(req: Request) {
   try {
     await connectDB();
-    const { openedAt } = await req.json();
+    const { openedAt, countedCash } = await req.json();
     const now = new Date();
 
     // ── Resolve the shift key ───────────────────────────────────────────────
     // Use the shiftDate stamped when the owner opened the shop.
     // Falls back to calendar date only if somehow shiftDate was never set.
     const shopDoc = await Setting.findOne({ key: "shopStatus" }).lean();
+
+    const startingCash = (shopDoc as any)?.startingCash ?? 0;
+    const paidIn = (shopDoc as any)?.paidIn ?? [];
+    const paidOut = (shopDoc as any)?.paidOut ?? [];
+    const paidInTotal = paidIn.reduce(
+      (s: number, e: any) => s + (e.amount || 0),
+      0,
+    );
+    const paidOutTotal = paidOut.reduce(
+      (s: number, e: any) => s + (e.amount || 0),
+      0,
+    );
 
     // Use shiftDate if available, otherwise fall back to today's calendar key
     const dayKey = (shopDoc as any)?.shiftDate ?? calendarKey(now);
@@ -106,6 +113,17 @@ export async function POST(req: Request) {
       takeoutRev,
       items,
       orders: JSON.parse(JSON.stringify(allOrders)),
+      startingCash,
+      paidIn,
+      paidOut,
+      paidInTotal,
+      paidOutTotal,
+      countedCash: typeof countedCash === "number" ? countedCash : null,
+      expectedCash: startingCash + cashRev + paidInTotal - paidOutTotal,
+      cashDiff:
+        typeof countedCash === "number"
+          ? countedCash - (startingCash + cashRev + paidInTotal - paidOutTotal)
+          : null,
     };
 
     await DailyReport.findOneAndUpdate(
@@ -121,10 +139,17 @@ export async function POST(req: Request) {
       { $set: { archived: true, archivedAt: now.toISOString() } },
     );
 
-    // ── Clear shiftDate so the next open stamps a fresh one ─────────────────
+    // ── Clear shift state so the next open starts fresh ─────────────────────
     await Setting.findOneAndUpdate(
       { key: "shopStatus" },
-      { $set: { shiftDate: null } },
+      {
+        $set: {
+          shiftDate: null,
+          startingCash: null,
+          paidIn: [],
+          paidOut: [],
+        },
+      },
     );
 
     return NextResponse.json({ ok: true, report });

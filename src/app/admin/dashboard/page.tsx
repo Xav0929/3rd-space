@@ -169,6 +169,12 @@ type DailyReport = {
   takeoutRev: number;
   items: Record<string, { qty: number; revenue: number }>;
   orders: Order[];
+  startingCash?: number;
+  paidInTotal?: number;
+  paidOutTotal?: number;
+  countedCash?: number | null;
+  expectedCash?: number;
+  cashDiff?: number | null;
 };
 
 type Tab =
@@ -3401,25 +3407,6 @@ function OrderCard({
                   → {STATUS_CFG[nextStatus].label}
                 </button>
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  printReceipt(2);
-                }}
-                style={{
-                  padding: "9px 12px",
-                  background: "rgba(91,155,213,0.1)",
-                  border: "1px solid rgba(91,155,213,0.3)",
-                  color: T.blue,
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                🖨️ Reprint ×2
-              </button>
               {order.status !== "cancelled" && order.status !== "completed" && (
                 <button
                   onClick={(e) => {
@@ -5437,6 +5424,8 @@ function TodayReport({
       .sort((a, b) => b[1].revenue - a[1].revenue)
       .slice(0, 6);
 
+    const hasCashRecon = typeof closedReport.expectedCash === "number";
+
     const printShiftReport = () => {
       const win = window.open("", "_blank", "width=380,height=600");
       if (!win) return;
@@ -5457,6 +5446,25 @@ function TodayReport({
       );
       const row = (label: string, value: string) =>
         `<tr><td>${label}</td><td style="text-align:right;font-weight:700;">${value}</td></tr>`;
+      const cashReconRows = hasCashRecon
+        ? `
+            <tr class="section"><td colspan="2">CASH RECONCILIATION</td></tr>
+            ${row("Starting cash", `₱${(closedReport.startingCash || 0).toFixed(2)}`)}
+            ${row("Cash sales", `₱${closedReport.cashRev.toFixed(2)}`)}
+            ${row("Paid in", `+₱${(closedReport.paidInTotal || 0).toFixed(2)}`)}
+            ${row("Paid out", `−₱${(closedReport.paidOutTotal || 0).toFixed(2)}`)}
+            ${row("Expected cash", `₱${(closedReport.expectedCash || 0).toFixed(2)}`)}
+            ${row("Counted cash", closedReport.countedCash != null ? `₱${closedReport.countedCash.toFixed(2)}` : "—")}
+            ${row(
+              closedReport.cashDiff != null && closedReport.cashDiff < 0
+                ? "Short by"
+                : "Over by",
+              closedReport.cashDiff != null
+                ? `₱${Math.abs(closedReport.cashDiff).toFixed(2)}`
+                : "—",
+            )}
+          `
+        : "";
       win.document.write(`
         <html>
         <head>
@@ -5488,6 +5496,7 @@ function TodayReport({
             ${row("Cancelled", String(closedReport.cancelledCount || 0))}
             ${row("Avg order", `₱${Math.round(closedReport.avgOrder || 0)}`)}
             ${row("Delivery fees", `₱${closedReport.deliveryFees || 0}`)}
+            ${cashReconRows}
             <tr class="total"><td>TOTAL CASH IN DRAWER</td><td style="text-align:right;font-weight:700;">₱${closedReport.cashRev.toFixed(2)}</td></tr>
           </table>
         </body>
@@ -5555,6 +5564,90 @@ function TodayReport({
             🖨️ PRINT SHIFT REPORT
           </button>
         </div>
+
+        {hasCashRecon && (
+          <div
+            style={{
+              background: T.bgCard,
+              border: `1px solid ${T.border}`,
+              borderRadius: 14,
+              padding: 20,
+            }}
+          >
+            <p
+              style={{
+                color: T.gold,
+                fontSize: 11,
+                letterSpacing: ".15em",
+                textTransform: "uppercase",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 14,
+              }}
+            >
+              ──Cash Reconciliation
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {[
+                ["Starting cash", fmt(closedReport.startingCash || 0), T.cream],
+                ["Cash sales", fmt(closedReport.cashRev), T.green],
+                ["Paid in", `+${fmt(closedReport.paidInTotal || 0)}`, T.green],
+                ["Paid out", `−${fmt(closedReport.paidOutTotal || 0)}`, T.red],
+                ["Expected cash", fmt(closedReport.expectedCash || 0), T.gold],
+                [
+                  "Counted cash",
+                  closedReport.countedCash != null
+                    ? fmt(closedReport.countedCash)
+                    : "—",
+                  T.cream,
+                ],
+              ].map(([label, val, color]) => (
+                <div
+                  key={label}
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ color: T.muted, fontSize: 12 }}>{label}</span>
+                  <span
+                    style={{
+                      color: color as string,
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {val}
+                  </span>
+                </div>
+              ))}
+              {closedReport.cashDiff != null && (
+                <div
+                  style={{
+                    borderTop: `1px solid ${T.border}`,
+                    paddingTop: 8,
+                    marginTop: 2,
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ color: T.muted, fontSize: 12 }}>
+                    {closedReport.cashDiff === 0
+                      ? "Drawer matched ✓"
+                      : closedReport.cashDiff > 0
+                        ? "Over by"
+                        : "Short by"}
+                  </span>
+                  <span
+                    style={{
+                      color: closedReport.cashDiff === 0 ? T.green : T.red,
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {fmt(Math.abs(closedReport.cashDiff))}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div
           style={{
@@ -6495,7 +6588,7 @@ function GCashPaymentScreen({
   orderNumber: string;
   onDone: () => void;
 }) {
-  const GCASH_NUMBER = "0917 813 7503";
+  const GCASH_NUMBER = "09XX XXX XXXX";
   return (
     <div
       style={{
@@ -8762,6 +8855,723 @@ function VouchersAdminTab() {
   );
 }
 
+// ── OPEN SHIFT MODAL ─────────────────────────────────────────────────────────
+function OpenShiftModal({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: (startingCash: number) => void;
+  onCancel: () => void;
+}) {
+  const [val, setVal] = useState("");
+  const amount = parseFloat(val) || 0;
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onCancel]);
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 380,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <Power size={32} color={T.green} style={{ margin: "0 auto 8px" }} />
+          <p
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.cream,
+              fontSize: 14,
+              letterSpacing: ".1em",
+              marginBottom: 2,
+            }}
+          >
+            OPEN SHIFT
+          </p>
+          <p style={{ color: T.muted, fontSize: 12 }}>
+            Count the drawer float before opening
+          </p>
+        </div>
+
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            STARTING CASH (FLOAT)
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            placeholder="0.00"
+            autoFocus
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 10,
+              padding: "12px 14px",
+              color: T.cream,
+              fontSize: 22,
+              fontFamily: "'Cinzel',serif",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => onConfirm(amount)}
+            style={{
+              flex: 1,
+              padding: "12px",
+              background: T.green,
+              border: `1px solid ${T.green}`,
+              borderRadius: 10,
+              color: "#0a0f0a",
+              fontFamily: "'Cinzel',serif",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              cursor: "pointer",
+            }}
+          >
+            OPEN STORE
+          </button>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: "12px 18px",
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 10,
+              color: T.muted,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CASH LOG MODAL (Paid In / Paid Out) ──────────────────────────────────────
+function CashLogModal({ onClose }: { onClose: () => void }) {
+  const [paidIn, setPaidIn] = useState<
+    { amount: number; note: string; at: string }[]
+  >([]);
+  const [paidOut, setPaidOut] = useState<
+    { amount: number; note: string; at: string }[]
+  >([]);
+  const [type, setType] = useState<"in" | "out">("out");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/shop-status/cash-log")
+      .then((r) => r.json())
+      .then((d) => {
+        setPaidIn(d.paidIn || []);
+        setPaidOut(d.paidOut || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose]);
+
+  async function submit() {
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/shop-status/cash-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, amount: amt, note }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setPaidIn(d.paidIn || []);
+        setPaidOut(d.paidOut || []);
+        setAmount("");
+        setNote("");
+      }
+    } catch {}
+    setSaving(false);
+  }
+
+  const inTotal = paidIn.reduce((s, e) => s + e.amount, 0);
+  const outTotal = paidOut.reduce((s, e) => s + e.amount, 0);
+
+  const allEntries = [
+    ...paidIn.map((e) => ({ ...e, type: "in" as const })),
+    ...paidOut.map((e) => ({ ...e, type: "out" as const })),
+  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 440,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.cream,
+              fontSize: 14,
+              letterSpacing: ".1em",
+            }}
+          >
+            CASH IN / OUT
+          </p>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: T.muted,
+              cursor: "pointer",
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          {(["out", "in"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setType(t)}
+              style={{
+                flex: 1,
+                padding: "9px 8px",
+                borderRadius: 8,
+                cursor: "pointer",
+                background:
+                  type === t
+                    ? t === "out"
+                      ? "rgba(239,68,68,0.12)"
+                      : "rgba(34,197,94,0.12)"
+                    : "rgba(255,255,255,0.03)",
+                border: `1px solid ${
+                  type === t
+                    ? t === "out"
+                      ? "rgba(239,68,68,0.4)"
+                      : "rgba(34,197,94,0.4)"
+                    : T.border
+                }`,
+                color: type === t ? (t === "out" ? T.red : T.green) : T.muted,
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "'Cinzel',serif",
+                letterSpacing: ".06em",
+              }}
+            >
+              {t === "out" ? "PAID OUT" : "PAID IN"}
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            AMOUNT
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 10,
+              padding: "11px 14px",
+              color: T.cream,
+              fontSize: 18,
+              fontFamily: "'Cinzel',serif",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            NOTE (e.g. "bought ice", "owner remittance")
+          </label>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="What's this for?"
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              padding: "9px 12px",
+              color: T.cream,
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <button
+          onClick={submit}
+          disabled={!amount || parseFloat(amount) <= 0 || saving}
+          style={{
+            width: "100%",
+            padding: "11px",
+            background:
+              amount && parseFloat(amount) > 0
+                ? type === "out"
+                  ? "rgba(239,68,68,0.6)"
+                  : T.green
+                : "rgba(255,255,255,0.05)",
+            border: "none",
+            borderRadius: 10,
+            color: amount && parseFloat(amount) > 0 ? "#0a0f0a" : T.muted,
+            fontFamily: "'Cinzel',serif",
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: ".08em",
+            cursor:
+              amount && parseFloat(amount) > 0 ? "pointer" : "not-allowed",
+          }}
+        >
+          {saving
+            ? "SAVING…"
+            : `LOG ${type === "out" ? "PAID OUT" : "PAID IN"}`}
+        </button>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            borderTop: `1px solid ${T.border}`,
+            paddingTop: 10,
+          }}
+        >
+          <span style={{ color: T.green, fontSize: 12 }}>
+            Total In: {fmt(inTotal)}
+          </span>
+          <span style={{ color: T.red, fontSize: 12 }}>
+            Total Out: {fmt(outTotal)}
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            maxHeight: 180,
+            overflowY: "auto",
+          }}
+        >
+          {loading ? (
+            <p style={{ color: T.muted, fontSize: 12, textAlign: "center" }}>
+              Loading…
+            </p>
+          ) : allEntries.length === 0 ? (
+            <p style={{ color: T.faint, fontSize: 12, textAlign: "center" }}>
+              No entries yet this shift
+            </p>
+          ) : (
+            allEntries.map((e, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "7px 10px",
+                  background: "rgba(255,255,255,0.02)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  gap: 8,
+                }}
+              >
+                <span
+                  style={{
+                    color: T.muted,
+                    fontSize: 11,
+                    flex: 1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {e.note || (e.type === "out" ? "Paid out" : "Paid in")}
+                </span>
+                <span
+                  style={{
+                    color: e.type === "out" ? T.red : T.green,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {e.type === "out" ? "−" : "+"}
+                  {fmt(e.amount)}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CLOSE SHIFT MODAL ────────────────────────────────────────────────────────
+function CloseShiftModal({
+  cashRevToday,
+  onConfirm,
+  onCancel,
+}: {
+  cashRevToday: number;
+  onConfirm: (countedCash: number) => void;
+  onCancel: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [startingCash, setStartingCash] = useState(0);
+  const [paidInTotal, setPaidInTotal] = useState(0);
+  const [paidOutTotal, setPaidOutTotal] = useState(0);
+  const [countedInput, setCountedInput] = useState("");
+
+  useEffect(() => {
+    fetch("/api/shop-status")
+      .then((r) => r.json())
+      .then((d) => {
+        setStartingCash(d.startingCash || 0);
+        const pi = (d.paidIn || []).reduce(
+          (s: number, e: any) => s + (e.amount || 0),
+          0,
+        );
+        const po = (d.paidOut || []).reduce(
+          (s: number, e: any) => s + (e.amount || 0),
+          0,
+        );
+        setPaidInTotal(pi);
+        setPaidOutTotal(po);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onCancel]);
+
+  const expected = startingCash + cashRevToday + paidInTotal - paidOutTotal;
+  const counted = parseFloat(countedInput);
+  const hasCounted = countedInput !== "" && !isNaN(counted);
+  const diff = hasCounted ? counted - expected : 0;
+
+  const row = (label: string, value: string, color?: string) => (
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <span style={{ color: T.muted, fontSize: 12 }}>{label}</span>
+      <span style={{ color: color || T.cream, fontSize: 12, fontWeight: 600 }}>
+        {value}
+      </span>
+    </div>
+  );
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 400,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <PowerOff size={32} color={T.red} style={{ margin: "0 auto 8px" }} />
+          <p
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.cream,
+              fontSize: 14,
+              letterSpacing: ".1em",
+              marginBottom: 2,
+            }}
+          >
+            CLOSE SHIFT
+          </p>
+          <p style={{ color: T.muted, fontSize: 12 }}>
+            Count the drawer before closing
+          </p>
+        </div>
+
+        {loading ? (
+          <p style={{ color: T.muted, fontSize: 12, textAlign: "center" }}>
+            Loading shift data…
+          </p>
+        ) : (
+          <div
+            style={{
+              background: "rgba(255,255,255,0.03)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 10,
+              padding: "12px 14px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}
+          >
+            {row("Starting cash", fmt(startingCash))}
+            {row("Cash sales today", fmt(cashRevToday), T.green)}
+            {paidInTotal > 0 && row("Paid in", `+${fmt(paidInTotal)}`, T.green)}
+            {paidOutTotal > 0 &&
+              row("Paid out", `−${fmt(paidOutTotal)}`, T.red)}
+            <div
+              style={{
+                borderTop: `1px solid ${T.border}`,
+                paddingTop: 6,
+                marginTop: 2,
+              }}
+            >
+              {row("Expected cash", fmt(expected), T.gold)}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            COUNTED CASH (ACTUAL DRAWER)
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={countedInput}
+            onChange={(e) => setCountedInput(e.target.value)}
+            placeholder="0.00"
+            autoFocus
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 10,
+              padding: "12px 14px",
+              color: T.cream,
+              fontSize: 22,
+              fontFamily: "'Cinzel',serif",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        {hasCounted && (
+          <div
+            style={{
+              background:
+                diff === 0 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+              border: `1px solid ${diff === 0 ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+              borderRadius: 10,
+              padding: "10px 14px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ color: T.muted, fontSize: 12 }}>
+              {diff === 0
+                ? "Drawer matches ✓"
+                : diff > 0
+                  ? "Over by"
+                  : "Short by"}
+            </span>
+            <span
+              style={{
+                fontFamily: "'Cinzel',serif",
+                color: diff === 0 ? T.green : T.red,
+                fontSize: 16,
+                fontWeight: 700,
+              }}
+            >
+              {fmt(Math.abs(diff))}
+            </span>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => hasCounted && onConfirm(counted)}
+            disabled={!hasCounted}
+            style={{
+              flex: 1,
+              padding: "12px",
+              background: hasCounted ? T.red : "rgba(239,68,68,0.15)",
+              border: `1px solid ${hasCounted ? T.red : T.border}`,
+              borderRadius: 10,
+              color: hasCounted ? "#0a0f0a" : T.muted,
+              fontFamily: "'Cinzel',serif",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              cursor: hasCounted ? "pointer" : "not-allowed",
+            }}
+          >
+            CLOSE STORE
+          </button>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: "12px 18px",
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 10,
+              color: T.muted,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── ROOT ──────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const w = useWindowWidth();
@@ -8786,6 +9596,9 @@ export default function AdminDashboard() {
   const [shiftDate, setShiftDate] = useState<string | null>(null);
   const [shopToggling, setShopToggling] = useState(false);
   const [confirmPauseShop, setConfirmPauseShop] = useState(false);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [showCashLogModal, setShowCashLogModal] = useState(false);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [shopOpenedAt, setShopOpenedAt] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
@@ -8841,7 +9654,10 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  async function toggleShop(next: boolean) {
+  async function toggleShop(
+    next: boolean,
+    extra?: { startingCash?: number; countedCash?: number },
+  ) {
     setShopToggling(true);
     try {
       let newOpenedAt = shopOpenedAt;
@@ -8851,7 +9667,11 @@ export default function AdminDashboard() {
       const res = await fetch("/api/shop-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ open: next, openedAt: newOpenedAt }),
+        body: JSON.stringify({
+          open: next,
+          openedAt: newOpenedAt,
+          startingCash: extra?.startingCash,
+        }),
       });
       if (res.ok) {
         setShopOpen(next);
@@ -8872,7 +9692,10 @@ export default function AdminDashboard() {
           const closeRes = await fetch("/api/daily-close", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ openedAt: shopOpenedAt }),
+            body: JSON.stringify({
+              openedAt: shopOpenedAt,
+              countedCash: extra?.countedCash,
+            }),
           });
           if (closeRes.ok) {
             setShiftDate(null);
@@ -9621,14 +10444,14 @@ export default function AdminDashboard() {
 
               {/* Action button — always shows what clicking will DO */}
               <button
-                onClick={async () => {
+                onClick={() => {
                   if (shopToggling) return;
                   const next = !shopOpen;
                   if (!next) {
-                    setConfirmPauseShop(true);
-                    return;
+                    setShowCloseShiftModal(true);
+                  } else {
+                    setShowOpenShiftModal(true);
                   }
-                  toggleShop(true);
                 }}
                 style={{
                   padding: "7px 13px",
@@ -9672,6 +10495,29 @@ export default function AdminDashboard() {
                   </>
                 )}
               </button>
+              {shopOpen && (
+                <button
+                  onClick={() => setShowCashLogModal(true)}
+                  style={{
+                    padding: "7px 13px",
+                    background: "rgba(91,155,213,0.1)",
+                    border: "1px solid rgba(91,155,213,0.35)",
+                    borderRadius: 8,
+                    color: T.blue,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    fontFamily: "'Cinzel',serif",
+                    letterSpacing: ".06em",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <Banknote size={12} />
+                  {!isMobile && " CASH IN/OUT"}
+                </button>
+              )}
               {/* {isAdmin && (
                 <button
                   onClick={async () => {
@@ -10041,6 +10887,32 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {showOpenShiftModal && (
+        <OpenShiftModal
+          onConfirm={(startingCash) => {
+            setShowOpenShiftModal(false);
+            toggleShop(true, { startingCash });
+          }}
+          onCancel={() => setShowOpenShiftModal(false)}
+        />
+      )}
+      {showCloseShiftModal && (
+        <CloseShiftModal
+          cashRevToday={orders
+            .filter(
+              (o) => o.status === "completed" && o.paymentMethod === "cash",
+            )
+            .reduce((s, o) => s + o.total, 0)}
+          onConfirm={(countedCash) => {
+            setShowCloseShiftModal(false);
+            toggleShop(false, { countedCash });
+          }}
+          onCancel={() => setShowCloseShiftModal(false)}
+        />
+      )}
+      {showCashLogModal && (
+        <CashLogModal onClose={() => setShowCashLogModal(false)} />
+      )}
       {confirmPauseShop && (
         <ConfirmModal
           danger={false}
