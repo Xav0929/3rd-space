@@ -1430,10 +1430,12 @@ function CashRegisterModal({
     return () => window.removeEventListener("keydown", fn);
   }, [onCancel]);
 
-  const QUICK_AMOUNTS = [
-    total,
-    ...[20, 50, 100, 200, 500, 1000].filter((v) => v >= total),
-  ].slice(0, 5);
+  const QUICK_AMOUNTS = Array.from(
+    new Set([
+      total,
+      ...[20, 50, 100, 200, 500, 1000].filter((v) => v >= total),
+    ]),
+  ).slice(0, 5);
 
   return (
     <div

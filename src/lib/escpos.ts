@@ -87,6 +87,13 @@ export async function buildEscPosReceipt(order: {
   // Init printer
   push(ESC, 0x40);
 
+  // Kick open the cash drawer for cash payments.
+  // ESC p m t1 t2 — sends a pulse to the drawer-kick pin (pin 2 on RJ11/RJ12).
+  // Most drawers wired through the printer's cash-drawer port respond to this.
+  if (order.paymentMethod === "cash") {
+    push(ESC, 0x70, 0x00, 0x19, 0xfa);
+  }
+
   // Center align
   push(ESC, 0x61, 0x01);
 
@@ -176,9 +183,9 @@ export async function buildEscPosReceipt(order: {
   line("--------------------------------");
   push(ESC, 0x61, 0x01); // center
 
-  // QR code — scan to order delivery
+  // QR code — scan to visit the shop
   try {
-    line("SCAN TO ORDER DELIVERY");
+    line("Visit 3rdspace.shop");
     const qrBytes = await imageUrlToEscPosRaster(
       `${window.location.origin}/qr-code.png`,
       200,
