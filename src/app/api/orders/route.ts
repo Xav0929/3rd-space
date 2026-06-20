@@ -127,9 +127,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (type === "dine-in" && !tableNumber) {
+  if (type === "dine-in" && !tableNumber && !customerName) {
     return NextResponse.json(
-      { error: "Table number required for dine-in" },
+      { error: "Table number or customer name required for dine-in" },
       { status: 400 },
     );
   }
@@ -221,7 +221,6 @@ export async function DELETE(req: NextRequest) {
   await connectDB();
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   await Order.findByIdAndDelete(id);

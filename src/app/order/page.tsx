@@ -52,7 +52,11 @@ function getDeliveryFee(distanceKm: number): number {
 /* ─── CUSTOMIZATION CONFIG ────────────────────────────────────────────────── */
 const MILK_SUBS = [
   { label: "Regular Milk", price: 0 },
-  { label: "Oat Milk", price: 30 },
+  { label: "Oat Milk", price: 50 },
+];
+const BASE_SUBS = [
+  { label: "Coffee", price: 0 },
+  { label: "Matcha", price: 50 },
 ];
 const DRINK_ADDONS = [
   { label: "Add Espresso Shot", price: 30 },
@@ -62,6 +66,7 @@ const DRINK_ADDONS = [
 ];
 type CustomizationConfig = {
   substitutions?: { label: string; price: number }[];
+  baseSubs?: { label: string; price: number }[];
   addons?: { label: string; price: number }[];
   sauces?: { name: string; image: string }[];
   eggStyles?: { name: string; image: string }[];
@@ -77,6 +82,8 @@ function getCategoryCustomizations(
 
   // Americano: no milk sub, just drink add-ons
   if (n.includes("americano")) return { addons: DRINK_ADDONS };
+  // Orange drinks: no milk sub
+  if (n.includes("orange")) return { addons: DRINK_ADDONS };
 
   if (c.includes("3rd space"))
     return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
@@ -97,10 +104,13 @@ function getCategoryCustomizations(
       addons: [{ label: "Extra Serving", price: 30 }],
     };
   if (c.includes("brain fuel")) return { addons: DRINK_ADDONS };
-  if (c.includes("oat"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("oat")) return { addons: DRINK_ADDONS };
   if (c.includes("coffee"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return {
+      substitutions: MILK_SUBS,
+      baseSubs: BASE_SUBS,
+      addons: DRINK_ADDONS,
+    };
   if (c.includes("flavored soda")) return { addons: DRINK_ADDONS };
   if (c.includes("house plate"))
     return {
@@ -386,6 +396,9 @@ function CustomizationSheet({
   const [selectedSub, setSelectedSub] = useState(
     config.substitutions?.[0]?.label || "",
   );
+  const [selectedBase, setSelectedBase] = useState(
+    config.baseSubs?.[0]?.label || "",
+  );
   const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
   const [selectedSauces, setSelectedSauces] = useState<Set<string>>(new Set());
   const [selectedEggStyle, setSelectedEggStyle] = useState<string>(
@@ -394,6 +407,7 @@ function CustomizationSheet({
 
   const extraCost =
     (config.substitutions?.find((s) => s.label === selectedSub)?.price || 0) +
+    (config.baseSubs?.find((s) => s.label === selectedBase)?.price || 0) +
     Array.from(selectedAddons).reduce((sum, lbl) => {
       return sum + (config.addons?.find((a) => a.label === lbl)?.price || 0);
     }, 0);
@@ -403,6 +417,10 @@ function CustomizationSheet({
     if (config.substitutions) {
       const sub = config.substitutions.find((s) => s.label === selectedSub);
       if (sub) result.push({ type: "substitution", ...sub });
+    }
+    if (config.baseSubs) {
+      const base = config.baseSubs.find((s) => s.label === selectedBase);
+      if (base) result.push({ type: "substitution", ...base });
     }
     if (config.eggStyles && selectedEggStyle) {
       result.push({ type: "substitution", label: selectedEggStyle, price: 0 });
@@ -540,7 +558,7 @@ function CustomizationSheet({
                   marginBottom: 10,
                 }}
               >
-                MILK / BASE
+                MILK
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {config.substitutions.map((s) => {
@@ -549,6 +567,89 @@ function CustomizationSheet({
                     <button
                       key={s.label}
                       onClick={() => setSelectedSub(s.label)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 14px",
+                        borderRadius: 10,
+                        border: `1.5px solid ${sel ? G : BR}`,
+                        background: sel ? GD : "transparent",
+                        cursor: "pointer",
+                        touchAction: "manipulation",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: 999,
+                            border: `2px solid ${sel ? G : CM}`,
+                            background: sel ? G : "transparent",
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {sel && (
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: 999,
+                                background: BG,
+                              }}
+                            />
+                          )}
+                        </div>
+                        <span style={{ color: sel ? C : CM, fontSize: 13 }}>
+                          {s.label}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          color: s.price > 0 ? G : CF,
+                          fontSize: 12,
+                          fontFamily: "'Cinzel',serif",
+                        }}
+                      >
+                        {s.price > 0 ? `+₱${s.price}` : "Free"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {config.baseSubs && (
+            <div style={{ marginBottom: 18 }}>
+              <p
+                style={{
+                  color: CM,
+                  fontSize: 10,
+                  letterSpacing: ".14em",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 10,
+                }}
+              >
+                BASE
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {config.baseSubs.map((s) => {
+                  const sel = selectedBase === s.label;
+                  return (
+                    <button
+                      key={s.label}
+                      onClick={() => setSelectedBase(s.label)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -4010,8 +4111,8 @@ function PaymentScreen({
   const effectiveMethod: PayMethod =
     orderType === "delivery" ? "gcash" : paymentMethod;
 
-  // ⚠️ Replace with actual GCash number
-  const GCASH_NUMBER = "09XX XXX XXXX";
+  const GCASH_NUMBER =
+    orderType === "delivery" ? "0956 627 7949" : "0917 813 7503";
   const GCASH_NAME = "3RD SPACE COFFEE";
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {

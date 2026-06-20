@@ -6414,7 +6414,7 @@ function GCashPaymentScreen({
   orderNumber: string;
   onDone: () => void;
 }) {
-  const GCASH_NUMBER = "09XX XXX XXXX";
+  const GCASH_NUMBER = "0917 813 7503";
   return (
     <div
       style={{
