@@ -2342,14 +2342,7 @@ function OrderCard({
           onConfirm={async (cashReceived, change) => {
             setShowCashRegister(false);
             await onCashConfirm(order._id, cashReceived, change);
-            // If the order was still "pending", this register run was
-            // triggered by the blue confirm button — advance it too.
-            if (order.status === "pending" && nextStatus) {
-              await onStatusChange(order._id, nextStatus);
-              printReceipt(2, { cashReceived, change });
-            } else {
-              printReceipt(1, { cashReceived, change });
-            }
+            printReceipt(1, { cashReceived, change });
           }}
           onCancel={() => setShowCashRegister(false)}
         />
