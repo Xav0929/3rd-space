@@ -1,5 +1,24 @@
 import mongoose, { Schema, model, models } from "mongoose";
 
+const OptionChoiceSchema = new Schema(
+  {
+    label: { type: String, required: true },
+    price: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
+const OptionGroupSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    type: { type: String, enum: ["single", "multi"], default: "single" },
+    required: { type: Boolean, default: false },
+    max: { type: Number },
+    choices: { type: [OptionChoiceSchema], default: [] },
+  },
+  { _id: false },
+);
+
 const MenuItemSchema = new Schema(
   {
     name: { type: String, required: true },
@@ -9,6 +28,7 @@ const MenuItemSchema = new Schema(
     image: { type: String, default: "" },
     available: { type: Boolean, default: true },
     variants: { type: [String], default: [] },
+    options: { type: [OptionGroupSchema], default: [] },
   },
   { timestamps: true },
 );

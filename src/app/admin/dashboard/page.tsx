@@ -139,6 +139,14 @@ type Order = {
     distanceKm?: number;
   };
 };
+type OptionChoice = { label: string; price: number };
+type OptionGroup = {
+  name: string;
+  type: "single" | "multi";
+  required?: boolean;
+  max?: number;
+  choices: OptionChoice[];
+};
 type MenuItem = {
   _id: string;
   name: string;
@@ -148,6 +156,7 @@ type MenuItem = {
   image: string;
   available: boolean;
   variants?: string[];
+  options?: OptionGroup[];
 };
 type DailyReport = {
   _id: string;
@@ -360,6 +369,58 @@ function getCrewCustomizations(
       ],
     };
   return null;
+}
+
+function deriveLegacyOptions(item: {
+  name?: string;
+  category?: string;
+  variants?: string[];
+}): OptionGroup[] {
+  const groups: OptionGroup[] = [];
+  const nameKey = (item.name || "").toLowerCase();
+  const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
+    nameKey.includes(k),
+  )?.[1];
+  const effectiveVariants =
+    item.variants && item.variants.length > 0
+      ? item.variants.map((v) => ({ label: v, price: 0 }))
+      : nameVariants;
+  if (effectiveVariants && effectiveVariants.length > 0) {
+    groups.push({
+      name: "Variant",
+      type: "single",
+      required: true,
+      choices: effectiveVariants.map((v) => ({
+        label: v.label,
+        price: v.price || 0,
+      })),
+    });
+  }
+  const config = getCrewCustomizations(item.category || "", item.name);
+  if (config?.substitutions)
+    groups.push({
+      name: "Milk",
+      type: "single",
+      choices: config.substitutions,
+    });
+  if (config?.baseSubs)
+    groups.push({ name: "Base", type: "single", choices: config.baseSubs });
+  if (config?.eggStyles)
+    groups.push({
+      name: "Egg Style",
+      type: "single",
+      choices: config.eggStyles.map((e) => ({ label: e.name, price: 0 })),
+    });
+  if (config?.sauces)
+    groups.push({
+      name: "Sauce",
+      type: "multi",
+      max: 2,
+      choices: config.sauces.map((s) => ({ label: s.name, price: 0 })),
+    });
+  if (config?.addons)
+    groups.push({ name: "Add-Ons", type: "multi", choices: config.addons });
+  return groups;
 }
 
 function fmt(n: number) {
@@ -3045,14 +3106,90 @@ function OrderCard({
                 {order.items.map((it, i) => (
                   <div
                     key={i}
-                    style={{ display: "flex", justifyContent: "space-between" }}
+                    style={{ display: "flex", flexDirection: "column", gap: 2 }}
                   >
-                    <span style={{ color: T.muted, fontSize: 12 }}>
-                      {it.quantity}× {it.name}
-                    </span>
-                    <span style={{ color: T.cream, fontSize: 12 }}>
-                      ₱{(it.price * it.quantity).toFixed(2)}
-                    </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 12 }}>
+                        {it.quantity}× {it.name}
+                      </span>
+                      <span style={{ color: T.cream, fontSize: 12 }}>
+                        ₱{(it.price * it.quantity).toFixed(2)}
+                      </span>
+                    </div>
+                    {it.customizations && it.customizations.length > 0 && (
+                      <div
+                        style={{
+                          paddingLeft: 14,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                          marginTop: 2,
+                        }}
+                      >
+                        {Object.entries(
+                          it.customizations.reduce(
+                            (
+                              groups: Record<string, typeof it.customizations>,
+                              c,
+                            ) => {
+                              const key = c.type?.trim() || "Option";
+                              if (!groups[key]) groups[key] = [];
+                              groups[key]!.push(c);
+                              return groups;
+                            },
+                            {},
+                          ),
+                        ).map(([groupType, choices]) => (
+                          <div
+                            key={groupType}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: 6,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: T.gold,
+                                fontSize: 9,
+                                fontWeight: 700,
+                                letterSpacing: ".08em",
+                                textTransform: "uppercase",
+                                background: "rgba(212,168,67,0.12)",
+                                border: `1px solid ${T.gold}44`,
+                                borderRadius: 4,
+                                padding: "2px 6px",
+                                flexShrink: 0,
+                                marginTop: 1,
+                              }}
+                            >
+                              {groupType}
+                            </span>
+                            <span
+                              style={{
+                                color: T.cream,
+                                fontSize: 11,
+                                opacity: 0.85,
+                              }}
+                            >
+                              {choices!
+                                .map(
+                                  (c) =>
+                                    c.label +
+                                    (c.price > 0 ? ` (+₱${c.price})` : ""),
+                                )
+                                .join(", ")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div
@@ -3564,9 +3701,12 @@ function MenuItemForm({
   onSave: (data: Partial<MenuItem>) => Promise<boolean>;
   onCancel: () => void;
 }) {
-  const [form, setForm] = useState<Partial<MenuItem>>(
-    item || { available: true },
-  );
+  const [form, setForm] = useState<Partial<MenuItem>>(() => {
+    if (!item) return { available: true };
+    if (item.options && item.options.length > 0) return item;
+    const derived = deriveLegacyOptions(item);
+    return derived.length > 0 ? { ...item, options: derived } : item;
+  });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState("");
@@ -3607,7 +3747,14 @@ function MenuItemForm({
     if (!valid) return;
     setErr("");
     setSaving(true);
-    const ok = await onSave(form);
+    const cleanedOptions = (form.options || [])
+      .filter((g) => g.name.trim())
+      .map((g) => ({
+        ...g,
+        choices: g.choices.filter((c) => c.label.trim()),
+      }))
+      .filter((g) => g.choices.length > 0);
+    const ok = await onSave({ ...form, options: cleanedOptions });
     setSaving(false);
     if (!ok) setErr("Failed to save — check your connection and try again.");
   }
@@ -3823,6 +3970,241 @@ function MenuItemForm({
       </div>
 
       <div>
+        <label style={labelStyle}>
+          OPTIONS (e.g. Milk, Pieces, Spice Level — fully custom, editable
+          anytime)
+        </label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {(form.options || []).map((group: OptionGroup, gi: number) => (
+            <div
+              key={gi}
+              style={{
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                padding: 12,
+                background: "rgba(255,255,255,0.02)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  value={group.name}
+                  onChange={(e) => {
+                    const next = [...(form.options || [])];
+                    next[gi] = { ...next[gi], name: e.target.value };
+                    set("options", next);
+                  }}
+                  placeholder="Group name (e.g. Milk, Pieces)"
+                  style={{ ...inputStyle, flex: 1, fontSize: 12 }}
+                />
+                <button
+                  onClick={() => {
+                    const next = [...(form.options || [])];
+                    next[gi] = {
+                      ...next[gi],
+                      type: next[gi].type === "single" ? "multi" : "single",
+                    };
+                    set("options", next);
+                  }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${T.border}`,
+                    background: "rgba(212,168,67,0.08)",
+                    color: T.gold,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {group.type === "single" ? "ONE PICK" : "MULTI PICK"}
+                </button>
+                <button
+                  onClick={() => {
+                    const next = (form.options || []).filter(
+                      (_: any, i: number) => i !== gi,
+                    );
+                    set("options", next);
+                  }}
+                  style={{
+                    background: "rgba(239,68,68,0.08)",
+                    border: "1px solid rgba(239,68,68,0.2)",
+                    color: T.red,
+                    borderRadius: 6,
+                    padding: "8px 9px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+
+              {group.type === "multi" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ color: T.muted, fontSize: 11 }}>
+                    Max picks:
+                  </span>
+                  <input
+                    type="number"
+                    value={group.max ?? ""}
+                    onChange={(e) => {
+                      const next = [...(form.options || [])];
+                      next[gi] = {
+                        ...next[gi],
+                        max: e.target.value
+                          ? parseInt(e.target.value)
+                          : undefined,
+                      };
+                      set("options", next);
+                    }}
+                    placeholder="no limit"
+                    style={{
+                      ...inputStyle,
+                      width: 90,
+                      fontSize: 12,
+                      padding: "5px 8px",
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const next = [...(form.options || [])];
+                      next[gi] = { ...next[gi], required: !next[gi].required };
+                      set("options", next);
+                    }}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      border: `1px solid ${group.required ? T.gold : T.border}`,
+                      background: group.required ? T.goldDim : "transparent",
+                      color: group.required ? T.gold : T.muted,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {group.required ? "✓ REQUIRED" : "OPTIONAL"}
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {group.choices.map((choice, ci) => (
+                  <div key={ci} style={{ display: "flex", gap: 6 }}>
+                    <input
+                      value={choice.label}
+                      onChange={(e) => {
+                        const next = [...(form.options || [])];
+                        const choices = [...next[gi].choices];
+                        choices[ci] = { ...choices[ci], label: e.target.value };
+                        next[gi] = { ...next[gi], choices };
+                        set("options", next);
+                      }}
+                      placeholder="Choice label (e.g. Oat Milk)"
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        fontSize: 12,
+                        padding: "6px 10px",
+                      }}
+                    />
+                    <input
+                      type="number"
+                      value={choice.price || ""}
+                      onChange={(e) => {
+                        const next = [...(form.options || [])];
+                        const choices = [...next[gi].choices];
+                        choices[ci] = {
+                          ...choices[ci],
+                          price: parseFloat(e.target.value) || 0,
+                        };
+                        next[gi] = { ...next[gi], choices };
+                        set("options", next);
+                      }}
+                      placeholder="₱0"
+                      style={{
+                        ...inputStyle,
+                        width: 70,
+                        fontSize: 12,
+                        padding: "6px 8px",
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        const next = [...(form.options || [])];
+                        next[gi] = {
+                          ...next[gi],
+                          choices: next[gi].choices.filter((_, i) => i !== ci),
+                        };
+                        set("options", next);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: T.muted,
+                        cursor: "pointer",
+                        padding: "0 4px",
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const next = [...(form.options || [])];
+                    next[gi] = {
+                      ...next[gi],
+                      choices: [...next[gi].choices, { label: "", price: 0 }],
+                    };
+                    set("options", next);
+                  }}
+                  style={{
+                    alignSelf: "flex-start",
+                    padding: "5px 10px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: `1px dashed ${T.border}`,
+                    borderRadius: 6,
+                    color: T.muted,
+                    fontSize: 11,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add Choice
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() =>
+              set("options", [
+                ...(form.options || []),
+                {
+                  name: "",
+                  type: "single",
+                  choices: [{ label: "", price: 0 }],
+                },
+              ])
+            }
+            style={{
+              padding: "9px 14px",
+              background: T.goldDim,
+              border: `1px solid ${T.gold}44`,
+              borderRadius: 8,
+              color: T.gold,
+              cursor: "pointer",
+              fontSize: 12,
+              alignSelf: "flex-start",
+            }}
+          >
+            + Add Option Group
+          </button>
+        </div>
+      </div>
+
+      <div>
         <label style={labelStyle}>DESCRIPTION</label>
         <textarea
           value={form.description || ""}
@@ -4014,10 +4396,11 @@ function MenuTab({
 
   async function saveItem(data: Partial<MenuItem>): Promise<boolean> {
     const isEdit = !!editItem;
-    const isHardcoded = isEdit && !editItem!._id.match(/^[a-f\d]{24}$/i);
+    const isHardcoded = isEdit && editItem!._id.startsWith("hardcoded-");
     const url =
       isEdit && !isHardcoded ? `/api/menu/${editItem!._id}` : "/api/menu";
     const method = isEdit && !isHardcoded ? "PATCH" : "POST";
+    console.log(`[MenuTab.saveItem] → ${method} ${url}`, data);
 
     try {
       const res = await fetch(url, {
@@ -4078,7 +4461,7 @@ function MenuTab({
   }
 
   async function toggleAvail(item: MenuItem) {
-    const isHardcoded = !item._id.match(/^[a-f\d]{24}$/i);
+    const isHardcoded = item._id.startsWith("hardcoded-");
     const newVal = !item.available;
     if (isHardcoded) {
       setLocalItems((prev) =>
@@ -7448,6 +7831,242 @@ function AccountsTab() {
   );
 }
 
+function GenericOptionsSheet({
+  item,
+  onAdd,
+  onClose,
+}: {
+  item: MenuItem;
+  onAdd: (extraPrice: number, labels: string[]) => void;
+  onClose: () => void;
+}) {
+  const groups = item.options || [];
+  const [selections, setSelections] = useState<Record<string, Set<string>>>(
+    () => {
+      const init: Record<string, Set<string>> = {};
+      groups.forEach((g) => {
+        init[g.name] =
+          g.type === "single" && g.required && g.choices[0]
+            ? new Set([g.choices[0].label])
+            : new Set();
+      });
+      return init;
+    },
+  );
+
+  const extraTotal = groups.reduce((sum, g) => {
+    const sel = selections[g.name] || new Set();
+    return (
+      sum +
+      g.choices.filter((c) => sel.has(c.label)).reduce((s, c) => s + c.price, 0)
+    );
+  }, 0);
+
+  const toggle = (group: OptionGroup, label: string) => {
+    setSelections((prev) => {
+      const next = { ...prev };
+      if (group.type === "single") {
+        next[group.name] = new Set([label]);
+        return next;
+      }
+      const cur = new Set(prev[group.name] || []);
+      if (cur.has(label)) cur.delete(label);
+      else if (!group.max || cur.size < group.max) cur.add(label);
+      next[group.name] = cur;
+      return next;
+    });
+  };
+
+  const canAdd = groups
+    .filter((g) => g.required)
+    .every((g) => (selections[g.name]?.size || 0) > 0);
+
+  const handleAdd = () => {
+    const labels: string[] = [];
+    groups.forEach((g) => {
+      const sel = selections[g.name] || new Set();
+      g.choices.forEach((c) => {
+        if (sel.has(c.label))
+          labels.push(c.price > 0 ? `${c.label} (+₱${c.price})` : c.label);
+      });
+    });
+    onAdd(extraTotal, labels);
+  };
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 420,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: 16,
+                fontWeight: 700,
+                color: T.cream,
+                letterSpacing: ".02em",
+                lineHeight: 1.3,
+              }}
+            >
+              {item.name}
+            </p>
+            <p style={{ color: T.gold, fontSize: 13, marginTop: 4 }}>
+              ₱{item.price}
+              {extraTotal > 0 && (
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  {" "}
+                  + ₱{extraTotal}
+                </span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 999,
+              width: 30,
+              height: 30,
+              minWidth: 30,
+              color: T.muted,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              flexShrink: 0,
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {groups.map((g) => (
+          <div key={g.name}>
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".14em",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 8,
+              }}
+            >
+              {g.name.toUpperCase()}
+              {g.required ? " · REQUIRED" : ""}
+              {g.type === "multi" && g.max ? ` · MAX ${g.max}` : ""}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {g.choices.map((c) => {
+                const sel = (selections[g.name] || new Set()).has(c.label);
+                return (
+                  <button
+                    key={c.label}
+                    onClick={() => toggle(g, c.label)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "11px 14px",
+                      borderRadius: 10,
+                      border: `1.5px solid ${sel ? T.gold : T.border}`,
+                      background: sel ? T.goldDim : "rgba(255,255,255,0.02)",
+                      color: sel ? T.cream : T.muted,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      textAlign: "left",
+                      transition: "all .15s",
+                    }}
+                  >
+                    <span>{c.label}</span>
+                    <span
+                      style={{
+                        color: c.price > 0 ? T.gold : T.faint,
+                        fontFamily: "'Cinzel',serif",
+                        fontSize: 12,
+                      }}
+                    >
+                      {c.price > 0 ? `+₱${c.price}` : "Free"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        <button
+          onClick={handleAdd}
+          disabled={!canAdd}
+          style={{
+            width: "100%",
+            background: canAdd ? T.gold : "rgba(212,168,67,0.25)",
+            color: canAdd ? "#0a0f0a" : T.muted,
+            border: "none",
+            borderRadius: 10,
+            fontFamily: "'Cinzel',serif",
+            fontWeight: 700,
+            fontSize: 12,
+            letterSpacing: ".1em",
+            cursor: canAdd ? "pointer" : "not-allowed",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "13px 18px",
+          }}
+        >
+          <span>ADD TO ORDER</span>
+          <span>₱{item.price + extraTotal}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CrewCustomizationSheet({
   item,
   config,
@@ -7891,6 +8510,9 @@ function CrewTab({
   const [customizingConfig, setCustomizingConfig] =
     useState<CrewCustomizationConfig | null>(null);
   const [variantItem, setVariantItem] = useState<MenuItem | null>(null);
+  const [genericOptionsItem, setGenericOptionsItem] = useState<MenuItem | null>(
+    null,
+  );
 
   const liveSauces = menuItems
     .filter((i) => i.category.toLowerCase().includes("sauce") && i.available)
@@ -7979,6 +8601,10 @@ function CrewTab({
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
 
   function addItem(item: MenuItem) {
+    if (item.options && item.options.length > 0) {
+      setGenericOptionsItem(item);
+      return;
+    }
     const nameKey = item.name.toLowerCase();
     const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
       nameKey.includes(k),
@@ -8652,6 +9278,16 @@ function CrewTab({
             </div>
           </div>
         </div>
+      )}
+      {genericOptionsItem && (
+        <GenericOptionsSheet
+          item={genericOptionsItem}
+          onClose={() => setGenericOptionsItem(null)}
+          onAdd={(extraPrice, labels) => {
+            addToCartFinal(genericOptionsItem, extraPrice, labels);
+            setGenericOptionsItem(null);
+          }}
+        />
       )}
       {customizingItem && customizingConfig && (
         <CrewCustomizationSheet

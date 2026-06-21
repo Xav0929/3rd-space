@@ -1,10 +1,23 @@
 import mongoose, { Schema, model, models } from "mongoose";
 
+// Note: the field is literally named "type" (e.g. "sauce", "milk", "variant"),
+// so it must be declared as { type: { type: String } } to disambiguate from
+// Mongoose's SchemaType shorthand.
+const OrderItemCustomizationSchema = new Schema(
+  {
+    type: { type: String, default: "" },
+    label: { type: String, required: true },
+    price: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
 const OrderItemSchema = new Schema({
   menuItemId: { type: String, required: true },
   name: { type: String, required: true },
   price: { type: Number, required: true },
   quantity: { type: Number, required: true },
+  customizations: { type: [OrderItemCustomizationSchema], default: [] },
 });
 
 const OrderSchema = new Schema(

@@ -23,6 +23,8 @@ export async function PATCH(
       "category",
       "image",
       "available",
+      "variants",
+      "options",
     ];
     const update: Record<string, any> = {};
     for (const key of allowed) {

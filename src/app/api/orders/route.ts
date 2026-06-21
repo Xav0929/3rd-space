@@ -139,6 +139,9 @@ export async function POST(req: NextRequest) {
     name: item.name,
     price: item.price,
     quantity: item.quantity,
+    customizations: Array.isArray(item.customizations)
+      ? item.customizations
+      : [],
   }));
   // Rate limit: max 3 delivery orders per contact per 10 minutes
   if (type === "delivery") {

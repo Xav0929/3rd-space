@@ -158,6 +158,17 @@ function getCategoryCustomizations(
 }
 
 /* ─── TYPES ───────────────────────────────────────────────────────────────── */
+interface OptionChoice {
+  label: string;
+  price: number;
+}
+interface OptionGroup {
+  name: string;
+  type: "single" | "multi";
+  required?: boolean;
+  max?: number;
+  choices: OptionChoice[];
+}
 interface MenuItem {
   _id: string;
   name: string;
@@ -167,9 +178,10 @@ interface MenuItem {
   image: string;
   available: boolean;
   variants?: string[];
+  options?: OptionGroup[];
 }
 interface SelectedCustomization {
-  type: "substitution" | "addon";
+  type: "substitution" | "addon" | "sauce";
   label: string;
   price: number;
 }
@@ -426,7 +438,7 @@ function CustomizationSheet({
       result.push({ type: "substitution", label: selectedEggStyle, price: 0 });
     }
     selectedSauces.forEach((lbl) => {
-      result.push({ type: "addon", label: lbl, price: 0 });
+      result.push({ type: "sauce", label: lbl, price: 0 });
     });
     selectedAddons.forEach((lbl) => {
       const a = config.addons?.find((x) => x.label === lbl);
@@ -1808,6 +1820,222 @@ function VariantSheet({
 }
 
 /* ─── MENU SCREEN ─────────────────────────────────────────────────────────── */
+/* ─── GENERIC OPTIONS SHEET (admin-defined per-product options) ────────────── */
+function GenericOptionsSheet({
+  item,
+  onAdd,
+  onClose,
+}: {
+  item: MenuItem;
+  onAdd: (customizations: SelectedCustomization[]) => void;
+  onClose: () => void;
+}) {
+  const groups = item.options || [];
+  const [selections, setSelections] = useState<Record<string, Set<string>>>(
+    () => {
+      const init: Record<string, Set<string>> = {};
+      groups.forEach((g) => {
+        init[g.name] =
+          g.type === "single" && g.required && g.choices[0]
+            ? new Set([g.choices[0].label])
+            : new Set();
+      });
+      return init;
+    },
+  );
+
+  const extraCost = groups.reduce((sum, g) => {
+    const sel = selections[g.name] || new Set();
+    return (
+      sum +
+      g.choices.filter((c) => sel.has(c.label)).reduce((s, c) => s + c.price, 0)
+    );
+  }, 0);
+
+  const toggle = (group: OptionGroup, label: string) => {
+    setSelections((prev) => {
+      const next = { ...prev };
+      if (group.type === "single") {
+        next[group.name] = new Set([label]);
+        return next;
+      }
+      const cur = new Set(prev[group.name] || []);
+      if (cur.has(label)) cur.delete(label);
+      else if (!group.max || cur.size < group.max) cur.add(label);
+      next[group.name] = cur;
+      return next;
+    });
+  };
+
+  const canAdd = groups
+    .filter((g) => g.required)
+    .every((g) => (selections[g.name]?.size || 0) > 0);
+
+  const handleAdd = () => {
+    const result: SelectedCustomization[] = [];
+    groups.forEach((g) => {
+      const sel = selections[g.name] || new Set();
+      g.choices.forEach((c) => {
+        if (sel.has(c.label))
+          result.push({ type: "addon", label: c.label, price: c.price });
+      });
+    });
+    onAdd(result);
+  };
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,.6)",
+          backdropFilter: "blur(4px)",
+          zIndex: 60,
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "#111e11",
+          borderTop: `1px solid ${BR}`,
+          borderRadius: "20px 20px 0 0",
+          zIndex: 61,
+          padding: "0 0 env(safe-area-inset-bottom,0)",
+          maxHeight: "85svh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            padding: "20px 20px 14px",
+            borderBottom: `1px solid ${BR}`,
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <h3
+              style={{
+                fontFamily: "'Yanone Kaffeesatz',sans-serif",
+                fontSize: 20,
+                fontWeight: 700,
+                color: C,
+              }}
+            >
+              {item.name}
+            </h3>
+            <p style={{ color: CM, fontSize: 13, marginTop: 4 }}>
+              ₱{item.price}
+              {extraCost > 0 && <span> + ₱{extraCost}</span>}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: `1px solid ${BR}`,
+              borderRadius: 999,
+              width: 30,
+              height: 30,
+              color: CM,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div style={{ overflowY: "auto", padding: "16px 20px", flex: 1 }}>
+          {groups.map((g) => (
+            <div key={g.name} style={{ marginBottom: 18 }}>
+              <p
+                style={{
+                  color: CM,
+                  fontSize: 11,
+                  letterSpacing: ".12em",
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                {g.name}
+                {g.required ? " · Required" : ""}
+                {g.type === "multi" && g.max ? ` · Max ${g.max}` : ""}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {g.choices.map((c) => {
+                  const sel = (selections[g.name] || new Set()).has(c.label);
+                  return (
+                    <button
+                      key={c.label}
+                      onClick={() => toggle(g, c.label)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        border: `1.5px solid ${sel ? G : BR}`,
+                        background: sel ? GD : "rgba(255,255,255,0.02)",
+                        color: sel ? C : CM,
+                        cursor: "pointer",
+                        fontSize: 14,
+                        textAlign: "left",
+                      }}
+                    >
+                      <span>{c.label}</span>
+                      <span
+                        style={{ color: c.price > 0 ? G : CF, fontSize: 13 }}
+                      >
+                        {c.price > 0 ? `+₱${c.price}` : "Free"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ padding: "14px 20px", borderTop: `1px solid ${BR}` }}>
+          <button
+            onClick={handleAdd}
+            disabled={!canAdd}
+            style={{
+              width: "100%",
+              background: canAdd ? G : "rgba(212,168,67,0.25)",
+              color: canAdd ? "#0b150b" : CM,
+              border: "none",
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: canAdd ? "pointer" : "not-allowed",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 18px",
+            }}
+          >
+            <span>ADD TO CART</span>
+            <span>₱{item.price + extraCost}</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function MenuScreen({
   menuItems,
   cart,
@@ -1849,6 +2077,9 @@ function MenuScreen({
   const [customizingConfig, setCustomizingConfig] =
     useState<CustomizationConfig | null>(null);
   const [variantItem, setVariantItem] = useState<MenuItem | null>(null);
+  const [genericOptionsItem, setGenericOptionsItem] = useState<MenuItem | null>(
+    null,
+  );
 
   const liveSauces = menuItems
     .filter(
@@ -1886,6 +2117,10 @@ function MenuScreen({
   };
 
   const handleAddToCartWithCustomization = (item: MenuItem) => {
+    if (item.options && item.options.length > 0) {
+      setGenericOptionsItem(item);
+      return;
+    }
     const nameKey = item.name.toLowerCase();
     const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
       nameKey.includes(k),
@@ -2416,6 +2651,10 @@ function MenuScreen({
               ...(price != null ? { price } : {}),
             };
             setVariantItem(null);
+            if (itemWithVariant.options && itemWithVariant.options.length > 0) {
+              setGenericOptionsItem(itemWithVariant);
+              return;
+            }
             const config = getCategoryCustomizations(
               variantItem.category,
               liveSauces,
@@ -2428,6 +2667,17 @@ function MenuScreen({
             } else {
               onAddToCart(itemWithVariant, []);
             }
+          }}
+        />
+      )}
+
+      {genericOptionsItem && (
+        <GenericOptionsSheet
+          item={genericOptionsItem}
+          onClose={() => setGenericOptionsItem(null)}
+          onAdd={(customizations) => {
+            onAddToCart(genericOptionsItem, customizations);
+            setGenericOptionsItem(null);
           }}
         />
       )}
