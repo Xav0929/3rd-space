@@ -58,6 +58,29 @@ function FadeBlock({
 }
 
 // ── Team data — edit names/roles/quotes here ──
+const ECOSYSTEM = [
+  {
+    name: "ALens",
+    tagline: "Photography",
+    href: "https://www.facebook.com/share/17j1Yov24D/?mibextid=wwXIfr",
+  },
+  {
+    name: "Roma-A",
+    tagline: "Pop Up Booth",
+    href: "https://www.facebook.com/share/1BQK4nQUSP/?mibextid=wwXIfr",
+  },
+  {
+    name: "Extra Third Concept",
+    tagline: "Variety Store",
+    href: "https://www.facebook.com/share/17gR3MbXjM/?mibextid=wwXIfr",
+  },
+  {
+    name: "Project Nexus",
+    tagline: "Active Lifestyle",
+    href: "https://www.facebook.com/share/1988nmxCnC/?mibextid=wwXIfr",
+  },
+];
+
 const TEAM = [
   {
     initials: "F",
@@ -1171,6 +1194,139 @@ export default function AboutPage() {
                   as you love being here.
                 </p>
               </FadeBlock>
+            </div>
+          </div>
+        </section>
+
+        {/* ── ECOSYSTEM ── */}
+        <section
+          style={{
+            background: "#0d160d",
+            borderTop: "1px solid rgba(232,213,163,0.06)",
+            paddingTop: "clamp(4rem, 8vw, 7rem)",
+            paddingBottom: "clamp(4rem, 8vw, 7rem)",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: MAX_WIDTH,
+              margin: "0 auto",
+              paddingLeft: SITE_PADDING,
+              paddingRight: SITE_PADDING,
+            }}
+          >
+            <FadeBlock>
+              <p
+                style={{
+                  fontFamily: DM,
+                  fontSize: "clamp(0.55rem, 0.75vw, 0.65rem)",
+                  letterSpacing: "0.45em",
+                  color: "rgba(212,168,67,0.6)",
+                  textTransform: "uppercase",
+                  marginBottom: "clamp(1.5rem, 3vw, 2.5rem)",
+                }}
+              >
+                Beyond The Café
+              </p>
+            </FadeBlock>
+
+            <FadeBlock delay={100}>
+              <h2
+                style={{
+                  fontFamily: YK,
+                  fontWeight: 700,
+                  fontSize: "clamp(2.2rem, 4.5vw, 4.5rem)",
+                  lineHeight: 0.95,
+                  letterSpacing: "-0.01em",
+                  textTransform: "uppercase",
+                  color: "#e8d5a3",
+                  marginBottom: "clamp(3rem, 5vw, 4rem)",
+                  maxWidth: 700,
+                }}
+              >
+                The 3rd Space <em style={{ color: "#d4a843" }}>Ecosystem</em>
+              </h2>
+            </FadeBlock>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
+                gap: "clamp(1.2rem, 2.5vw, 1.8rem)",
+              }}
+            >
+              {ECOSYSTEM.map((e, i) => (
+                <FadeBlock key={e.name} delay={i * 100}>
+                  <a
+                    href={e.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="team-card"
+                    style={{
+                      display: "block",
+                      padding: "clamp(1.3rem, 2.2vw, 1.7rem)",
+                      border: "1px solid rgba(232,213,163,0.08)",
+                      textDecoration: "none",
+                      height: "100%",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontFamily: YK,
+                        fontWeight: 700,
+                        fontSize: "clamp(1.1rem, 1.6vw, 1.4rem)",
+                        letterSpacing: "0.03em",
+                        textTransform: "uppercase",
+                        color: "#e8d5a3",
+                        marginBottom: "0.4rem",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {e.name}
+                    </h3>
+                    <p
+                      style={{
+                        fontFamily: DM,
+                        fontSize: "clamp(0.75rem, 1vw, 0.85rem)",
+                        color: "rgba(212,168,67,0.6)",
+                        letterSpacing: "0.05em",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      {e.tagline}
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        color: "rgba(232,213,163,0.3)",
+                        fontFamily: DM,
+                        fontSize: "clamp(0.6rem, 0.85vw, 0.7rem)",
+                        letterSpacing: "0.15em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Visit on Facebook
+                      <svg
+                        width="11"
+                        height="11"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 17L17 7M7 7h10v10"
+                        />
+                      </svg>
+                    </div>
+                  </a>
+                </FadeBlock>
+              ))}
             </div>
           </div>
         </section>
