@@ -238,6 +238,130 @@ const STATUS_CFG: Record<
   cancelled: { label: "Cancelled", color: "#ef4444" },
 };
 
+const MILK_SUBS = [
+  { label: "Regular Milk", price: 0 },
+  { label: "Oat Milk", price: 50 },
+];
+const BASE_SUBS = [
+  { label: "Coffee", price: 0 },
+  { label: "Matcha", price: 50 },
+];
+const DRINK_ADDONS = [
+  { label: "Add Espresso Shot", price: 30 },
+  { label: "Add Syrup", price: 30 },
+  { label: "Add Sauce", price: 30 },
+  { label: "Add Vanilla Ice Cream", price: 30 },
+];
+
+type CrewCustomizationConfig = {
+  substitutions?: { label: string; price: number }[];
+  baseSubs?: { label: string; price: number }[];
+  addons?: { label: string; price: number }[];
+  sauces?: { name: string; image: string }[];
+  eggStyles?: { name: string; image: string }[];
+};
+
+const ITEM_VARIANTS: Record<string, { label: string; price?: number }[]> = {
+  longganisa: [{ label: "Garlic" }, { label: "Hamonado" }, { label: "Mixed" }],
+  tapa: [{ label: "Chicken" }, { label: "Beef" }],
+  "pancake classic": [
+    { label: "Classic 2pcs", price: 40 },
+    { label: "Classic 4pcs", price: 70 },
+  ],
+  "pancake caramel": [
+    { label: "Caramel 2pcs", price: 65 },
+    { label: "Caramel 4pcs", price: 100 },
+  ],
+  "pancake biscoff": [
+    { label: "Biscoff 2 pcs", price: 80 },
+    { label: "Biscoff 4pcs", price: 125 },
+  ],
+};
+
+function getCrewCustomizations(
+  category: string,
+  itemName?: string,
+  liveSauces?: { name: string; image: string }[],
+  liveEggStyles?: { name: string; image: string }[],
+): CrewCustomizationConfig | null {
+  const c = category.toLowerCase().trim();
+  const n = (itemName || "").toLowerCase();
+
+  if (n.includes("americano")) return { addons: DRINK_ADDONS };
+  if (n.includes("orange")) return { addons: DRINK_ADDONS };
+
+  if (c.includes("3rd space"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("coffee"))
+    return {
+      substitutions: MILK_SUBS,
+      baseSubs: BASE_SUBS,
+      addons: DRINK_ADDONS,
+    };
+  if (c.includes("brain fuel")) return { addons: DRINK_ADDONS };
+  if (c.includes("oat")) return { addons: DRINK_ADDONS };
+  if (c.includes("flavored soda")) return { addons: DRINK_ADDONS };
+  if (c.includes("matcha"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("non"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("tea"))
+    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+  if (c.includes("house plate"))
+    return {
+      addons: [
+        { label: "Add Rice", price: 25 },
+        { label: "Add Egg", price: 15 },
+      ],
+    };
+  if (c.includes("noodle") || c.includes("soup"))
+    return {
+      addons: [
+        { label: "Add Egg", price: 15 },
+        { label: "Add Extra Toppings", price: 25 },
+      ],
+    };
+  if (c.includes("pasta"))
+    return { addons: [{ label: "Add Rice", price: 25 }] };
+  if (c.includes("appetizer") || c.includes("snack"))
+    return {
+      sauces:
+        liveSauces && liveSauces.length > 0
+          ? liveSauces
+          : [
+              "Garlic Mayo",
+              "Ketchup",
+              "Sweet Chili",
+              "Honey Mustard",
+              "Toyo Calamansi",
+              "Vinegar",
+              "Tonkatsu Sauce",
+            ].map((name) => ({ name, image: "" })),
+      addons: [{ label: "Extra Serving", price: 30 }],
+    };
+  if (c.includes("savory"))
+    return {
+      eggStyles:
+        liveEggStyles && liveEggStyles.length > 0
+          ? liveEggStyles
+          : [
+              "Sunny Side Up",
+              "Over Easy",
+              "Over Hard",
+              "Soft Scramble",
+              "Hard Scramble",
+              "Soft Boiled",
+              "Hard Boiled",
+            ].map((name) => ({ name, image: "" })),
+      addons: [
+        { label: "Add Sauce", price: 15 },
+        { label: "Add Egg", price: 15 },
+        { label: "Add Rice", price: 25 },
+      ],
+    };
+  return null;
+}
+
 function fmt(n: number) {
   return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
 }
@@ -7324,6 +7448,420 @@ function AccountsTab() {
   );
 }
 
+function CrewCustomizationSheet({
+  item,
+  config,
+  onAdd,
+  onClose,
+}: {
+  item: MenuItem;
+  config: CrewCustomizationConfig;
+  onAdd: (extraPrice: number, labels: string[]) => void;
+  onClose: () => void;
+}) {
+  const [selectedSub, setSelectedSub] = useState(
+    config.substitutions?.[0]?.label || "",
+  );
+  const [selectedBase, setSelectedBase] = useState(
+    config.baseSubs?.[0]?.label || "",
+  );
+  const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
+  const [selectedSauces, setSelectedSauces] = useState<Set<string>>(new Set());
+  const [selectedEggStyle, setSelectedEggStyle] = useState<string>(
+    config.eggStyles?.[0]?.name || "",
+  );
+
+  const subPrice =
+    config.substitutions?.find((s) => s.label === selectedSub)?.price || 0;
+  const basePrice =
+    config.baseSubs?.find((s) => s.label === selectedBase)?.price || 0;
+  const addonsPrice = Array.from(selectedAddons).reduce(
+    (sum, lbl) =>
+      sum + (config.addons?.find((a) => a.label === lbl)?.price || 0),
+    0,
+  );
+  const extraTotal = subPrice + basePrice + addonsPrice;
+
+  const toggleAddon = (lbl: string) =>
+    setSelectedAddons((prev) => {
+      const next = new Set(prev);
+      next.has(lbl) ? next.delete(lbl) : next.add(lbl);
+      return next;
+    });
+
+  const handleAdd = () => {
+    const labels: string[] = [];
+    if (selectedSub) {
+      labels.push(
+        subPrice > 0 ? `${selectedSub} (+₱${subPrice})` : selectedSub,
+      );
+    }
+    if (selectedBase) {
+      labels.push(
+        basePrice > 0 ? `${selectedBase} (+₱${basePrice})` : selectedBase,
+      );
+    }
+    if (config.eggStyles && selectedEggStyle) labels.push(selectedEggStyle);
+    labels.push(...Array.from(selectedSauces));
+    Array.from(selectedAddons).forEach((lbl) => {
+      const p = config.addons?.find((a) => a.label === lbl)?.price || 0;
+      labels.push(p > 0 ? `${lbl} (+₱${p})` : lbl);
+    });
+    onAdd(extraTotal, labels);
+  };
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose]);
+
+  const OptionRow = ({
+    label,
+    price,
+    sel,
+    onClick,
+  }: {
+    label: string;
+    price: number;
+    sel: boolean;
+    onClick: () => void;
+  }) => (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "11px 14px",
+        borderRadius: 10,
+        border: `1.5px solid ${sel ? T.gold : T.border}`,
+        background: sel ? T.goldDim : "rgba(255,255,255,0.02)",
+        color: sel ? T.cream : T.muted,
+        cursor: "pointer",
+        fontSize: 13,
+        textAlign: "left",
+        transition: "all .15s",
+      }}
+    >
+      <span>{label}</span>
+      <span
+        style={{
+          color: price > 0 ? T.gold : T.faint,
+          fontFamily: "'Cinzel',serif",
+          fontSize: 12,
+        }}
+      >
+        {price > 0 ? `+₱${price}` : "Free"}
+      </span>
+    </button>
+  );
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 420,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: 16,
+                fontWeight: 700,
+                color: T.cream,
+                letterSpacing: ".02em",
+                lineHeight: 1.3,
+              }}
+            >
+              {item.name}
+            </p>
+            <p style={{ color: T.gold, fontSize: 13, marginTop: 4 }}>
+              ₱{item.price}
+              {extraTotal > 0 && (
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  {" "}
+                  + ₱{extraTotal}
+                </span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 999,
+              width: 30,
+              height: 30,
+              minWidth: 30,
+              color: T.muted,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              lineHeight: 0,
+              flexShrink: 0,
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {config.substitutions && (
+          <div>
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".14em",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 8,
+              }}
+            >
+              MILK
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {config.substitutions.map((s) => (
+                <OptionRow
+                  key={s.label}
+                  label={s.label}
+                  price={s.price}
+                  sel={selectedSub === s.label}
+                  onClick={() => setSelectedSub(s.label)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {config.baseSubs && (
+          <div>
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".14em",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 8,
+              }}
+            >
+              BASE
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {config.baseSubs.map((s) => (
+                <OptionRow
+                  key={s.label}
+                  label={s.label}
+                  price={s.price}
+                  sel={selectedBase === s.label}
+                  onClick={() => setSelectedBase(s.label)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {config.eggStyles && (
+          <div>
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".14em",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 8,
+              }}
+            >
+              EGG STYLE
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {config.eggStyles.map((style) => (
+                <OptionRow
+                  key={style.name}
+                  label={style.name}
+                  price={0}
+                  sel={selectedEggStyle === style.name}
+                  onClick={() => setSelectedEggStyle(style.name)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {config.sauces && (
+          <div>
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".14em",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 8,
+              }}
+            >
+              SAUCE — MAX 2 (FREE)
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+                gap: 8,
+              }}
+            >
+              {config.sauces.map((sauce) => {
+                const sel = selectedSauces.has(sauce.name);
+                return (
+                  <button
+                    key={sauce.name}
+                    onClick={() =>
+                      setSelectedSauces((prev) => {
+                        const n = new Set(prev);
+                        if (n.has(sauce.name)) {
+                          n.delete(sauce.name);
+                        } else if (n.size < 2) {
+                          n.add(sauce.name);
+                        }
+                        return n;
+                      })
+                    }
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "9px 6px",
+                      borderRadius: 10,
+                      border: `1.5px solid ${sel ? T.gold : T.border}`,
+                      background: sel ? T.goldDim : "rgba(255,255,255,0.02)",
+                      cursor: "pointer",
+                      transition: "all .15s",
+                    }}
+                  >
+                    {sauce.image && (
+                      <img
+                        src={sauce.image}
+                        alt={sauce.name}
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 6,
+                          objectFit: "cover",
+                          border: `1px solid ${sel ? T.gold : T.border}`,
+                        }}
+                        onError={(e) =>
+                          (e.currentTarget.style.display = "none")
+                        }
+                      />
+                    )}
+                    <span
+                      style={{
+                        color: sel ? T.cream : T.muted,
+                        fontSize: 10,
+                        textAlign: "center",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {sauce.name}
+                    </span>
+                    {sel && <Check size={10} color={T.gold} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {config.addons && (
+          <div>
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".14em",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 8,
+              }}
+            >
+              ADD-ONS
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {config.addons.map((a) => (
+                <OptionRow
+                  key={a.label}
+                  label={a.label}
+                  price={a.price}
+                  sel={selectedAddons.has(a.label)}
+                  onClick={() => toggleAddon(a.label)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleAdd}
+          style={{
+            width: "100%",
+            background: T.gold,
+            color: "#0a0f0a",
+            border: "none",
+            borderRadius: 10,
+            fontFamily: "'Cinzel',serif",
+            fontWeight: 700,
+            fontSize: 12,
+            letterSpacing: ".1em",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "13px 18px",
+          }}
+        >
+          <span>ADD TO ORDER</span>
+          <span>₱{item.price + extraTotal}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── CREW TAB ─────────────────────────────────────────────────────────────────
 function CrewTab({
   menuItems,
@@ -7340,7 +7878,29 @@ function CrewTab({
 
   const [tableNumber, setTableNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [cart, setCart] = useState<{ item: MenuItem; qty: number }[]>([]);
+  const [cart, setCart] = useState<
+    {
+      item: MenuItem;
+      qty: number;
+      extraPrice: number;
+      labels: string[];
+      cartKey: string;
+    }[]
+  >([]);
+  const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
+  const [customizingConfig, setCustomizingConfig] =
+    useState<CrewCustomizationConfig | null>(null);
+  const [variantItem, setVariantItem] = useState<MenuItem | null>(null);
+
+  const liveSauces = menuItems
+    .filter((i) => i.category.toLowerCase().includes("sauce") && i.available)
+    .map((i) => ({ name: i.name, image: i.image }));
+
+  const liveEggStyles = menuItems
+    .filter(
+      (i) => i.category.toLowerCase().includes("egg style") && i.available,
+    )
+    .map((i) => ({ name: i.name, image: i.image }));
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<
     "gcash" | "cash" | "later"
@@ -7412,22 +7972,61 @@ function CrewTab({
   const categories = Array.from(new Set(availItems.map((i) => i.category)));
   const activeCat = activeCategory || categories[0] || "";
   const filtered = availItems.filter((i) => i.category === activeCat);
-  const cartTotal = cart.reduce((s, c) => s + c.item.price * c.qty, 0);
+  const cartTotal = cart.reduce(
+    (s, c) => s + (c.item.price + c.extraPrice) * c.qty,
+    0,
+  );
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
 
   function addItem(item: MenuItem) {
+    const nameKey = item.name.toLowerCase();
+    const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
+      nameKey.includes(k),
+    )?.[1];
+    const effectiveVariants =
+      item.variants && item.variants.length > 0
+        ? item.variants.map((v) => ({ label: v }))
+        : nameVariants;
+    if (effectiveVariants && effectiveVariants.length > 0) {
+      setVariantItem({ ...item, variants: effectiveVariants as any });
+      return;
+    }
+    const config = getCrewCustomizations(
+      item.category,
+      item.name,
+      liveSauces,
+      liveEggStyles,
+    );
+    if (config) {
+      setCustomizingItem(item);
+      setCustomizingConfig(config);
+    } else {
+      addToCartFinal(item, 0, []);
+    }
+  }
+
+  function addToCartFinal(
+    item: MenuItem,
+    extraPrice: number,
+    labels: string[],
+  ) {
+    const cartKey = item._id + JSON.stringify(labels);
     setCart((p) => {
-      const ex = p.find((c) => c.item._id === item._id);
+      const ex = p.find((c) => c.cartKey === cartKey);
       if (ex)
         return p.map((c) =>
-          c.item._id === item._id ? { ...c, qty: c.qty + 1 } : c,
+          c.cartKey === cartKey ? { ...c, qty: c.qty + 1 } : c,
         );
-      return [...p, { item, qty: 1 }];
+      return [...p, { item, qty: 1, extraPrice, labels, cartKey }];
     });
+    setCustomizingItem(null);
+    setCustomizingConfig(null);
   }
-  function updateQty(id: string, qty: number) {
-    if (qty <= 0) setCart((p) => p.filter((c) => c.item._id !== id));
-    else setCart((p) => p.map((c) => (c.item._id === id ? { ...c, qty } : c)));
+
+  function updateQty(cartKey: string, qty: number) {
+    if (qty <= 0) setCart((p) => p.filter((c) => c.cartKey !== cartKey));
+    else
+      setCart((p) => p.map((c) => (c.cartKey === cartKey ? { ...c, qty } : c)));
   }
 
   async function placeOrder() {
@@ -7444,8 +8043,10 @@ function CrewTab({
           customerName: customerName.trim() || undefined,
           items: cart.map((c) => ({
             menuItemId: c.item._id,
-            name: c.item.name,
-            price: c.item.price,
+            name: c.labels.length
+              ? `${c.item.name} (${c.labels.join(", ")})`
+              : c.item.name,
+            price: c.item.price + c.extraPrice,
             quantity: c.qty,
           })),
           total: cartTotal,
@@ -7646,9 +8247,9 @@ function CrewTab({
                 maxHeight: isMobile ? 220 : 300,
               }}
             >
-              {cart.map(({ item, qty }) => (
+              {cart.map(({ item, qty, extraPrice, labels, cartKey }) => (
                 <div
-                  key={item._id}
+                  key={cartKey}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -7672,6 +8273,11 @@ function CrewTab({
                     >
                       {item.name}
                     </p>
+                    {labels.length > 0 && (
+                      <p style={{ color: T.faint, fontSize: 10, marginTop: 1 }}>
+                        {labels.join(", ")}
+                      </p>
+                    )}
                     <p
                       style={{
                         color: T.gold,
@@ -7679,14 +8285,14 @@ function CrewTab({
                         fontFamily: "'Cinzel',serif",
                       }}
                     >
-                      {fmt(item.price * qty)}
+                      {fmt((item.price + extraPrice) * qty)}
                     </p>
                   </div>
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 4 }}
                   >
                     <button
-                      onClick={() => updateQty(item._id, qty - 1)}
+                      onClick={() => updateQty(cartKey, qty - 1)}
                       style={{
                         width: 28,
                         height: 28,
@@ -7715,7 +8321,7 @@ function CrewTab({
                       {qty}
                     </span>
                     <button
-                      onClick={() => updateQty(item._id, qty + 1)}
+                      onClick={() => updateQty(cartKey, qty + 1)}
                       style={{
                         width: 28,
                         height: 28,
@@ -7896,6 +8502,170 @@ function CrewTab({
 
   return (
     <>
+      {variantItem && (
+        <div
+          onClick={() => setVariantItem(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 3000,
+            background: "rgba(0,0,0,0.8)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0 16px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="modal-inner"
+            style={{
+              background: "#13180f",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 18,
+              padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+              width: "100%",
+              maxWidth: 420,
+              maxHeight: "90svh",
+              overflowY: "auto",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p
+                  style={{
+                    fontFamily: "'Cinzel',serif",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: T.cream,
+                    letterSpacing: ".02em",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {variantItem.name}
+                </p>
+                <p style={{ color: T.muted, fontSize: 12, marginTop: 4 }}>
+                  Choose your variant
+                </p>
+              </div>
+              <button
+                onClick={() => setVariantItem(null)}
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 999,
+                  width: 30,
+                  height: 30,
+                  minWidth: 30,
+                  color: T.muted,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  flexShrink: 0,
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {(variantItem.variants || []).map((v: any) => {
+                const label = typeof v === "string" ? v : v.label;
+                const price =
+                  typeof v === "object" && v.price != null ? v.price : null;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      const resolved = {
+                        ...variantItem,
+                        name: `${variantItem.name} (${label})`,
+                        ...(price != null ? { price } : {}),
+                      };
+                      setVariantItem(null);
+                      const config = getCrewCustomizations(
+                        resolved.category,
+                        resolved.name,
+                        liveSauces,
+                        liveEggStyles,
+                      );
+                      if (config) {
+                        setCustomizingItem(resolved);
+                        setCustomizingConfig(config);
+                      } else {
+                        addToCartFinal(resolved, 0, []);
+                      }
+                    }}
+                    style={{
+                      padding: "13px 16px",
+                      borderRadius: 10,
+                      border: `1.5px solid ${T.border}`,
+                      background: "transparent",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      color: T.cream,
+                      fontSize: 14,
+                      fontFamily: "'Cinzel',serif",
+                      letterSpacing: ".04em",
+                      transition: "all .15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = T.gold;
+                      e.currentTarget.style.background = T.goldDim;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = T.border;
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <span>{label}</span>
+                    {price != null && (
+                      <span
+                        style={{
+                          color: T.gold,
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
+                        ₱{price}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      {customizingItem && customizingConfig && (
+        <CrewCustomizationSheet
+          item={customizingItem}
+          config={customizingConfig}
+          onClose={() => {
+            setCustomizingItem(null);
+            setCustomizingConfig(null);
+          }}
+          onAdd={(extraPrice, labels) =>
+            addToCartFinal(customizingItem, extraPrice, labels)
+          }
+        />
+      )}
       {cancelTarget && (
         <CancelReasonModal
           onConfirm={async (reason) => {
