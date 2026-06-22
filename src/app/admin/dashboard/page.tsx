@@ -273,6 +273,7 @@ type CrewCustomizationConfig = {
 const ITEM_VARIANTS: Record<string, { label: string; price?: number }[]> = {
   longganisa: [{ label: "Garlic" }, { label: "Hamonado" }, { label: "Mixed" }],
   tapa: [{ label: "Chicken" }, { label: "Beef" }],
+  ramen: [{ label: "Mild" }, { label: "Spicy" }],
   "pancake classic": [
     { label: "Classic 2pcs", price: 40 },
     { label: "Classic 4pcs", price: 70 },
@@ -2697,7 +2698,11 @@ function OrderCard({
               }}
             >
               {order.items.map((it, idx) => {
-                const img = menuItems.find((m) => m.name === it.name)?.image;
+                const img = menuItems.find(
+                  (m) =>
+                    m.name === it.name ||
+                    it.name.toLowerCase().startsWith(m.name.toLowerCase()),
+                )?.image;
                 if (!img) return null;
                 return (
                   <div
@@ -2807,6 +2812,32 @@ function OrderCard({
           >
             {fmt(order.total)}
           </span>
+          {order.receiptUrl && order.paymentStatus !== "confirmed" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setReceiptSrc(order.receiptUrl!);
+              }}
+              title="View GCash receipt"
+              style={{
+                background: "rgba(91,155,213,0.12)",
+                border: "1px solid rgba(91,155,213,0.35)",
+                borderRadius: 6,
+                color: T.blue,
+                padding: "5px 9px",
+                cursor: "pointer",
+                fontSize: 11,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <ImageIcon size={12} /> GCash
+            </button>
+          )}
           <div style={{ color: T.muted }}>
             {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
@@ -3137,7 +3168,36 @@ function OrderCard({
                               groups: Record<string, typeof it.customizations>,
                               c,
                             ) => {
-                              const key = c.type?.trim() || "Option";
+                              // Resolve legacy type values to friendly display labels
+                              const EGG_STYLES = new Set([
+                                "sunny side up",
+                                "over easy",
+                                "over hard",
+                                "soft scramble",
+                                "hard scramble",
+                                "soft boiled",
+                                "hard boiled",
+                                "soft boil",
+                                "hard boil",
+                              ]);
+                              const MILK_LABELS = new Set([
+                                "regular milk",
+                                "oat milk",
+                              ]);
+                              const BASE_LABELS = new Set(["coffee", "matcha"]);
+                              const rawType = c.type?.trim() || "Option";
+                              let key = rawType;
+                              const lc = (c.label || "").toLowerCase();
+                              if (rawType.toLowerCase() === "substitution") {
+                                if (EGG_STYLES.has(lc)) key = "Egg Style";
+                                else if (MILK_LABELS.has(lc)) key = "Milk";
+                                else if (BASE_LABELS.has(lc)) key = "Base";
+                                else key = "Option";
+                              } else if (rawType.toLowerCase() === "addon") {
+                                key = "Add-On";
+                              } else if (rawType.toLowerCase() === "sauce") {
+                                key = "Sauce";
+                              }
                               if (!groups[key]) groups[key] = [];
                               groups[key]!.push(c);
                               return groups;
@@ -7837,7 +7897,10 @@ function GenericOptionsSheet({
   onClose,
 }: {
   item: MenuItem;
-  onAdd: (extraPrice: number, labels: string[]) => void;
+  onAdd: (
+    extraPrice: number,
+    customizations: { type: string; label: string; price: number }[],
+  ) => void;
   onClose: () => void;
 }) {
   const groups = item.options || [];
@@ -7882,15 +7945,15 @@ function GenericOptionsSheet({
     .every((g) => (selections[g.name]?.size || 0) > 0);
 
   const handleAdd = () => {
-    const labels: string[] = [];
+    const customizations: { type: string; label: string; price: number }[] = [];
     groups.forEach((g) => {
       const sel = selections[g.name] || new Set();
       g.choices.forEach((c) => {
         if (sel.has(c.label))
-          labels.push(c.price > 0 ? `${c.label} (+₱${c.price})` : c.label);
+          customizations.push({ type: g.name, label: c.label, price: c.price });
       });
     });
-    onAdd(extraTotal, labels);
+    onAdd(extraTotal, customizations);
   };
 
   useEffect(() => {
@@ -8075,7 +8138,10 @@ function CrewCustomizationSheet({
 }: {
   item: MenuItem;
   config: CrewCustomizationConfig;
-  onAdd: (extraPrice: number, labels: string[]) => void;
+  onAdd: (
+    extraPrice: number,
+    customizations: { type: string; label: string; price: number }[],
+  ) => void;
   onClose: () => void;
 }) {
   const [selectedSub, setSelectedSub] = useState(
@@ -8109,24 +8175,36 @@ function CrewCustomizationSheet({
     });
 
   const handleAdd = () => {
-    const labels: string[] = [];
-    if (selectedSub) {
-      labels.push(
-        subPrice > 0 ? `${selectedSub} (+₱${subPrice})` : selectedSub,
-      );
+    const customizations: { type: string; label: string; price: number }[] = [];
+    if (config.substitutions && selectedSub) {
+      customizations.push({
+        type: "Milk",
+        label: selectedSub,
+        price: subPrice,
+      });
     }
-    if (selectedBase) {
-      labels.push(
-        basePrice > 0 ? `${selectedBase} (+₱${basePrice})` : selectedBase,
-      );
+    if (config.baseSubs && selectedBase) {
+      customizations.push({
+        type: "Base",
+        label: selectedBase,
+        price: basePrice,
+      });
     }
-    if (config.eggStyles && selectedEggStyle) labels.push(selectedEggStyle);
-    labels.push(...Array.from(selectedSauces));
+    if (config.eggStyles && selectedEggStyle) {
+      customizations.push({
+        type: "Egg Style",
+        label: selectedEggStyle,
+        price: 0,
+      });
+    }
+    Array.from(selectedSauces).forEach((lbl) => {
+      customizations.push({ type: "Sauce", label: lbl, price: 0 });
+    });
     Array.from(selectedAddons).forEach((lbl) => {
       const p = config.addons?.find((a) => a.label === lbl)?.price || 0;
-      labels.push(p > 0 ? `${lbl} (+₱${p})` : lbl);
+      customizations.push({ type: "Add-On", label: lbl, price: p });
     });
-    onAdd(extraTotal, labels);
+    onAdd(extraTotal, customizations);
   };
 
   useEffect(() => {
@@ -8502,7 +8580,7 @@ function CrewTab({
       item: MenuItem;
       qty: number;
       extraPrice: number;
-      labels: string[];
+      customizations: { type: string; label: string; price: number }[];
       cartKey: string;
     }[]
   >([]);
@@ -8634,16 +8712,16 @@ function CrewTab({
   function addToCartFinal(
     item: MenuItem,
     extraPrice: number,
-    labels: string[],
+    customizations: { type: string; label: string; price: number }[],
   ) {
-    const cartKey = item._id + JSON.stringify(labels);
+    const cartKey = item._id + JSON.stringify(customizations);
     setCart((p) => {
       const ex = p.find((c) => c.cartKey === cartKey);
       if (ex)
         return p.map((c) =>
           c.cartKey === cartKey ? { ...c, qty: c.qty + 1 } : c,
         );
-      return [...p, { item, qty: 1, extraPrice, labels, cartKey }];
+      return [...p, { item, qty: 1, extraPrice, customizations, cartKey }];
     });
     setCustomizingItem(null);
     setCustomizingConfig(null);
@@ -8667,14 +8745,20 @@ function CrewTab({
           type: "dine-in",
           tableNumber: tableNumber.trim() || undefined,
           customerName: customerName.trim() || undefined,
-          items: cart.map((c) => ({
-            menuItemId: c.item._id,
-            name: c.labels.length
-              ? `${c.item.name} (${c.labels.join(", ")})`
-              : c.item.name,
-            price: c.item.price + c.extraPrice,
-            quantity: c.qty,
-          })),
+          items: cart.map((c) => {
+            const custLabels = c.customizations.map((x) =>
+              x.price > 0 ? `${x.label} (+₱${x.price})` : x.label,
+            );
+            return {
+              menuItemId: c.item._id,
+              name: custLabels.length
+                ? `${c.item.name} (${custLabels.join(", ")})`
+                : c.item.name,
+              price: c.item.price + c.extraPrice,
+              quantity: c.qty,
+              customizations: c.customizations,
+            };
+          }),
           total: cartTotal,
           paymentMethod: paymentMethod === "later" ? "pending" : paymentMethod,
           paymentStatus: paymentMethod === "cash" ? "confirmed" : "pending",
@@ -8873,100 +8957,104 @@ function CrewTab({
                 maxHeight: isMobile ? 220 : 300,
               }}
             >
-              {cart.map(({ item, qty, extraPrice, labels, cartKey }) => (
-                <div
-                  key={cartKey}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "8px 10px",
-                    background: "rgba(255,255,255,0.03)",
-                    borderRadius: 8,
-                    border: `1px solid ${T.border}`,
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        color: T.cream,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {item.name}
-                    </p>
-                    {labels.length > 0 && (
-                      <p style={{ color: T.faint, fontSize: 10, marginTop: 1 }}>
-                        {labels.join(", ")}
-                      </p>
-                    )}
-                    <p
-                      style={{
-                        color: T.gold,
-                        fontSize: 12,
-                        fontFamily: "'Cinzel',serif",
-                      }}
-                    >
-                      {fmt((item.price + extraPrice) * qty)}
-                    </p>
-                  </div>
+              {cart.map(
+                ({ item, qty, extraPrice, customizations, cartKey }) => (
                   <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    key={cartKey}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 10px",
+                      background: "rgba(255,255,255,0.03)",
+                      borderRadius: 8,
+                      border: `1px solid ${T.border}`,
+                    }}
                   >
-                    <button
-                      onClick={() => updateQty(cartKey, qty - 1)}
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 999,
-                        border: `1px solid ${T.border}`,
-                        background: "none",
-                        color: T.muted,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 16,
-                      }}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          color: T.cream,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {item.name}
+                      </p>
+                      {customizations.length > 0 && (
+                        <p
+                          style={{ color: T.faint, fontSize: 10, marginTop: 1 }}
+                        >
+                          {customizations.map((x) => x.label).join(", ")}
+                        </p>
+                      )}
+                      <p
+                        style={{
+                          color: T.gold,
+                          fontSize: 12,
+                          fontFamily: "'Cinzel',serif",
+                        }}
+                      >
+                        {fmt((item.price + extraPrice) * qty)}
+                      </p>
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      −
-                    </button>
-                    <span
-                      style={{
-                        width: 22,
-                        textAlign: "center",
-                        color: T.cream,
-                        fontSize: 13,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {qty}
-                    </span>
-                    <button
-                      onClick={() => updateQty(cartKey, qty + 1)}
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 999,
-                        background: T.gold,
-                        border: "none",
-                        color: "#0a0f0a",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 16,
-                      }}
-                    >
-                      +
-                    </button>
+                      <button
+                        onClick={() => updateQty(cartKey, qty - 1)}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 999,
+                          border: `1px solid ${T.border}`,
+                          background: "none",
+                          color: T.muted,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 16,
+                        }}
+                      >
+                        −
+                      </button>
+                      <span
+                        style={{
+                          width: 22,
+                          textAlign: "center",
+                          color: T.cream,
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {qty}
+                      </span>
+                      <button
+                        onClick={() => updateQty(cartKey, qty + 1)}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 999,
+                          background: T.gold,
+                          border: "none",
+                          color: "#0a0f0a",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 16,
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ),
+              )}
             </div>
             <div
               style={{
@@ -9283,8 +9371,8 @@ function CrewTab({
         <GenericOptionsSheet
           item={genericOptionsItem}
           onClose={() => setGenericOptionsItem(null)}
-          onAdd={(extraPrice, labels) => {
-            addToCartFinal(genericOptionsItem, extraPrice, labels);
+          onAdd={(extraPrice, customizations) => {
+            addToCartFinal(genericOptionsItem, extraPrice, customizations);
             setGenericOptionsItem(null);
           }}
         />
@@ -9297,8 +9385,8 @@ function CrewTab({
             setCustomizingItem(null);
             setCustomizingConfig(null);
           }}
-          onAdd={(extraPrice, labels) =>
-            addToCartFinal(customizingItem, extraPrice, labels)
+          onAdd={(extraPrice, customizations) =>
+            addToCartFinal(customizingItem, extraPrice, customizations)
           }
         />
       )}

@@ -217,6 +217,11 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
+  // Notify SSE subscribers (admin dashboard AND customer /track pages)
+  // immediately — without this, status changes (e.g. marking "ready")
+  // were invisible to anyone listening until their next poll cycle.
+  notifyClients();
+
   return NextResponse.json(order);
 }
 
@@ -227,5 +232,6 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   await Order.findByIdAndDelete(id);
+  notifyClients();
   return NextResponse.json({ success: true });
 }

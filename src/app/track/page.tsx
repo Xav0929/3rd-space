@@ -17,6 +17,7 @@ import {
   ClipboardCopy,
   Check,
   MapPin,
+  BellRing,
 } from "lucide-react";
 
 const GOLD = "#d4a843";
@@ -27,6 +28,7 @@ const CREAM_FAINT = "rgba(232,213,163,0.22)";
 const BG_DEEP = "#0f1a0f";
 const BG_CARD = "rgba(255,255,255,0.04)";
 const BORDER = "rgba(232,213,163,0.12)";
+const VIOLET = "#a78bfa";
 
 const STATUS_CONFIG: Record<
   string,
@@ -81,6 +83,48 @@ const STATUS_CONFIG: Record<
     desc: "",
   },
 };
+
+// Status description varies by order type — "ready" means something
+// different for a dine-in/takeout order (go claim it) vs delivery (it's
+// being driven to you).
+function getStatusDesc(status: string, type: string): string {
+  if (status === "ready") {
+    return type === "delivery"
+      ? "Your order is ready! On its way to you!"
+      : "Your order is ready! Please claim it at the counter.";
+  }
+  return STATUS_CONFIG[status]?.desc || "";
+}
+
+// Two-note chime via Web Audio API — no audio asset needed.
+function playReadyChime() {
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const playTone = (freq: number, start: number, dur: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(
+        0.32,
+        ctx.currentTime + start + 0.02,
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ctx.currentTime + start + dur,
+      );
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + dur + 0.05);
+    };
+    playTone(880, 0, 0.18);
+    playTone(1318.5, 0.2, 0.24);
+  } catch {}
+}
 
 interface Order {
   _id: string;
@@ -341,6 +385,119 @@ function ETACircle({ status }: { status: string }) {
         </p>
       </div>
     </div>
+  );
+}
+
+// ── CLAIM AT COUNTER BANNER — dine-in / takeout, when ready ────────────────
+function ClaimAtCounterBanner({ order }: { order: Order }) {
+  return (
+    <div
+      style={{
+        padding: "26px 20px",
+        borderBottom: `1px solid ${BORDER}`,
+        background: "rgba(74,222,128,0.08)",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <span
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: "50%",
+          background: "rgba(74,222,128,0.14)",
+          border: "1px solid rgba(74,222,128,0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          animation: "pulse-ready 1.6s ease-in-out infinite",
+        }}
+      >
+        <BellRing size={24} color="#4ade80" />
+      </span>
+      <p
+        style={{
+          fontFamily: "'Cinzel', serif",
+          color: "#4ade80",
+          fontSize: 16,
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+        }}
+      >
+        PLEASE CLAIM YOUR ORDER
+      </p>
+      <p style={{ color: CREAM_MUTED, fontSize: 12, maxWidth: 280 }}>
+        Head to the counter with order{" "}
+        <strong style={{ color: CREAM }}>#{order.orderNumber}</strong> to pick
+        it up.
+      </p>
+      <style>{`@keyframes pulse-ready{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0.35)}50%{box-shadow:0 0 0 10px rgba(74,222,128,0)}}`}</style>
+    </div>
+  );
+}
+
+// ── NOTIFY ME OPT-IN ─────────────────────────────────────────────────────────
+function NotifyMeButton({ onEnabled }: { onEnabled: () => void }) {
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported">(
+    "default",
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setPerm("unsupported");
+      return;
+    }
+    setPerm(Notification.permission);
+  }, []);
+
+  if (perm === "unsupported" || perm === "granted") return null;
+  if (perm === "denied") {
+    return (
+      <p
+        style={{
+          color: CREAM_FAINT,
+          fontSize: 11,
+          textAlign: "center",
+          padding: "10px 16px",
+        }}
+      >
+        Notifications are blocked — keep this tab open to see live updates.
+      </p>
+    );
+  }
+
+  return (
+    <button
+      onClick={async () => {
+        try {
+          const result = await Notification.requestPermission();
+          setPerm(result);
+          if (result === "granted") onEnabled();
+        } catch {}
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        width: "100%",
+        background: GOLD_DIM,
+        border: `1px solid ${GOLD}`,
+        borderRadius: 10,
+        padding: "10px 14px",
+        color: GOLD,
+        fontSize: 12,
+        fontFamily: "'Cinzel', serif",
+        letterSpacing: "0.06em",
+        cursor: "pointer",
+      }}
+    >
+      <BellRing size={13} />
+      NOTIFY ME WHEN IT'S READY
+    </button>
   );
 }
 
@@ -635,6 +792,8 @@ function TrackContent() {
     "waiting" | "live" | "stopped"
   >("waiting");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
+  const notifiedRef = useRef(false);
 
   async function handleTrack(e?: React.FormEvent, silent = false) {
     if (e) e.preventDefault();
@@ -680,9 +839,69 @@ function TrackContent() {
     };
   }, [order?.status]);
 
+  // Live push — same SSE channel the admin dashboard uses. The 10s
+  // interval above stays as a fallback in case the connection drops,
+  // but this is what makes "Ready" show up on the customer's phone in
+  // ~1s instead of up to 10s later.
+  useEffect(() => {
+    if (!order) return;
+    const done = order.status === "completed" || order.status === "cancelled";
+    if (done) return;
+
+    let es: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout>;
+
+    function connect() {
+      es = new EventSource("/api/orders/stream");
+      es.onmessage = () => {
+        setTimeout(() => handleTrack(undefined, true), 200);
+      };
+      es.onerror = () => {
+        es?.close();
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+    return () => {
+      clearTimeout(reconnectTimer);
+      es?.close();
+    };
+  }, [order?.status]);
+
   useEffect(() => {
     if (searchParams.get("id")) handleTrack();
   }, []);
+
+  // Fire a chime + browser notification the moment the order flips to "ready".
+  useEffect(() => {
+    if (!order) return;
+    const prev = prevStatusRef.current;
+    if (
+      prev &&
+      prev !== "ready" &&
+      order.status === "ready" &&
+      !notifiedRef.current
+    ) {
+      notifiedRef.current = true;
+      playReadyChime();
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "granted") {
+          try {
+            new Notification("Order Ready! 🔔", {
+              body:
+                order.type === "delivery"
+                  ? "Your order is on its way to you!"
+                  : `Order #${order.orderNumber} — please claim it at the counter.`,
+              icon: "/logo.png",
+            });
+          } catch {}
+        }
+      }
+    }
+    if (order.status !== "ready") notifiedRef.current = false;
+    prevStatusRef.current = order.status;
+  }, [order?.status]);
 
   function copyLink() {
     navigator.clipboard.writeText(window.location.href);
@@ -694,6 +913,7 @@ function TrackContent() {
     ? STATUS_CONFIG[order.status] || STATUS_CONFIG.pending
     : null;
   const isCancelled = order?.status === "cancelled";
+  const isActive = order && !isCancelled && order.status !== "completed";
 
   return (
     <div
@@ -873,6 +1093,9 @@ function TrackContent() {
           </div>
         )}
 
+        {/* Notify-me opt-in — only while order is active */}
+        {isActive && <NotifyMeButton onEnabled={() => {}} />}
+
         {/* Order card */}
         {order && !loading && statusCfg && (
           <div
@@ -997,7 +1220,7 @@ function TrackContent() {
                     >
                       {statusCfg.label}
                     </p>
-                    {statusCfg.desc && (
+                    {getStatusDesc(order.status, order.type) && (
                       <p
                         style={{
                           color: CREAM_MUTED,
@@ -1005,7 +1228,7 @@ function TrackContent() {
                           lineHeight: 1.5,
                         }}
                       >
-                        {statusCfg.desc}
+                        {getStatusDesc(order.status, order.type)}
                       </p>
                     )}
                   </div>
@@ -1015,12 +1238,25 @@ function TrackContent() {
                       background:
                         order.type === "dine-in"
                           ? "rgba(212,168,67,0.15)"
-                          : "rgba(96,165,250,0.12)",
-                      border: `1px solid ${order.type === "dine-in" ? GOLD : "#60a5fa"}`,
+                          : order.type === "takeout"
+                            ? "rgba(167,139,250,0.12)"
+                            : "rgba(96,165,250,0.12)",
+                      border: `1px solid ${
+                        order.type === "dine-in"
+                          ? GOLD
+                          : order.type === "takeout"
+                            ? VIOLET
+                            : "#60a5fa"
+                      }`,
                       borderRadius: 999,
                       padding: "4px 12px",
                       fontSize: 11,
-                      color: order.type === "dine-in" ? GOLD : "#60a5fa",
+                      color:
+                        order.type === "dine-in"
+                          ? GOLD
+                          : order.type === "takeout"
+                            ? VIOLET
+                            : "#60a5fa",
                       fontFamily: "'Cinzel', serif",
                       letterSpacing: "0.08em",
                       whiteSpace: "nowrap",
@@ -1037,6 +1273,18 @@ function TrackContent() {
                           }}
                         />
                         DINE IN
+                      </>
+                    ) : order.type === "takeout" ? (
+                      <>
+                        <Package
+                          size={11}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 5,
+                          }}
+                        />
+                        TAKE OUT
                       </>
                     ) : (
                       <>
@@ -1073,6 +1321,11 @@ function TrackContent() {
                       onStatusChange={setRiderStatus}
                     />
                   )}
+
+                {/* ── CLAIM AT COUNTER — dine-in / takeout, when ready ── */}
+                {order.type !== "delivery" && order.status === "ready" && (
+                  <ClaimAtCounterBanner order={order} />
+                )}
 
                 {/* Completed delivery message */}
                 {order.type === "delivery" && order.status === "completed" && (
@@ -1254,7 +1507,7 @@ function TrackContent() {
                     `Placed ${new Date(order.createdAt).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}`
                   )}
                 </p>
-                {order.type === "delivery" && !isCancelled && (
+                {!isCancelled && (
                   <button
                     onClick={copyLink}
                     style={{

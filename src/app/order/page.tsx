@@ -181,7 +181,7 @@ interface MenuItem {
   options?: OptionGroup[];
 }
 interface SelectedCustomization {
-  type: "substitution" | "addon" | "sauce";
+  type: string;
   label: string;
   price: number;
 }
@@ -428,21 +428,21 @@ function CustomizationSheet({
     const result: SelectedCustomization[] = [];
     if (config.substitutions) {
       const sub = config.substitutions.find((s) => s.label === selectedSub);
-      if (sub) result.push({ type: "substitution", ...sub });
+      if (sub) result.push({ type: "Milk", ...sub });
     }
     if (config.baseSubs) {
       const base = config.baseSubs.find((s) => s.label === selectedBase);
-      if (base) result.push({ type: "substitution", ...base });
+      if (base) result.push({ type: "Base", ...base });
     }
     if (config.eggStyles && selectedEggStyle) {
-      result.push({ type: "substitution", label: selectedEggStyle, price: 0 });
+      result.push({ type: "Egg Style", label: selectedEggStyle, price: 0 });
     }
     selectedSauces.forEach((lbl) => {
-      result.push({ type: "sauce", label: lbl, price: 0 });
+      result.push({ type: "Sauce", label: lbl, price: 0 });
     });
     selectedAddons.forEach((lbl) => {
       const a = config.addons?.find((x) => x.label === lbl);
-      if (a) result.push({ type: "addon", ...a });
+      if (a) result.push({ type: "Add-On", ...a });
     });
     onAdd(result);
   };
@@ -1724,20 +1724,36 @@ function VariantSheet({
             alignItems: "center",
           }}
         >
-          <div>
-            <p
-              style={{
-                fontFamily: "'Cinzel',serif",
-                fontSize: 15,
-                fontWeight: 700,
-                color: C,
-              }}
-            >
-              {item.name}
-            </p>
-            <p style={{ color: CM, fontSize: 12, marginTop: 2 }}>
-              Choose your variant
-            </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {item.image && (
+              <img
+                src={item.image}
+                alt={item.name}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 10,
+                  objectFit: "cover",
+                  border: `1px solid ${BR}`,
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <div>
+              <p
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: C,
+                }}
+              >
+                {item.name}
+              </p>
+              <p style={{ color: CM, fontSize: 12, marginTop: 2 }}>
+                Choose your variant
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -1877,7 +1893,7 @@ function GenericOptionsSheet({
       const sel = selections[g.name] || new Set();
       g.choices.forEach((c) => {
         if (sel.has(c.label))
-          result.push({ type: "addon", label: c.label, price: c.price });
+          result.push({ type: g.name, label: c.label, price: c.price });
       });
     });
     onAdd(result);
@@ -2117,10 +2133,10 @@ function MenuScreen({
   };
 
   const handleAddToCartWithCustomization = (item: MenuItem) => {
-    if (item.options && item.options.length > 0) {
-      setGenericOptionsItem(item);
-      return;
-    }
+    // Check variants FIRST — VariantSheet.onSelect already chains into
+    // GenericOptionsSheet when the resolved item has options, so items
+    // with BOTH variants + options (e.g. Ramen: Mild/Spicy + Add-Ons)
+    // will show the variant picker then the options sheet in sequence.
     const nameKey = item.name.toLowerCase();
     const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
       nameKey.includes(k),
@@ -2131,19 +2147,25 @@ function MenuScreen({
         : nameVariants;
     if (effectiveVariants && effectiveVariants.length > 0) {
       setVariantItem({ ...item, variants: effectiveVariants as any });
+      return;
+    }
+    // No variants — go straight to options sheet if options exist
+    if (item.options && item.options.length > 0) {
+      setGenericOptionsItem(item);
+      return;
+    }
+    // No variants or DB options — fall back to legacy category customizations
+    const config = getCategoryCustomizations(
+      item.category,
+      liveSauces,
+      liveEggStyles,
+      item.name,
+    );
+    if (config) {
+      setCustomizingItem(item);
+      setCustomizingConfig(config);
     } else {
-      const config = getCategoryCustomizations(
-        item.category,
-        liveSauces,
-        liveEggStyles,
-        item.name,
-      );
-      if (config) {
-        setCustomizingItem(item);
-        setCustomizingConfig(config);
-      } else {
-        onAddToCart(item, []);
-      }
+      onAddToCart(item, []);
     }
   };
 
@@ -4406,15 +4428,17 @@ function PaymentScreen({
   /**
    * canConfirm logic:
    *   - cash / pay-later:        always true
-   *   - gcash + dine-in:         hasCopied AND sentConfirmed
+   *   - gcash + dine-in/takeout: hasCopied AND sentConfirmed AND uploaded screenshot
    *   - gcash + delivery:        uploaded screenshot
+   * Screenshot is now mandatory for every GCash order — staff need proof
+   * of payment regardless of order type, not just a self-attested checkbox.
    */
   const canConfirm: boolean =
     effectiveMethod === "cash"
       ? true
       : effectiveMethod === "gcash" && orderType !== "delivery"
-        ? hasCopied && sentConfirmed
-        : uploaded; // delivery only
+        ? hasCopied && sentConfirmed && uploaded
+        : uploaded; // delivery
 
   return (
     <div
@@ -5083,7 +5107,7 @@ function PaymentScreen({
                 </button>
               )}
 
-              {/* ── Non-delivery: optional screenshot upload ── */}
+              {/* ── Non-delivery: required screenshot upload ── */}
               {orderType !== "delivery" && hasCopied && (
                 <div
                   style={{
@@ -5113,7 +5137,7 @@ function PaymentScreen({
                     >
                       GCASH SCREENSHOT{" "}
                       <span style={{ color: CF, fontWeight: 400 }}>
-                        (optional — speeds up verification)
+                        (required — staff need this to verify your payment)
                       </span>
                     </p>
                     {uploaded && (
@@ -5475,12 +5499,12 @@ function PaymentScreen({
                     ? "COPY GCASH NUMBER TO CONTINUE"
                     : orderType !== "delivery" && !sentConfirmed
                       ? "TICK THE CHECKBOX TO CONTINUE"
-                      : orderType === "delivery" && !uploaded
+                      : !uploaded
                         ? "UPLOAD SCREENSHOT TO CONTINUE"
                         : "CONFIRM & PLACE ORDER"}
               </button>
 
-              {orderType === "delivery" && (
+              {(orderType === "delivery" || effectiveMethod === "gcash") && (
                 <p
                   style={{
                     color: CF,
@@ -5490,7 +5514,11 @@ function PaymentScreen({
                     lineHeight: 1.6,
                   }}
                 >
-                  We verify your payment before dispatching your delivery.
+                  We verify your payment before{" "}
+                  {orderType === "delivery"
+                    ? "dispatching your delivery"
+                    : "preparing your order"}
+                  .
                 </p>
               )}
             </>
@@ -5681,34 +5709,32 @@ function ConfirmationScreen({
           maxWidth: 380,
         }}
       >
-        {isDelivery && (
-          <a
-            href={`/track?id=${orderNumber}`}
-            style={{
-              flex: 1,
-              minWidth: 140,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              padding: "clamp(12px,3.5vw,14px) 20px",
-              background: "transparent",
-              color: G,
-              border: `1.5px solid ${G}`,
-              borderRadius: 12,
-              fontFamily: "'Cinzel',serif",
-              fontSize: 13,
-              letterSpacing: ".1em",
-              fontWeight: 700,
-              textDecoration: "none",
-              touchAction: "manipulation",
-              minHeight: 48,
-            }}
-          >
-            <Clock size={14} />
-            TRACK ORDER
-          </a>
-        )}
+        <a
+          href={`/track?id=${orderNumber}`}
+          style={{
+            flex: 1,
+            minWidth: 140,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "clamp(12px,3.5vw,14px) 20px",
+            background: "transparent",
+            color: G,
+            border: `1.5px solid ${G}`,
+            borderRadius: 12,
+            fontFamily: "'Cinzel',serif",
+            fontSize: 13,
+            letterSpacing: ".1em",
+            fontWeight: 700,
+            textDecoration: "none",
+            touchAction: "manipulation",
+            minHeight: 48,
+          }}
+        >
+          <Clock size={14} />
+          TRACK ORDER
+        </a>
         <button
           onClick={onNewOrder}
           style={{
