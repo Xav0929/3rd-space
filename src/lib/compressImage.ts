@@ -30,7 +30,7 @@ export function compressImage(
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => {
-            if (!blob) return reject(new Error("Compression failed"));
+            if (!blob) return resolve(file); // mobile fallback — upload original
             resolve(
               new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
                 type: "image/jpeg",
