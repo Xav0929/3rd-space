@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { buildEscPosReceipt, escPosToRawBtUrl } from "@/lib/escpos";
+import { compressImage } from "@/lib/compressImage";
 import {
   ChevronDown,
   ChevronUp,
@@ -958,9 +959,11 @@ function BoardPostModal({
                 const file = e.target.files?.[0];
                 if (!file) return;
                 setUploading(true);
-                const fd = new FormData();
-                fd.append("file", file);
                 try {
+                  const toSend =
+                    file.size > 1_200_000 ? await compressImage(file) : file;
+                  const fd = new FormData();
+                  fd.append("file", toSend);
                   const res = await fetch("/api/upload", {
                     method: "POST",
                     body: fd,
@@ -976,7 +979,9 @@ function BoardPostModal({
                       errText,
                     );
                     alert(
-                      `Image upload failed (${res.status}). Check console for details.`,
+                      res.status === 413
+                        ? "Image is too large — try a smaller photo."
+                        : `Image upload failed (${res.status}). Check console for details.`,
                     );
                   }
                 } catch (err) {
@@ -984,33 +989,8 @@ function BoardPostModal({
                   alert("Image upload failed — network error.");
                 } finally {
                   setUploading(false);
+                  e.target.value = "";
                 }
-                e.target.value = "";
-              }}
-            />{" "}
-            <input
-              type="file"
-              accept="image/*"
-              disabled={uploading}
-              style={{ display: "none" }}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setUploading(true);
-                const fd = new FormData();
-                fd.append("file", file);
-                try {
-                  const res = await fetch("/api/upload", {
-                    method: "POST",
-                    body: fd,
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    setImage(data.url);
-                  }
-                } catch {}
-                setUploading(false);
-                e.target.value = "";
               }}
             />
           </label>

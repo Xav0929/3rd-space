@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { compressImage } from "@/lib/compressImage";
 import {
   ShoppingCart,
   Plus,
@@ -4371,6 +4372,7 @@ function PaymentScreen({
   const [preview, setPreview] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   // ── GCash-specific state ──────────────────────────────────────────────────
   // copied: user has tapped "Copy Number"
@@ -4390,19 +4392,31 @@ function PaymentScreen({
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadError("");
+    setUploaded(false);
     setPreview(URL.createObjectURL(file));
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
     try {
+      const toSend = file.size > 1_200_000 ? await compressImage(file) : file;
+      const fd = new FormData();
+      fd.append("file", toSend);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       if (res.ok) {
         const d = await res.json();
         onReceiptUploaded(d.url, d.key);
         setUploaded(true);
+      } else {
+        const errText = await res.text().catch(() => "");
+        console.error("[Payment] upload failed", res.status, errText);
+        setUploadError(
+          res.status === 413
+            ? "Screenshot is too large — try a smaller screenshot or retake it."
+            : "Upload failed — check your connection and try again.",
+        );
       }
-    } catch {
-      /* silent */
+    } catch (err) {
+      console.error("[Payment] upload error", err);
+      setUploadError("Upload failed — check your connection and try again.");
     } finally {
       setUploading(false);
     }
@@ -5464,6 +5478,30 @@ function PaymentScreen({
                       </span>
                     </button>
                   )}
+                </div>
+              )}
+
+              {uploadError && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "rgba(248,113,113,.08)",
+                    border: "1px solid rgba(248,113,113,.25)",
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    marginBottom: 12,
+                  }}
+                >
+                  <AlertCircle
+                    size={14}
+                    color={ERR}
+                    style={{ flexShrink: 0 }}
+                  />
+                  <span style={{ color: ERR, fontSize: 12, lineHeight: 1.5 }}>
+                    {uploadError}
+                  </span>
                 </div>
               )}
 
