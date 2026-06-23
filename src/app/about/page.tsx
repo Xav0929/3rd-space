@@ -65,7 +65,7 @@ const ECOSYSTEM = [
     href: "https://www.facebook.com/share/17j1Yov24D/?mibextid=wwXIfr",
   },
   {
-    name: "Roma-A",
+    name: "Roma",
     tagline: "Pop Up Booth",
     href: "https://www.facebook.com/share/1BQK4nQUSP/?mibextid=wwXIfr",
   },
