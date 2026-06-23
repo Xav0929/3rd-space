@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 
 const ADMIN_ROUTES = ["/api/accounts", "/api/debug", "/api/seed"];
-const STAFF_ROUTES = [
-  "/api/upload",
-  "/api/posts",
-  "/api/daily-close",
-  "/api/vouchers/verify",
-];
+// NEW
+const STAFF_ROUTES = ["/api/posts", "/api/daily-close", "/api/vouchers/verify"];
 const PROTECTED_WRITES = ["/api/menu", "/api/orders"];
 const WRITE_METHODS = ["POST", "PATCH", "PUT", "DELETE"];
 
