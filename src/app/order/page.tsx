@@ -1852,10 +1852,7 @@ function GenericOptionsSheet({
     () => {
       const init: Record<string, Set<string>> = {};
       groups.forEach((g) => {
-        init[g.name] =
-          g.type === "single" && g.required && g.choices[0]
-            ? new Set([g.choices[0].label])
-            : new Set();
+        init[g.name] = new Set();
       });
       return init;
     },
@@ -2138,17 +2135,22 @@ function MenuScreen({
     // GenericOptionsSheet when the resolved item has options, so items
     // with BOTH variants + options (e.g. Ramen: Mild/Spicy + Add-Ons)
     // will show the variant picker then the options sheet in sequence.
-    const nameKey = item.name.toLowerCase();
-    const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
-      nameKey.includes(k),
-    )?.[1];
-    const effectiveVariants =
-      item.variants && item.variants.length > 0
-        ? item.variants.map((v) => ({ label: v }))
-        : nameVariants;
-    if (effectiveVariants && effectiveVariants.length > 0) {
-      setVariantItem({ ...item, variants: effectiveVariants as any });
-      return;
+    const hasAdminVariant = item.options?.some(
+      (g) => g.name.toLowerCase() === "variant",
+    );
+    if (!hasAdminVariant) {
+      const nameKey = item.name.toLowerCase();
+      const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
+        nameKey.includes(k),
+      )?.[1];
+      const effectiveVariants =
+        item.variants && item.variants.length > 0
+          ? item.variants.map((v) => ({ label: v }))
+          : nameVariants;
+      if (effectiveVariants && effectiveVariants.length > 0) {
+        setVariantItem({ ...item, variants: effectiveVariants as any });
+        return;
+      }
     }
     // No variants — go straight to options sheet if options exist
     if (item.options && item.options.length > 0) {
@@ -2675,7 +2677,28 @@ function MenuScreen({
             };
             setVariantItem(null);
             if (itemWithVariant.options && itemWithVariant.options.length > 0) {
-              setGenericOptionsItem(itemWithVariant);
+              const nonVariantOptions = itemWithVariant.options.filter(
+                (g: any) => g.name.toLowerCase() !== "variant",
+              );
+              if (nonVariantOptions.length > 0) {
+                setGenericOptionsItem({
+                  ...itemWithVariant,
+                  options: nonVariantOptions,
+                });
+              } else {
+                const config = getCategoryCustomizations(
+                  variantItem.category,
+                  liveSauces,
+                  liveEggStyles,
+                  itemWithVariant.name,
+                );
+                if (config) {
+                  setCustomizingItem(itemWithVariant);
+                  setCustomizingConfig(config);
+                } else {
+                  onAddToCart(itemWithVariant, []);
+                }
+              }
               return;
             }
             const config = getCategoryCustomizations(

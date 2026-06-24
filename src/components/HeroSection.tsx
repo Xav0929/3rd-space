@@ -382,7 +382,7 @@ export default function HeroSection() {
                     transition: "opacity 0.6s ease 0.2s",
                   }}
                 >
-                  Relax · Create · Breathe
+                  Find Your Space. Find Your People.
                 </p>
                 <h1
                   style={{
@@ -400,17 +400,15 @@ export default function HeroSection() {
                     textAlign: "right",
                   }}
                 >
-                  Your
+                  Where Coffee,
                   <br />
-                  Cozy
+                  Community,
                   <br />
-                  Corner
+                  <em style={{ color: "#d4a843", fontStyle: "italic" }}>and</em>
                   <br />
-                  <em style={{ color: "#d4a843", fontStyle: "italic" }}>
-                    Away
-                  </em>
+                  Creativity
                   <br />
-                  From Home
+                  Come Together.
                 </h1>
                 <Link
                   href="/order"

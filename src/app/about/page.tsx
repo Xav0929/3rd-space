@@ -341,37 +341,26 @@ export default function AboutPage() {
                     flexShrink: 0,
                   }}
                 >
-                  {[
-                    "Relax",
-                    "·",
-                    "Create",
-                    "·",
-                    "Breathe",
-                    "·",
-                    "Belong",
-                    "·",
-                    "Linger",
-                    "·",
-                    "Return",
-                    "·",
-                  ].map((w, j) => (
-                    <span
-                      key={j}
-                      style={{
-                        fontFamily: YK,
-                        fontWeight: w === "·" ? 300 : 700,
-                        fontSize: "clamp(0.75rem, 1.2vw, 1rem)",
-                        letterSpacing: "0.35em",
-                        textTransform: "uppercase",
-                        color:
-                          w === "·"
-                            ? "rgba(212,168,67,0.4)"
-                            : "rgba(232,213,163,0.3)",
-                      }}
-                    >
-                      {w}
-                    </span>
-                  ))}
+                  {["Coffee", "·", " Community", "·", "Conversations", "·"].map(
+                    (w, j) => (
+                      <span
+                        key={j}
+                        style={{
+                          fontFamily: YK,
+                          fontWeight: w === "·" ? 300 : 700,
+                          fontSize: "clamp(0.75rem, 1.2vw, 1rem)",
+                          letterSpacing: "0.35em",
+                          textTransform: "uppercase",
+                          color:
+                            w === "·"
+                              ? "rgba(212,168,67,0.4)"
+                              : "rgba(232,213,163,0.3)",
+                        }}
+                      >
+                        {w}
+                      </span>
+                    ),
+                  )}
                 </span>
               ))}
           </div>

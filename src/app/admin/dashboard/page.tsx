@@ -2798,7 +2798,7 @@ function OrderCard({
                 e.stopPropagation();
                 setReceiptSrc(order.receiptUrl!);
               }}
-              title="View GCash receipt"
+              title="View GCash screenshot"
               style={{
                 background: "rgba(91,155,213,0.12)",
                 border: "1px solid rgba(91,155,213,0.35)",
@@ -2816,6 +2816,32 @@ function OrderCard({
               }}
             >
               <ImageIcon size={12} /> GCash
+            </button>
+          )}
+          {order.paymentStatus === "confirmed" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                printReceipt(1);
+              }}
+              title="Reprint order receipt"
+              style={{
+                background: "rgba(212,168,67,0.12)",
+                border: "1px solid rgba(212,168,67,0.35)",
+                borderRadius: 6,
+                color: T.gold,
+                padding: "5px 9px",
+                cursor: "pointer",
+                fontSize: 11,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+              }}
+            >
+              🖨 Receipt
             </button>
           )}
           <div style={{ color: T.muted }}>
@@ -3465,7 +3491,27 @@ function OrderCard({
                         gap: 5,
                       }}
                     >
-                      <ImageIcon size={12} /> View Receipt
+                      <ImageIcon size={12} /> GCash Screenshot
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        printReceipt(1);
+                      }}
+                      style={{
+                        fontSize: 12,
+                        color: T.gold,
+                        background: "rgba(212,168,67,0.08)",
+                        border: "1px solid rgba(212,168,67,0.2)",
+                        borderRadius: 6,
+                        padding: "5px 12px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      🖨 Print Receipt
                     </button>
                     {order.paymentStatus !== "confirmed" && (
                       <button
@@ -3594,12 +3640,13 @@ function OrderCard({
                         </p>
                       )}
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
                           if (order.paymentMethod === "cash") {
                             setShowCashRegister(true);
                           } else {
-                            onPaymentConfirm(order._id);
+                            await onPaymentConfirm(order._id);
+                            printReceipt(1);
                           }
                         }}
                         style={{
@@ -3663,7 +3710,9 @@ function OrderCard({
                 <button
                   onClick={async (e) => {
                     e.stopPropagation();
-                    const shouldPrint = order.status === "pending";
+                    const shouldPrint =
+                      order.status === "pending" &&
+                      order.paymentStatus !== "confirmed";
                     await onStatusChange(order._id, nextStatus);
                     if (shouldPrint) printReceipt(2);
                   }}
