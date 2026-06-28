@@ -105,6 +105,12 @@ type OrderItem = {
   quantity: number;
   customizations?: { type: string; label: string; price: number }[];
 };
+type DiscountPreset = {
+  _id: string;
+  name: string;
+  percentage: number;
+};
+
 type Order = {
   _id: string;
   orderNumber: string;
@@ -112,13 +118,19 @@ type Order = {
   status: OrderStatus;
   items: OrderItem[];
   total: number;
+  originalTotal?: number;
+  discountName?: string;
+  discountPct?: number;
+  discountAmount?: number;
   customerName?: string;
   customerContact?: string;
   deliveryAddress?: string;
   receiptUrl?: string;
   tableNumber?: string;
   paymentStatus: "pending" | "confirmed";
-  paymentMethod?: "cash" | "gcash" | "pending";
+  paymentMethod?: "cash" | "gcash" | "pending" | "split";
+  cashAmount?: number;
+  gcashAmount?: number;
   notes?: string;
   createdAt: string;
   waiterName?: string;
@@ -128,6 +140,7 @@ type Order = {
   changeGiven?: number;
   archived?: boolean;
   archivedAt?: string;
+  shiftDate?: string;
   deliveryAddressDetails?: {
     lat?: number;
     lng?: number;
@@ -195,6 +208,7 @@ type Tab =
   | "crew"
   | "board"
   | "vouchers"
+  | "discounts"
   | "accounts";
 type Role = "admin" | "staff" | null;
 
@@ -2402,6 +2416,371 @@ function RiderTrackingButton({
   );
 }
 
+// ── EDIT ORDER ITEMS MODAL ───────────────────────────────────────────────────
+function EditOrderItemsModal({
+  order,
+  menuItems,
+  onSave,
+  onClose,
+}: {
+  order: Order;
+  menuItems: MenuItem[];
+  onSave: (items: OrderItem[], total: number) => Promise<void> | void;
+  onClose: () => void;
+}) {
+  const [items, setItems] = useState<OrderItem[]>(() =>
+    order.items.map((it) => ({ ...it })),
+  );
+  const [search, setSearch] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const deliveryFee = (order as any).deliveryFee || 0;
+  const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+  const total = subtotal + deliveryFee;
+
+  function updateQty(idx: number, qty: number) {
+    if (qty <= 0) {
+      setItems((p) => p.filter((_, i) => i !== idx));
+      return;
+    }
+    setItems((p) =>
+      p.map((it, i) => (i === idx ? { ...it, quantity: qty } : it)),
+    );
+  }
+  function removeItem(idx: number) {
+    setItems((p) => p.filter((_, i) => i !== idx));
+  }
+  function addMenuItem(mi: MenuItem) {
+    setItems((p) => {
+      const existingIdx = p.findIndex((it) => it.name === mi.name);
+      if (existingIdx >= 0) {
+        return p.map((it, i) =>
+          i === existingIdx ? { ...it, quantity: it.quantity + 1 } : it,
+        );
+      }
+      return [...p, { name: mi.name, price: mi.price, quantity: 1 }];
+    });
+    setSearch("");
+  }
+
+  const filteredMenu = search.trim()
+    ? menuItems
+        .filter(
+          (m) =>
+            m.available && m.name.toLowerCase().includes(search.toLowerCase()),
+        )
+        .slice(0, 6)
+    : [];
+
+  async function handleSave() {
+    if (items.length === 0) {
+      alert("Order must have at least one item. Cancel the order instead.");
+      return;
+    }
+    setSaving(true);
+    await onSave(items, total);
+    setSaving(false);
+  }
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 440,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.cream,
+              fontSize: 14,
+              letterSpacing: ".1em",
+            }}
+          >
+            EDIT ITEMS — #{order.orderNumber}
+          </p>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: T.muted,
+              cursor: "pointer",
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {items.map((it, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 10px",
+                background: "rgba(255,255,255,0.03)",
+                borderRadius: 8,
+                border: `1px solid ${T.border}`,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    color: T.cream,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {it.name}
+                </p>
+                <p style={{ color: T.gold, fontSize: 12 }}>
+                  ₱{it.price.toFixed(2)} each
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  onClick={() => updateQty(idx, it.quantity - 1)}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 999,
+                    border: `1px solid ${T.border}`,
+                    background: "none",
+                    color: T.muted,
+                    cursor: "pointer",
+                  }}
+                >
+                  −
+                </button>
+                <span
+                  style={{
+                    width: 22,
+                    textAlign: "center",
+                    color: T.cream,
+                    fontSize: 13,
+                    fontWeight: 700,
+                  }}
+                >
+                  {it.quantity}
+                </span>
+                <button
+                  onClick={() => updateQty(idx, it.quantity + 1)}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 999,
+                    background: T.gold,
+                    border: "none",
+                    color: "#0a0f0a",
+                    cursor: "pointer",
+                  }}
+                >
+                  +
+                </button>
+              </div>
+              <button
+                onClick={() => removeItem(idx)}
+                title="Remove item"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.25)",
+                  color: T.red,
+                  borderRadius: 6,
+                  padding: "6px 8px",
+                  cursor: "pointer",
+                }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+          {items.length === 0 && (
+            <p
+              style={{
+                color: T.faint,
+                fontSize: 12,
+                textAlign: "center",
+                padding: "10px 0",
+              }}
+            >
+              No items left — add one below, or cancel the order instead.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            ADD / REPLACE ITEM
+          </label>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search menu..."
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              padding: "9px 12px",
+              color: T.cream,
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+          {filteredMenu.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                marginTop: 6,
+                maxHeight: 160,
+                overflowY: "auto",
+              }}
+            >
+              {filteredMenu.map((mi) => (
+                <button
+                  key={mi._id}
+                  onClick={() => addMenuItem(mi)}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${T.border}`,
+                    background: "rgba(255,255,255,0.02)",
+                    color: T.cream,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span>{mi.name}</span>
+                  <span style={{ color: T.gold, fontWeight: 700 }}>
+                    ₱{mi.price.toFixed(2)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{
+            borderTop: `1px solid ${T.border}`,
+            paddingTop: 10,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ color: T.muted, fontSize: 12 }}>New Total</span>
+          <span
+            style={{
+              fontFamily: "'Cinzel',serif",
+              color: T.gold,
+              fontSize: 18,
+              fontWeight: 700,
+            }}
+          >
+            ₱{total.toFixed(2)}
+          </span>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={handleSave}
+            disabled={saving || items.length === 0}
+            style={{
+              flex: 1,
+              padding: "11px",
+              background: items.length > 0 ? T.green : "rgba(34,197,94,0.2)",
+              border: "none",
+              borderRadius: 10,
+              color: items.length > 0 ? "#0a0f0a" : T.muted,
+              fontFamily: "'Cinzel',serif",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".08em",
+              cursor: items.length > 0 ? "pointer" : "not-allowed",
+            }}
+          >
+            {saving ? "SAVING…" : "SAVE CHANGES"}
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "11px 18px",
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 10,
+              color: T.muted,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── ORDER CARD ───────────────────────────────────────────────────────────────
 function OrderCard({
   order,
@@ -2411,6 +2790,10 @@ function OrderCard({
   onCashConfirm,
   onSetPaymentMethod,
   onDelete,
+  onItemsUpdate,
+  onApplyDiscount,
+  onRemoveDiscount,
+  discounts,
   staffName,
 }: {
   order: Order;
@@ -2424,6 +2807,14 @@ function OrderCard({
   ) => Promise<void> | void;
   onSetPaymentMethod: (id: string, method: "cash" | "gcash") => void;
   onDelete: (id: string) => void;
+  onItemsUpdate: (
+    id: string,
+    items: OrderItem[],
+    total: number,
+  ) => Promise<void> | void;
+  onApplyDiscount: (id: string, name: string, pct: number) => Promise<void>;
+  onRemoveDiscount: (id: string) => Promise<void>;
+  discounts: DiscountPreset[];
   staffName: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -2431,6 +2822,8 @@ function OrderCard({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showCashRegister, setShowCashRegister] = useState(false);
+  const [showEditItems, setShowEditItems] = useState(false);
+  const [showDiscountPicker, setShowDiscountPicker] = useState(false);
   const nextStatus = STATUS_CFG[order.status].next;
   // Only mount map/tracking when card is open
   const isDeliveryOpen = open && order.type === "delivery";
@@ -2462,8 +2855,13 @@ function OrderCard({
   // Anything that isn't explicitly "cash" or "gcash" counts as pending —
   // this covers "pending", null, undefined, or any other stray value.
   const methodKnown =
-    order.paymentMethod === "cash" || order.paymentMethod === "gcash";
+    order.paymentMethod === "cash" ||
+    order.paymentMethod === "gcash" ||
+    order.paymentMethod === "split";
   const methodPending = !methodKnown;
+  const isSplit = order.paymentMethod === "split";
+  const splitCash = order.cashAmount ?? 0;
+  const splitGcash = order.gcashAmount ?? 0;
 
   return (
     <>
@@ -2504,7 +2902,7 @@ function OrderCard({
       )}
       {showCashRegister && (
         <CashRegisterModal
-          total={order.total}
+          total={isSplit ? splitCash : order.total}
           orderNumber={order.orderNumber}
           onConfirm={async (cashReceived, change) => {
             setShowCashRegister(false);
@@ -2512,6 +2910,17 @@ function OrderCard({
             printReceipt(1, { cashReceived, change });
           }}
           onCancel={() => setShowCashRegister(false)}
+        />
+      )}
+      {showEditItems && (
+        <EditOrderItemsModal
+          order={order}
+          menuItems={menuItems}
+          onClose={() => setShowEditItems(false)}
+          onSave={async (items, total) => {
+            await onItemsUpdate(order._id, items, total);
+            setShowEditItems(false);
+          }}
         />
       )}
       <div
@@ -2782,17 +3191,45 @@ function OrderCard({
                 .join(" · ")}
             </p>
           </div>
-          <span
-            style={{
-              fontFamily: "'Cinzel',serif",
-              fontSize: 17,
-              fontWeight: 700,
-              color: T.gold,
-              flexShrink: 0,
-            }}
-          >
-            {fmt(order.total)}
-          </span>
+          <div style={{ flexShrink: 0, textAlign: "right" }}>
+            {order.discountPct && order.originalTotal ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: T.muted,
+                    textDecoration: "line-through",
+                  }}
+                >
+                  {fmt(order.originalTotal)}
+                </span>
+                <span
+                  style={{
+                    background: "rgba(34,197,94,0.12)",
+                    border: "1px solid rgba(34,197,94,0.3)",
+                    color: T.green,
+                    borderRadius: 6,
+                    padding: "2px 7px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  -{order.discountPct}%
+                </span>
+              </div>
+            ) : null}
+            <span
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: 17,
+                fontWeight: 700,
+                color: T.gold,
+                display: "block",
+              }}
+            >
+              {fmt(order.total)}
+            </span>
+          </div>
           {order.receiptUrl && order.paymentStatus !== "confirmed" && (
             <button
               onClick={(e) => {
@@ -3152,10 +3589,22 @@ function OrderCard({
                         justifyContent: "space-between",
                       }}
                     >
-                      <span style={{ color: T.muted, fontSize: 12 }}>
+                      <span
+                        style={{
+                          color: T.cream,
+                          fontSize: 16,
+                          fontWeight: 600,
+                        }}
+                      >
                         {it.quantity}× {it.name}
                       </span>
-                      <span style={{ color: T.cream, fontSize: 12 }}>
+                      <span
+                        style={{
+                          color: T.cream,
+                          fontSize: 16,
+                          fontWeight: 600,
+                        }}
+                      >
                         ₱{(it.price * it.quantity).toFixed(2)}
                       </span>
                     </div>
@@ -3428,6 +3877,11 @@ function OrderCard({
                         />
                         Cash
                       </>
+                    ) : order.paymentMethod === "split" ? (
+                      <>
+                        Split — ₱{splitCash.toFixed(0)} cash + ₱
+                        {splitGcash.toFixed(0)} GCash
+                      </>
                     ) : (
                       <>
                         <img
@@ -3625,25 +4079,30 @@ function OrderCard({
                   {/* Step 2: Once method is known, confirm payment */}
                   {methodKnown && (
                     <div>
-                      {methodKnown && (
-                        <p
-                          style={{
-                            color: T.muted,
-                            fontSize: 11,
-                            marginBottom: 6,
-                          }}
-                        >
-                          Step 2 — Collect{" "}
-                          {order.paymentMethod === "cash"
-                            ? "cash"
-                            : "GCash transfer"}{" "}
-                          then confirm:
-                        </p>
-                      )}
+                      <p
+                        style={{
+                          color: T.muted,
+                          fontSize: 11,
+                          marginBottom: 6,
+                        }}
+                      >
+                        {isSplit
+                          ? splitGcash > 0
+                            ? `Step 2 — Check the GCash screenshot above for ₱${splitGcash.toFixed(0)}, then collect ₱${splitCash.toFixed(0)} cash:`
+                            : `Step 2 — Collect ₱${splitCash.toFixed(0)} cash then confirm:`
+                          : `Step 2 — Collect ${
+                              order.paymentMethod === "cash"
+                                ? "cash"
+                                : "GCash transfer"
+                            } then confirm:`}
+                      </p>
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
-                          if (order.paymentMethod === "cash") {
+                          if (
+                            order.paymentMethod === "cash" ||
+                            (isSplit && splitCash > 0)
+                          ) {
                             setShowCashRegister(true);
                           } else {
                             await onPaymentConfirm(order._id);
@@ -3664,7 +4123,8 @@ function OrderCard({
                           letterSpacing: ".06em",
                         }}
                       >
-                        {order.paymentMethod === "cash" ? (
+                        {order.paymentMethod === "cash" ||
+                        (isSplit && splitCash > 0) ? (
                           <>
                             <Banknote
                               size={13}
@@ -3675,6 +4135,7 @@ function OrderCard({
                               }}
                             />
                             OPEN CASH REGISTER
+                            {isSplit ? ` (₱${splitCash.toFixed(0)})` : ""}
                           </>
                         ) : (
                           <>
@@ -3706,7 +4167,151 @@ function OrderCard({
             )}
 
             {/* ── STATUS ACTIONS ── */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              {/* Discount picker */}
+              {order.status !== "completed" &&
+                order.status !== "cancelled" &&
+                discounts.length > 0 && (
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    {order.discountPct ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveDiscount(order._id);
+                        }}
+                        style={{
+                          padding: "9px 12px",
+                          background: "rgba(34,197,94,0.08)",
+                          border: "1px solid rgba(34,197,94,0.25)",
+                          color: T.green,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                        }}
+                      >
+                        ✓ {order.discountName} ({order.discountPct}%)
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDiscountPicker((p) => !p);
+                        }}
+                        style={{
+                          padding: "9px 12px",
+                          background: T.goldGlow,
+                          border: `1px solid ${T.border}`,
+                          color: T.muted,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <DollarSign size={12} />
+                        Apply Discount
+                      </button>
+                    )}
+                    {showDiscountPicker && !order.discountPct && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          position: "absolute",
+                          bottom: "calc(100% + 6px)",
+                          left: 0,
+                          minWidth: 180,
+                          background: "#141f14",
+                          border: `1px solid ${T.borderH}`,
+                          borderRadius: 10,
+                          zIndex: 999,
+                          maxHeight: 220,
+                          overflowY: "auto",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+                        }}
+                      >
+                        {discounts.map((d) => (
+                          <button
+                            key={d._id}
+                            onClick={() => {
+                              onApplyDiscount(order._id, d.name, d.percentage);
+                              setShowDiscountPicker(false);
+                            }}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              background: "transparent",
+                              border: "none",
+                              borderBottom: `1px solid ${T.border}`,
+                              color: T.cream,
+                              fontSize: 13,
+                              cursor: "pointer",
+                              textAlign: "left",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = T.goldGlow)
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background = "transparent")
+                            }
+                          >
+                            <span>{d.name}</span>
+                            <span
+                              style={{
+                                color: T.gold,
+                                fontWeight: 700,
+                                fontFamily: "'Cinzel',serif",
+                              }}
+                            >
+                              {d.percentage}% off
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              {order.status !== "completed" && order.status !== "cancelled" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditItems(true);
+                  }}
+                  style={{
+                    padding: "9px 12px",
+                    background: "rgba(91,155,213,0.1)",
+                    border: "1px solid rgba(91,155,213,0.3)",
+                    color: T.blue,
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <Edit2 size={12} /> Edit Items
+                </button>
+              )}
               {nextStatus && (
                 <button
                   onClick={async (e) => {
@@ -4477,9 +5082,41 @@ function MenuTab({
   const [localItems, setLocalItems] = useState<MenuItem[]>(items);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const busyIdsRef = useRef<Set<string>>(new Set());
+  const [menuView, setMenuView] = useState<"cards" | "costs">("cards");
+  const [editingCost, setEditingCost] = useState<{
+    id: string;
+    val: string;
+  } | null>(null);
+  const [savingCostId, setSavingCostId] = useState<string | null>(null);
+
+  async function saveCost(item: MenuItem, cost: number) {
+    setSavingCostId(item._id);
+    try {
+      const res = await fetch(`/api/menu/${item._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cost }),
+      });
+      if (res.ok) {
+        setLocalItems((prev) =>
+          prev.map((i) => (i._id === item._id ? { ...i, cost } : i)),
+        );
+      }
+    } catch {}
+    setSavingCostId(null);
+    setEditingCost(null);
+  }
 
   useEffect(() => {
-    setLocalItems(items);
+    setLocalItems((prev) =>
+      items.map((incoming) => {
+        if (busyIdsRef.current.has(incoming._id)) {
+          return prev.find((p) => p._id === incoming._id) ?? incoming;
+        }
+        return incoming;
+      }),
+    );
   }, [items]);
 
   const categories = Array.from(new Set(localItems.map((i) => i.category)));
@@ -4559,6 +5196,7 @@ function MenuTab({
       );
       return;
     }
+    busyIdsRef.current.add(item._id);
     setLocalItems((prev) =>
       prev.map((i) => (i._id === item._id ? { ...i, available: newVal } : i)),
     );
@@ -4581,6 +5219,8 @@ function MenuTab({
           i._id === item._id ? { ...i, available: item.available } : i,
         ),
       );
+    } finally {
+      busyIdsRef.current.delete(item._id);
     }
   }
 
@@ -4618,7 +5258,37 @@ function MenuTab({
         <p style={{ color: T.muted, fontSize: 12 }}>
           {localItems.length} items · {categories.length} categories
         </p>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              overflow: "hidden",
+            }}
+          >
+            {(["cards", "costs"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setMenuView(v)}
+                style={{
+                  padding: "8px 14px",
+                  background: menuView === v ? T.goldDim : "transparent",
+                  border: "none",
+                  borderRight: v === "cards" ? `1px solid ${T.border}` : "none",
+                  color: menuView === v ? T.gold : T.muted,
+                  fontSize: 11,
+                  fontWeight: menuView === v ? 700 : 400,
+                  cursor: "pointer",
+                  fontFamily: "'Cinzel',serif",
+                  letterSpacing: ".06em",
+                }}
+              >
+                {v === "cards" ? "MENU" : "COST SHEET"}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => onRefresh()}
             style={{
@@ -4659,267 +5329,545 @@ function MenuTab({
         </div>
       </div>
 
-      {showForm && (
-        <MenuItemForm
-          key="add-new"
-          item={undefined}
-          onSave={saveItem}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
-
-      {editItem && (
+      {menuView === "costs" && (
         <div
-          onClick={(e) => e.target === e.currentTarget && setEditItem(null)}
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "rgba(0,0,0,0.78)",
-            backdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
+            border: `1px solid ${T.border}`,
+            borderRadius: 12,
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 520,
-              maxHeight: "90svh",
-              overflowY: "auto",
-              background: "#0f1a0f",
-              borderRadius: 16,
-              boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
-            }}
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
           >
-            <MenuItemForm
-              key={`edit-${editItem._id}`}
-              item={editItem}
-              onSave={saveItem}
-              onCancel={() => setEditItem(null)}
-            />
-          </div>
-        </div>
-      )}
-
-      {categories.map((cat) => (
-        <div key={cat}>
-          <p
-            style={{
-              color: T.gold,
-              fontSize: 11,
-              letterSpacing: ".15em",
-              textTransform: "uppercase",
-              fontFamily: "'Cinzel',serif",
-              marginBottom: 10,
-            }}
-          >
-            ──{cat}
-          </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
-              gap: 10,
-            }}
-          >
-            {localItems
-              .filter((i) => i.category === cat)
-              .map((item) => (
-                <div
-                  key={item._id}
-                  style={{
-                    background: T.bgCard,
-                    border: `1px solid ${editItem?._id === item._id ? T.gold : T.border}`,
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    transition: "all .2s",
-                    opacity: item.available ? 1 : 0.55,
-                    position: "relative",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.borderColor = T.borderH)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.borderColor =
-                      editItem?._id === item._id ? T.gold : T.border)
-                  }
-                >
-                  {item.image && (
-                    <div
+            <thead>
+              <tr
+                style={{
+                  background: "rgba(212,168,67,0.08)",
+                  borderBottom: `1px solid ${T.border}`,
+                }}
+              >
+                {["Product", "Category", "Price", "Cost", "Margin", ""].map(
+                  (h) => (
+                    <th
+                      key={h}
                       style={{
-                        height: 80,
-                        overflow: "hidden",
-                        background: "rgba(212,168,67,0.05)",
+                        color: T.muted,
+                        textAlign:
+                          h === "Product" || h === "Category"
+                            ? "left"
+                            : "right",
+                        padding: "10px 14px",
+                        fontWeight: 600,
+                        fontSize: 10,
+                        letterSpacing: 0.8,
+                        fontFamily: "'Cinzel',serif",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        loading="lazy"
-                        decoding="async"
-                        width={240}
-                        height={80}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          contentVisibility: "auto",
-                        }}
-                        onError={(e) =>
-                          (e.currentTarget.style.display = "none")
-                        }
-                      />
-                    </div>
-                  )}
-                  <div
+                      {h}
+                    </th>
+                  ),
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {localItems.map((item, i) => {
+                const margin =
+                  item.cost && item.cost > 0 && item.price > 0
+                    ? ((item.price - item.cost) / item.price) * 100
+                    : null;
+                const isEditingThis = editingCost?.id === item._id;
+                return (
+                  <tr
+                    key={item._id}
                     style={{
-                      padding: "11px 13px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
+                      borderBottom:
+                        i < localItems.length - 1
+                          ? `1px solid rgba(255,255,255,0.04)`
+                          : "none",
+                      background:
+                        i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+                      transition: "background .1s",
                     }}
                   >
-                    <div
+                    <td
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
+                        padding: "9px 14px",
+                        color: T.cream,
+                        fontWeight: 500,
+                        maxWidth: 200,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        {item.image && (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 4,
+                              objectFit: "cover",
+                              flexShrink: 0,
+                            }}
+                            onError={(e) =>
+                              (e.currentTarget.style.display = "none")
+                            }
+                          />
+                        )}
+                        <span
                           style={{
-                            color: T.cream,
-                            fontSize: 13,
-                            fontWeight: 600,
-                            marginBottom: 2,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {item.name}
-                        </p>
-                        {item.description && (
-                          <p
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: "9px 14px",
+                        color: T.muted,
+                        fontSize: 11,
+                      }}
+                    >
+                      {item.category}
+                    </td>
+                    <td
+                      style={{
+                        padding: "9px 14px",
+                        textAlign: "right",
+                        color: T.gold,
+                        fontFamily: "'Cinzel',serif",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {fmt(item.price)}
+                    </td>
+                    <td style={{ padding: "9px 14px", textAlign: "right" }}>
+                      {isEditingThis ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            justifyContent: "flex-end",
+                          }}
+                        >
+                          <input
+                            type="number"
+                            value={editingCost.val}
+                            autoFocus
+                            onChange={(e) =>
+                              setEditingCost({
+                                id: item._id,
+                                val: e.target.value,
+                              })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                saveCost(
+                                  item,
+                                  parseFloat(editingCost.val) || 0,
+                                );
+                              if (e.key === "Escape") setEditingCost(null);
+                            }}
                             style={{
-                              color: T.muted,
+                              width: 72,
+                              background: "rgba(255,255,255,0.06)",
+                              border: `1px solid ${T.gold}`,
+                              borderRadius: 6,
+                              padding: "4px 8px",
+                              color: T.cream,
+                              fontSize: 12,
+                              textAlign: "right",
+                              outline: "none",
+                            }}
+                          />
+                          <button
+                            onClick={() =>
+                              saveCost(item, parseFloat(editingCost.val) || 0)
+                            }
+                            style={{
+                              background: T.green,
+                              border: "none",
+                              borderRadius: 5,
+                              color: "#0a0f0a",
+                              padding: "4px 8px",
+                              cursor: "pointer",
                               fontSize: 11,
-                              lineHeight: 1.4,
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
+                              fontWeight: 700,
                             }}
                           >
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        style={{
-                          fontFamily: "'Cinzel',serif",
-                          fontSize: 15,
-                          fontWeight: 700,
-                          color: T.gold,
-                          marginLeft: 8,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {fmt(item.price)}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                            {savingCostId === item._id ? "…" : "✓"}
+                          </button>
+                          <button
+                            onClick={() => setEditingCost(null)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: T.muted,
+                              cursor: "pointer",
+                              fontSize: 14,
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() =>
+                            setEditingCost({
+                              id: item._id,
+                              val: String(item.cost || ""),
+                            })
+                          }
+                          style={{
+                            background: "none",
+                            border: `1px dashed ${item.cost ? T.border : "rgba(212,168,67,0.3)"}`,
+                            borderRadius: 6,
+                            color: item.cost ? T.cream : "rgba(212,168,67,0.5)",
+                            padding: "3px 10px",
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontFamily: "'Cinzel',serif",
+                            minWidth: 60,
+                            textAlign: "right",
+                          }}
+                        >
+                          {item.cost ? fmt(item.cost) : "+ add"}
+                        </button>
+                      )}
+                    </td>
+                    <td style={{ padding: "9px 14px", textAlign: "right" }}>
+                      {margin !== null ? (
+                        <span
+                          style={{
+                            color:
+                              margin >= 40
+                                ? T.green
+                                : margin >= 20
+                                  ? "#f59e0b"
+                                  : "#f87171",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {margin.toFixed(1)}%
+                        </span>
+                      ) : (
+                        <span style={{ color: T.faint }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "9px 14px", textAlign: "right" }}>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleAvail(item);
-                        }}
+                        onClick={() => startEdit(item)}
                         style={{
-                          flex: 1,
-                          padding: "7px 8px",
+                          background: "rgba(212,168,67,0.06)",
+                          border: `1px solid rgba(212,168,67,0.2)`,
                           borderRadius: 6,
+                          color: T.gold,
+                          padding: "4px 10px",
                           cursor: "pointer",
                           fontSize: 11,
-                          background: item.available
-                            ? "rgba(34,197,94,0.08)"
-                            : "rgba(239,68,68,0.08)",
-                          border: `1px solid ${item.available ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
-                          color: item.available ? T.green : T.red,
-                          fontWeight: 600,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 4,
-                        }}
-                      >
-                        {item.available ? "✓ On Menu" : "✗ Hidden"}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(item);
-                        }}
-                        style={{
-                          padding: "7px 12px",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          background:
-                            editItem?._id === item._id
-                              ? T.goldDim
-                              : "rgba(212,168,67,0.06)",
-                          border: `1px solid ${editItem?._id === item._id ? T.gold : "rgba(212,168,67,0.2)"}`,
-                          color: T.gold,
-                          fontSize: 11,
                           display: "flex",
                           alignItems: "center",
                           gap: 4,
                         }}
                       >
-                        <Edit2 size={12} /> Edit
+                        <Edit2 size={11} /> Edit
                       </button>
-                      <button
-                        disabled={busyIds.has(item._id)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget(item._id);
-                        }}
-                        style={{
-                          padding: "7px 12px",
-                          borderRadius: 6,
-                          cursor: busyIds.has(item._id) ? "wait" : "pointer",
-                          background: "rgba(239,68,68,0.07)",
-                          border: "1px solid rgba(239,68,68,0.2)",
-                          color: T.red,
-                          fontSize: 11,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          opacity: busyIds.has(item._id) ? 0.5 : 1,
-                        }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      ))}
+      )}
 
-      {localItems.length === 0 && (
-        <div
-          style={{ textAlign: "center", padding: "60px 20px", color: T.faint }}
-        >
-          <UtensilsCrossed
-            size={40}
-            style={{ margin: "0 auto 12px", opacity: 0.3 }}
-          />
-          <p style={{ fontSize: 14 }}>
-            No menu items yet — add your first one above
-          </p>
-        </div>
+      {menuView === "cards" && (
+        <>
+          {showForm && (
+            <MenuItemForm
+              key="add-new"
+              item={undefined}
+              onSave={saveItem}
+              onCancel={() => setShowForm(false)}
+            />
+          )}
+
+          {editItem && (
+            <div
+              onClick={(e) => e.target === e.currentTarget && setEditItem(null)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 1000,
+                background: "rgba(0,0,0,0.78)",
+                backdropFilter: "blur(6px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "16px",
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 520,
+                  maxHeight: "90svh",
+                  overflowY: "auto",
+                  background: "#0f1a0f",
+                  borderRadius: 16,
+                  boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
+                }}
+              >
+                <MenuItemForm
+                  key={`edit-${editItem._id}`}
+                  item={editItem}
+                  onSave={saveItem}
+                  onCancel={() => setEditItem(null)}
+                />
+              </div>
+            </div>
+          )}
+
+          {categories.map((cat) => (
+            <div key={cat}>
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase",
+                  fontFamily: "'Cinzel',serif",
+                  marginBottom: 10,
+                }}
+              >
+                ──{cat}
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
+                  gap: 10,
+                }}
+              >
+                {localItems
+                  .filter((i) => i.category === cat)
+                  .map((item) => (
+                    <div
+                      key={item._id}
+                      style={{
+                        background: T.bgCard,
+                        border: `1px solid ${editItem?._id === item._id ? T.gold : T.border}`,
+                        borderRadius: 12,
+                        overflow: "hidden",
+                        transition: "all .2s",
+                        opacity: item.available ? 1 : 0.55,
+                        position: "relative",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.borderColor = T.borderH)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.borderColor =
+                          editItem?._id === item._id ? T.gold : T.border)
+                      }
+                    >
+                      {item.image && (
+                        <div
+                          style={{
+                            height: 80,
+                            overflow: "hidden",
+                            background: "rgba(212,168,67,0.05)",
+                          }}
+                        >
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            loading="lazy"
+                            decoding="async"
+                            width={240}
+                            height={80}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              contentVisibility: "auto",
+                            }}
+                            onError={(e) =>
+                              (e.currentTarget.style.display = "none")
+                            }
+                          />
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          padding: "11px 13px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p
+                              style={{
+                                color: T.cream,
+                                fontSize: 13,
+                                fontWeight: 600,
+                                marginBottom: 2,
+                              }}
+                            >
+                              {item.name}
+                            </p>
+                            {item.description && (
+                              <p
+                                style={{
+                                  color: T.muted,
+                                  fontSize: 11,
+                                  lineHeight: 1.4,
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                          <span
+                            style={{
+                              fontFamily: "'Cinzel',serif",
+                              fontSize: 15,
+                              fontWeight: 700,
+                              color: T.gold,
+                              marginLeft: 8,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {fmt(item.price)}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleAvail(item);
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: "7px 8px",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              fontSize: 11,
+                              background: item.available
+                                ? "rgba(34,197,94,0.08)"
+                                : "rgba(239,68,68,0.08)",
+                              border: `1px solid ${item.available ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                              color: item.available ? T.green : T.red,
+                              fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 4,
+                            }}
+                          >
+                            {item.available ? "✓ On Menu" : "✗ Hidden"}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEdit(item);
+                            }}
+                            style={{
+                              padding: "7px 12px",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              background:
+                                editItem?._id === item._id
+                                  ? T.goldDim
+                                  : "rgba(212,168,67,0.06)",
+                              border: `1px solid ${editItem?._id === item._id ? T.gold : "rgba(212,168,67,0.2)"}`,
+                              color: T.gold,
+                              fontSize: 11,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Edit2 size={12} /> Edit
+                          </button>
+                          <button
+                            disabled={busyIds.has(item._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget(item._id);
+                            }}
+                            style={{
+                              padding: "7px 12px",
+                              borderRadius: 6,
+                              cursor: busyIds.has(item._id)
+                                ? "wait"
+                                : "pointer",
+                              background: "rgba(239,68,68,0.07)",
+                              border: "1px solid rgba(239,68,68,0.2)",
+                              color: T.red,
+                              fontSize: 11,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              opacity: busyIds.has(item._id) ? 0.5 : 1,
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))}
+
+          {localItems.length === 0 && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "60px 20px",
+                color: T.faint,
+              }}
+            >
+              <UtensilsCrossed
+                size={40}
+                style={{ margin: "0 auto 12px", opacity: 0.3 }}
+              />
+              <p style={{ fontSize: 14 }}>
+                No menu items yet — add your first one above
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -5979,15 +6927,272 @@ function SalesCalendar({
     </div>
   );
 }
+// ── PRODUCT PROFIT TABLE ──────────────────────────────────────────────────────
+function ProductProfitTable({
+  orders,
+  menuItems,
+}: {
+  orders: Order[];
+  menuItems: MenuItem[];
+}) {
+  const completed = orders.filter((o) => o.status === "completed");
+  if (!completed.length) return null;
+
+  const map: Record<string, { qty: number; revenue: number; cost: number }> =
+    {};
+  for (const order of completed) {
+    for (const it of order.items) {
+      const itBase = it.name
+        .toLowerCase()
+        .replace(/\s*\(.*?\)\s*/g, "")
+        .trim();
+      const mi = menuItems.find((m) => {
+        const mBase = m.name
+          .toLowerCase()
+          .replace(/\s*\(.*?\)\s*/g, "")
+          .trim();
+        return (
+          it.name.toLowerCase() === m.name.toLowerCase() ||
+          itBase === mBase ||
+          it.name.toLowerCase().includes(m.name.toLowerCase()) ||
+          m.name.toLowerCase().includes(itBase)
+        );
+      });
+      if (!map[it.name]) map[it.name] = { qty: 0, revenue: 0, cost: 0 };
+      map[it.name].qty += it.quantity;
+      map[it.name].revenue += it.price * it.quantity;
+      map[it.name].cost += (mi?.cost || 0) * it.quantity;
+    }
+  }
+
+  const rows = Object.entries(map)
+    .map(([name, d]) => ({
+      name,
+      qty: d.qty,
+      revenue: d.revenue,
+      cost: d.cost,
+      profit: d.revenue - d.cost,
+      margin: d.revenue > 0 ? ((d.revenue - d.cost) / d.revenue) * 100 : 0,
+      hasCost: d.cost > 0,
+    }))
+    .sort((a, b) => b.profit - a.profit);
+
+  const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
+  const totalCost = rows.reduce((s, r) => s + r.cost, 0);
+  const totalProfit = totalRevenue - totalCost;
+  const totalMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+  return (
+    <div style={{ marginTop: 28 }}>
+      <p
+        style={{
+          color: T.gold,
+          fontSize: 11,
+          letterSpacing: ".15em",
+          textTransform: "uppercase",
+          fontFamily: "'Cinzel',serif",
+          marginBottom: 4,
+        }}
+      >
+        ──Product Profit Breakdown
+      </p>
+      <p style={{ color: T.muted, fontSize: 10, marginBottom: 14 }}>
+        Based on completed orders · costs from costing sheet
+      </p>
+      <div
+        style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}
+      >
+        {[
+          { label: "Total Revenue", value: fmt(totalRevenue), color: T.cream },
+          { label: "Total Cost", value: fmt(totalCost), color: "#f87171" },
+          { label: "Total Profit", value: fmt(totalProfit), color: T.green },
+          {
+            label: "Avg Margin",
+            value: `${totalMargin.toFixed(1)}%`,
+            color:
+              totalMargin >= 40
+                ? T.green
+                : totalMargin >= 20
+                  ? "#f59e0b"
+                  : "#f87171",
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            style={{
+              flex: 1,
+              minWidth: 100,
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              padding: "10px 14px",
+            }}
+          >
+            <p
+              style={{
+                color: T.muted,
+                fontSize: 9,
+                letterSpacing: 1,
+                marginBottom: 4,
+              }}
+            >
+              {s.label}
+            </p>
+            <p
+              style={{
+                color: s.color,
+                fontSize: 14,
+                fontWeight: 700,
+                fontFamily: "'Cinzel',serif",
+              }}
+            >
+              {s.value}
+            </p>
+          </div>
+        ))}
+      </div>
+      <div
+        style={{
+          overflowX: "auto",
+          borderRadius: 8,
+          border: `1px solid ${T.border}`,
+        }}
+      >
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}
+        >
+          <thead>
+            <tr
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                borderBottom: `1px solid ${T.border}`,
+              }}
+            >
+              {["Product", "Qty", "Revenue", "Cost", "Profit", "Margin"].map(
+                (h) => (
+                  <th
+                    key={h}
+                    style={{
+                      color: T.muted,
+                      textAlign: h === "Product" ? "left" : "right",
+                      padding: "8px 12px",
+                      fontWeight: 600,
+                      fontSize: 10,
+                      letterSpacing: 0.5,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr
+                key={r.name}
+                style={{
+                  borderBottom:
+                    i < rows.length - 1
+                      ? `1px solid rgba(255,255,255,0.04)`
+                      : "none",
+                  background:
+                    i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+                }}
+              >
+                <td
+                  style={{
+                    color: T.cream,
+                    padding: "7px 12px",
+                    maxWidth: 180,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {r.name}
+                </td>
+                <td
+                  style={{
+                    color: T.muted,
+                    padding: "7px 12px",
+                    textAlign: "right",
+                  }}
+                >
+                  ×{r.qty}
+                </td>
+                <td
+                  style={{
+                    color: T.cream,
+                    padding: "7px 12px",
+                    textAlign: "right",
+                  }}
+                >
+                  {fmt(r.revenue)}
+                </td>
+                <td
+                  style={{
+                    color: r.hasCost ? "#f87171" : T.muted,
+                    padding: "7px 12px",
+                    textAlign: "right",
+                  }}
+                >
+                  {r.hasCost ? fmt(r.cost) : "—"}
+                </td>
+                <td
+                  style={{
+                    color: r.hasCost
+                      ? r.profit >= 0
+                        ? T.green
+                        : "#f87171"
+                      : T.muted,
+                    padding: "7px 12px",
+                    textAlign: "right",
+                    fontWeight: 700,
+                  }}
+                >
+                  {r.hasCost ? fmt(r.profit) : "—"}
+                </td>
+                <td style={{ padding: "7px 12px", textAlign: "right" }}>
+                  {r.hasCost ? (
+                    <span
+                      style={{
+                        color:
+                          r.margin >= 40
+                            ? T.green
+                            : r.margin >= 20
+                              ? "#f59e0b"
+                              : "#f87171",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {r.margin.toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span style={{ color: T.muted }}>—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── TODAY'S REPORT ────────────────────────────────────────────────────────────
 function TodayReport({
   orders,
   activeShiftDate,
   closedReport,
+  menuItems,
 }: {
   orders: Order[];
   activeShiftDate?: string | null;
   closedReport?: DailyReport | null;
+  menuItems?: MenuItem[];
 }) {
   const today = new Date();
 
@@ -7005,6 +8210,7 @@ function TodayReport({
           </div>
         </div>
       </div>
+      <ProductProfitTable orders={todayOrders} menuItems={menuItems ?? []} />
     </div>
   );
 }
@@ -7014,10 +8220,12 @@ function AnalyticsTab({
   orders,
   dailyReports,
   activeShiftDate,
+  menuItems,
 }: {
   orders: Order[];
   dailyReports: DailyReport[];
   activeShiftDate?: string | null;
+  menuItems?: MenuItem[];
 }) {
   const w = useWindowWidth();
   const isMobile = w < 640;
@@ -7076,6 +8284,7 @@ function AnalyticsTab({
           orders={orders}
           activeShiftDate={activeShiftDate}
           closedReport={closedTodayReport}
+          menuItems={menuItems}
         />
       ) : daysOperated === 0 ? (
         <div
@@ -8594,10 +9803,12 @@ function CrewTab({
   menuItems,
   onOrderPlaced,
   staffName,
+  discounts,
 }: {
   menuItems: MenuItem[];
   onOrderPlaced: () => void;
   staffName: string;
+  discounts: DiscountPreset[];
 }) {
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const w = useWindowWidth();
@@ -8649,6 +9860,8 @@ function CrewTab({
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [receiptSrc, setReceiptSrc] = useState<string | null>(null);
   const [showCartMobile, setShowCartMobile] = useState(false);
+  const [selectedDiscount, setSelectedDiscount] =
+    useState<DiscountPreset | null>(null);
 
   useEffect(() => {
     fetchMyOrders();
@@ -8702,10 +9915,14 @@ function CrewTab({
   const categories = Array.from(new Set(availItems.map((i) => i.category)));
   const activeCat = activeCategory || categories[0] || "";
   const filtered = availItems.filter((i) => i.category === activeCat);
-  const cartTotal = cart.reduce(
+  const cartSubtotal = cart.reduce(
     (s, c) => s + (c.item.price + c.extraPrice) * c.qty,
     0,
   );
+  const discountAmount = selectedDiscount
+    ? Math.round(cartSubtotal * selectedDiscount.percentage) / 100
+    : 0;
+  const cartTotal = cartSubtotal - discountAmount;
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
 
   function addItem(item: MenuItem) {
@@ -8790,6 +10007,14 @@ function CrewTab({
             };
           }),
           total: cartTotal,
+          ...(selectedDiscount
+            ? {
+                discountName: selectedDiscount.name,
+                discountPct: selectedDiscount.percentage,
+                discountAmount,
+                originalTotal: cartSubtotal,
+              }
+            : {}),
           paymentMethod: paymentMethod === "later" ? "pending" : paymentMethod,
           paymentStatus: paymentMethod === "cash" ? "confirmed" : "pending",
           source: "crew",
@@ -9111,9 +10336,66 @@ function CrewTab({
                     color: T.gold,
                   }}
                 >
-                  {fmt(cartTotal)}
+                  {discountAmount > 0 ? (
+                    <>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: T.muted,
+                          textDecoration: "line-through",
+                          marginRight: 6,
+                        }}
+                      >
+                        {fmt(cartSubtotal)}
+                      </span>
+                      {fmt(cartTotal)}
+                    </>
+                  ) : (
+                    fmt(cartTotal)
+                  )}
                 </span>
               </div>
+              {discounts.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <p
+                    style={{
+                      color: T.muted,
+                      fontSize: 10,
+                      letterSpacing: ".1em",
+                      textTransform: "uppercase",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Discount
+                  </p>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {discounts.map((d) => {
+                      const active = selectedDiscount?._id === d._id;
+                      return (
+                        <button
+                          key={d._id}
+                          onClick={() => setSelectedDiscount(active ? null : d)}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 20,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            background: active
+                              ? T.goldDim
+                              : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${active ? T.borderH : T.border}`,
+                            color: active ? T.gold : T.muted,
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {d.name} · {d.percentage}% off
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                 {(["cash", "gcash", "later"] as const).map((m) => {
                   const a = paymentMethod === m;
@@ -9962,6 +11244,400 @@ function CrewTab({
 }
 
 // ── VOUCHERS ADMIN TAB ────────────────────────────────────────────────────────
+function DiscountsAdminTab({
+  discounts,
+  setDiscounts,
+}: {
+  discounts: DiscountPreset[];
+  setDiscounts: React.Dispatch<React.SetStateAction<DiscountPreset[]>>;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: "", percentage: "" });
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function addDiscount() {
+    const pct = parseFloat(form.percentage);
+    if (!form.name.trim() || isNaN(pct) || pct <= 0 || pct > 100) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/discounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name.trim(), percentage: pct }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setDiscounts((p) => [...p, d]);
+        setForm({ name: "", percentage: "" });
+        setShowAdd(false);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateDiscount(id: string) {
+    const pct = parseFloat(form.percentage);
+    if (!form.name.trim() || isNaN(pct) || pct <= 0 || pct > 100) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/discounts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name.trim(), percentage: pct }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setDiscounts((p) => p.map((d) => (d._id === id ? updated : d)));
+        setEditingId(null);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteDiscount(id: string) {
+    const res = await fetch(`/api/discounts/${id}`, { method: "DELETE" });
+    if (res.ok) setDiscounts((p) => p.filter((d) => d._id !== id));
+  }
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 20,
+        }}
+      >
+        <p
+          style={{
+            color: T.gold,
+            fontSize: 11,
+            letterSpacing: ".15em",
+            textTransform: "uppercase",
+            fontFamily: "'Cinzel',serif",
+            margin: 0,
+          }}
+        >
+          ◆ Discount Presets
+        </p>
+        <button
+          onClick={() => {
+            setShowAdd(true);
+            setEditingId(null);
+            setForm({ name: "", percentage: "" });
+          }}
+          style={{
+            background: T.goldDim,
+            border: `1px solid ${T.borderH}`,
+            color: T.gold,
+            borderRadius: 8,
+            padding: "7px 14px",
+            fontSize: 12,
+            cursor: "pointer",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          <Plus size={13} /> Add Discount
+        </button>
+      </div>
+
+      {showAdd && (
+        <div
+          style={{
+            background: T.bgCard,
+            border: `1px solid ${T.borderH}`,
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 16,
+          }}
+        >
+          <p
+            style={{
+              color: T.gold,
+              fontSize: 11,
+              marginBottom: 12,
+              fontWeight: 600,
+            }}
+          >
+            New Discount
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <input
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Name (e.g. Senior Citizen)"
+              style={{
+                flex: 2,
+                minWidth: 160,
+                background: "rgba(255,255,255,0.04)",
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                padding: "9px 12px",
+                color: T.cream,
+                fontSize: 13,
+                outline: "none",
+              }}
+            />
+            <div style={{ position: "relative", flex: 1, minWidth: 90 }}>
+              <input
+                value={form.percentage}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, percentage: e.target.value }))
+                }
+                placeholder="0"
+                type="number"
+                min="1"
+                max="100"
+                onWheel={(e) => e.currentTarget.blur()}
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "9px 28px 9px 12px",
+                  color: T.cream,
+                  fontSize: 13,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+              <span
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: T.muted,
+                  fontSize: 13,
+                }}
+              >
+                %
+              </span>
+            </div>
+            <button
+              onClick={addDiscount}
+              disabled={saving}
+              style={{
+                background: "rgba(34,197,94,0.12)",
+                border: "1px solid rgba(34,197,94,0.35)",
+                color: T.green,
+                borderRadius: 8,
+                padding: "9px 16px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {saving ? "..." : "Save"}
+            </button>
+            <button
+              onClick={() => setShowAdd(false)}
+              style={{
+                background: "transparent",
+                border: `1px solid ${T.border}`,
+                color: T.muted,
+                borderRadius: 8,
+                padding: "9px 12px",
+                cursor: "pointer",
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {discounts.length === 0 && !showAdd ? (
+        <div
+          style={{
+            background: T.bgCard,
+            border: `1px solid ${T.border}`,
+            borderRadius: 12,
+            padding: "32px 20px",
+            textAlign: "center",
+            color: T.faint,
+          }}
+        >
+          <DollarSign
+            size={28}
+            style={{ margin: "0 auto 8px", opacity: 0.3 }}
+          />
+          <p style={{ fontSize: 13 }}>No discounts yet. Add one above.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {discounts.map((d) => (
+            <div
+              key={d._id}
+              style={{
+                background: T.bgCard,
+                border: `1px solid ${editingId === d._id ? T.borderH : T.border}`,
+                borderRadius: 12,
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              {editingId === d._id ? (
+                <>
+                  <input
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, name: e.target.value }))
+                    }
+                    style={{
+                      flex: 2,
+                      background: "rgba(255,255,255,0.04)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 8,
+                      padding: "7px 10px",
+                      color: T.cream,
+                      fontSize: 13,
+                      outline: "none",
+                    }}
+                  />
+                  <div style={{ position: "relative", flex: 1, minWidth: 80 }}>
+                    <input
+                      value={form.percentage}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, percentage: e.target.value }))
+                      }
+                      type="number"
+                      min="1"
+                      max="100"
+                      onWheel={(e) => e.currentTarget.blur()}
+                      style={{
+                        width: "100%",
+                        background: "rgba(255,255,255,0.04)",
+                        border: `1px solid ${T.border}`,
+                        borderRadius: 8,
+                        padding: "7px 24px 7px 10px",
+                        color: T.cream,
+                        fontSize: 13,
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: 8,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: T.muted,
+                        fontSize: 12,
+                      }}
+                    >
+                      %
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => updateDiscount(d._id)}
+                    disabled={saving}
+                    style={{
+                      background: "rgba(34,197,94,0.12)",
+                      border: "1px solid rgba(34,197,94,0.35)",
+                      color: T.green,
+                      borderRadius: 8,
+                      padding: "7px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {saving ? "..." : <Check size={13} />}
+                  </button>
+                  <button
+                    onClick={() => setEditingId(null)}
+                    style={{
+                      background: "transparent",
+                      border: `1px solid ${T.border}`,
+                      color: T.muted,
+                      borderRadius: 8,
+                      padding: "7px 10px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p
+                    style={{
+                      flex: 1,
+                      color: T.cream,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      margin: 0,
+                    }}
+                  >
+                    {d.name}
+                  </p>
+                  <span
+                    style={{
+                      background: T.goldDim,
+                      border: `1px solid ${T.borderH}`,
+                      color: T.gold,
+                      borderRadius: 20,
+                      padding: "3px 12px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: "'Cinzel',serif",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {d.percentage}% off
+                  </span>
+                  <button
+                    onClick={() => {
+                      setEditingId(d._id);
+                      setForm({
+                        name: d.name,
+                        percentage: String(d.percentage),
+                      });
+                      setShowAdd(false);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: `1px solid ${T.border}`,
+                      color: T.muted,
+                      borderRadius: 8,
+                      padding: "7px 10px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Edit2 size={13} />
+                  </button>
+                  <button
+                    onClick={() => deleteDiscount(d._id)}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid rgba(239,68,68,0.2)",
+                      color: T.red,
+                      borderRadius: 8,
+                      padding: "7px 10px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VouchersAdminTab() {
   const [data, setData] = useState<{
     drinkRemaining: number;
@@ -11078,6 +12754,7 @@ export default function AdminDashboard() {
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
+  const [discounts, setDiscounts] = useState<DiscountPreset[]>([]);
   const [shopOpenedAt, setShopOpenedAt] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -11199,6 +12876,89 @@ export default function AdminDashboard() {
     setShopToggling(false);
   }
 
+  async function applyDiscount(
+    orderId: string,
+    discountName: string,
+    discountPct: number,
+  ) {
+    const target = orders.find((o) => o._id === orderId);
+    if (!target) return;
+    const originalTotal = target.originalTotal ?? target.total;
+    const discountAmount = Math.round(originalTotal * discountPct) / 100;
+    const newTotal = Math.max(0, originalTotal - discountAmount);
+    const prevOrders = orders;
+    setOrders((p) =>
+      p.map((o) =>
+        o._id === orderId
+          ? {
+              ...o,
+              discountName,
+              discountPct,
+              discountAmount,
+              originalTotal,
+              total: newTotal,
+            }
+          : o,
+      ),
+    );
+    showToast(`✓ ${discountPct}% discount applied`);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          discountName,
+          discountPct,
+          discountAmount,
+          originalTotal,
+          total: newTotal,
+        }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setOrders(prevOrders);
+      showToast("Failed to apply discount", false);
+    }
+  }
+
+  async function removeDiscount(orderId: string) {
+    const target = orders.find((o) => o._id === orderId);
+    if (!target?.originalTotal) return;
+    const prevOrders = orders;
+    setOrders((p) =>
+      p.map((o) =>
+        o._id === orderId
+          ? {
+              ...o,
+              discountName: undefined,
+              discountPct: undefined,
+              discountAmount: undefined,
+              originalTotal: undefined,
+              total: o.originalTotal!,
+            }
+          : o,
+      ),
+    );
+    showToast("Discount removed");
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          discountName: null,
+          discountPct: null,
+          discountAmount: null,
+          total: target.originalTotal,
+          originalTotal: null,
+        }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setOrders(prevOrders);
+      showToast("Failed to remove discount", false);
+    }
+  }
+
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
@@ -11219,6 +12979,12 @@ export default function AdminDashboard() {
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         if (Array.isArray(data)) setDailyReports(data);
+      })
+      .catch(() => {});
+    fetch("/api/discounts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setDiscounts(data);
       })
       .catch(() => {});
     const savedRole = localStorage.getItem("3s_role") as Role;
@@ -11420,6 +13186,24 @@ export default function AdminDashboard() {
     }
   }
 
+  async function updateItems(id: string, items: OrderItem[], total: number) {
+    const prevOrders = orders;
+    setOrders((p) => p.map((o) => (o._id === id ? { ...o, items, total } : o)));
+    showToast("Order items updated ✓");
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, total }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (e) {
+      setOrders(prevOrders);
+      showToast("Failed to update items", false);
+      console.error(e);
+    }
+  }
+
   async function confirmPayment(id: string) {
     const prevOrders = orders;
     setOrders((p) =>
@@ -11445,13 +13229,15 @@ export default function AdminDashboard() {
     change: number,
   ) {
     const prevOrders = orders;
+    const target = orders.find((o) => o._id === id);
+    const keepMethod = target?.paymentMethod === "split" ? "split" : "cash";
     setOrders((p) =>
       p.map((o) =>
         o._id === id
           ? {
               ...o,
               paymentStatus: "confirmed",
-              paymentMethod: "cash",
+              paymentMethod: keepMethod,
               cashReceived,
               changeGiven: change,
             }
@@ -11465,7 +13251,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           paymentStatus: "confirmed",
-          paymentMethod: "cash",
+          paymentMethod: keepMethod,
           cashReceived,
           changeGiven: change,
         }),
@@ -11712,12 +13498,15 @@ export default function AdminDashboard() {
     : null;
 
   const liveRevenue = orders
-    .filter((o) => o.status === "completed")
+    .filter(
+      (o) =>
+        o.status === "completed" && (!shiftDate || o.shiftDate === shiftDate),
+    )
     .reduce((s, o) => s + o.total, 0);
   const revenue = todaysClosedReport ? todaysClosedReport.revenue : liveRevenue;
   const totalOrdersCount = todaysClosedReport
     ? todaysClosedReport.totalOrders
-    : orders.length;
+    : orders.filter((o) => !shiftDate || o.shiftDate === shiftDate).length;
 
   const completedToday = orders.filter((o) => o.status === "completed");
   const todayCost = completedToday.reduce((s, o) => {
@@ -11749,6 +13538,12 @@ export default function AdminDashboard() {
       icon: <Package size={15} />,
     },
     { id: "crew", label: "Crew", icon: <Zap size={15} /> },
+    {
+      id: "discounts",
+      label: "Discounts",
+      icon: <DollarSign size={15} />,
+      adminOnly: true,
+    },
     {
       id: "menu",
       label: "Menu",
@@ -12129,28 +13924,7 @@ export default function AdminDashboard() {
               icon={<DollarSign size={20} />}
             />
           )}
-          {isAdmin && hasCosts && (
-            <StatCard
-              label="Today's Cost"
-              value={fmt(todayCost)}
-              icon={<DollarSign size={20} />}
-              accent={T.red}
-            />
-          )}
-          {isAdmin && hasCosts && (
-            <StatCard
-              label="Today's Profit"
-              value={`${fmt(todayProfit)} · ${todayMargin.toFixed(1)}%`}
-              icon={<BarChart3 size={20} />}
-              accent={
-                todayMargin >= 30
-                  ? T.green
-                  : todayMargin >= 15
-                    ? "#f59e0b"
-                    : T.red
-              }
-            />
-          )}
+
           {isAdmin && (
             <StatCard
               label="Menu Items"
@@ -12318,6 +14092,10 @@ export default function AdminDashboard() {
                       onCashConfirm={confirmCashPayment}
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
+                      onItemsUpdate={updateItems}
+                      onApplyDiscount={applyDiscount}
+                      onRemoveDiscount={removeDiscount}
+                      discounts={discounts}
                       staffName={staffName}
                     />
                   ))}
@@ -12352,6 +14130,10 @@ export default function AdminDashboard() {
                       onCashConfirm={confirmCashPayment}
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
+                      onItemsUpdate={updateItems}
+                      onApplyDiscount={applyDiscount}
+                      onRemoveDiscount={removeDiscount}
+                      discounts={discounts}
                       staffName={staffName}
                     />
                   ))}
@@ -12364,6 +14146,7 @@ export default function AdminDashboard() {
             menuItems={menuItems}
             onOrderPlaced={fetchData}
             staffName={staffName}
+            discounts={discounts}
           />
         ) : tab === "menu" ? (
           <MenuTab items={menuItems} onRefresh={() => fetchData(true)} />
@@ -12372,11 +14155,17 @@ export default function AdminDashboard() {
             orders={orders}
             dailyReports={dailyReports}
             activeShiftDate={shiftDate}
+            menuItems={menuItems}
           />
         ) : tab === "board" ? (
           <BoardTab posts={posts} setPosts={setPosts} />
         ) : tab === "vouchers" ? (
           <VouchersAdminTab />
+        ) : tab === "discounts" ? (
+          <DiscountsAdminTab
+            discounts={discounts}
+            setDiscounts={setDiscounts}
+          />
         ) : (
           <AccountsTab />
         )}

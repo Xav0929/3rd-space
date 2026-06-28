@@ -196,7 +196,7 @@ interface Order {
   orderNumber: string;
   type: OrderType;
 }
-type PayMethod = "cash" | "gcash";
+type PayMethod = "cash" | "gcash" | "split";
 type Step = "mode-select" | "menu" | "checkout" | "payment" | "confirmed";
 
 /* ─── PH PHONE HELPERS ────────────────────────────────────────────────────── */
@@ -4380,7 +4380,7 @@ function PaymentScreen({
   paymentMethod: PayMethod;
   onPayMethodChange: (m: PayMethod) => void;
   onReceiptUploaded: (url: string, key: string) => void;
-  onConfirm: () => void;
+  onConfirm: (split?: { cashAmount: number; gcashAmount: number }) => void;
   submitting: boolean;
   onBack: () => void;
   form: any;
@@ -4405,8 +4405,27 @@ function PaymentScreen({
   // sentConfirmed: dine-in only — user ticked "I've sent the money"
   const [sentConfirmed, setSentConfirmed] = useState(false);
 
+  // ── SPLIT PAYMENT STATE ───────────────────────────────────────────────────
+  const [splitCashInput, setSplitCashInput] = useState("");
+
   const effectiveMethod: PayMethod =
     orderType === "delivery" ? "gcash" : paymentMethod;
+
+  const cashPortion =
+    effectiveMethod === "cash"
+      ? total
+      : effectiveMethod === "split"
+        ? Math.min(Math.max(parseFloat(splitCashInput) || 0, 0), total)
+        : 0;
+  const gcashPortion =
+    effectiveMethod === "gcash"
+      ? total
+      : effectiveMethod === "split"
+        ? Math.max(0, total - cashPortion)
+        : 0;
+  const showGcashFlow =
+    effectiveMethod === "gcash" ||
+    (effectiveMethod === "split" && gcashPortion > 0);
 
   const GCASH_NUMBER =
     orderType === "delivery" ? "0956 627 7949" : "0917 813 7503";
@@ -4473,9 +4492,11 @@ function PaymentScreen({
   const canConfirm: boolean =
     effectiveMethod === "cash"
       ? true
-      : effectiveMethod === "gcash" && orderType !== "delivery"
-        ? hasCopied && sentConfirmed && uploaded
-        : uploaded; // delivery
+      : effectiveMethod === "split" && gcashPortion === 0
+        ? true
+        : showGcashFlow && orderType !== "delivery"
+          ? hasCopied && sentConfirmed && uploaded
+          : uploaded; // delivery, or split with a gcash portion
 
   return (
     <div
@@ -4534,7 +4555,7 @@ function PaymentScreen({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gridTemplateColumns: "repeat(3, 1fr)",
                   gap: "clamp(6px,2vw,10px)",
                   marginBottom: 18,
                 }}
@@ -4542,7 +4563,7 @@ function PaymentScreen({
                 {[
                   {
                     id: "cash" as PayMethod,
-                    icon: <Banknote size={20} />,
+                    icon: <Banknote size={18} />,
                     label: "CASH",
                     sub: "Pay at cashier",
                   },
@@ -4552,11 +4573,17 @@ function PaymentScreen({
                       <img
                         src="/images/gcash.png"
                         alt="GCash"
-                        style={{ width: 24, height: 24, objectFit: "contain" }}
+                        style={{ width: 20, height: 20, objectFit: "contain" }}
                       />
                     ),
                     label: "GCASH",
                     sub: "Pay via app",
+                  },
+                  {
+                    id: "split" as PayMethod,
+                    icon: <Receipt size={18} />,
+                    label: "SPLIT",
+                    sub: "Cash + GCash",
                   },
                 ].map((m) => {
                   const a = paymentMethod === m.id;
@@ -4565,10 +4592,12 @@ function PaymentScreen({
                       key={m.id}
                       onClick={() => {
                         onPayMethodChange(m.id);
-                        // Reset GCash state when switching methods
-                        if (m.id !== "gcash") {
-                          setHasCopied(false);
-                          setSentConfirmed(false);
+                        setHasCopied(false);
+                        setSentConfirmed(false);
+                        setSplitCashInput("");
+                        if (m.id !== "gcash" && m.id !== "split") {
+                          setUploaded(false);
+                          setPreview(null);
                         }
                       }}
                       style={{
@@ -4647,8 +4676,87 @@ function PaymentScreen({
             </div>
           )}
 
+          {/* ── SPLIT SETUP ── */}
+          {effectiveMethod === "split" && (
+            <div
+              style={{
+                background: CARD,
+                border: `1px solid ${BR}`,
+                borderRadius: 14,
+                padding: "14px 16px",
+                marginBottom: 16,
+              }}
+            >
+              <p
+                style={{
+                  color: CM,
+                  fontSize: 12,
+                  marginBottom: 10,
+                  lineHeight: 1.5,
+                }}
+              >
+                Enter how much you'll pay in{" "}
+                <strong style={{ color: C }}>cash</strong> — the rest will be
+                charged to GCash.
+              </p>
+              <label
+                style={{
+                  display: "block",
+                  color: CM,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  marginBottom: 6,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                CASH AMOUNT (OUT OF ₱{total.toFixed(2)})
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={splitCashInput}
+                onChange={(e) => setSplitCashInput(e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
+                placeholder="0.00"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,.04)",
+                  border: `1px solid ${G}`,
+                  borderRadius: 8,
+                  padding: "12px 12px",
+                  color: C,
+                  fontSize: 16,
+                  outline: "none",
+                  fontFamily: "inherit",
+                  boxSizing: "border-box",
+                  marginBottom: 12,
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "8px 0",
+                  borderTop: `1px solid ${BR}`,
+                }}
+              >
+                <span style={{ color: CM, fontSize: 12 }}>Cash</span>
+                <span style={{ color: C, fontSize: 12, fontWeight: 700 }}>
+                  ₱{cashPortion.toFixed(2)}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: CM, fontSize: 12 }}>GCash</span>
+                <span style={{ color: G, fontSize: 12, fontWeight: 700 }}>
+                  ₱{gcashPortion.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* ── CASH ── */}
-          {effectiveMethod === "cash" && (
+          {(effectiveMethod === "cash" ||
+            (effectiveMethod === "split" && cashPortion > 0)) && (
             <>
               <SectionTitle>Your Receipt</SectionTitle>
               <div
@@ -4772,40 +4880,53 @@ function PaymentScreen({
                   </div>
                 </div>
               </div>
-              <button
-                onClick={onConfirm}
-                disabled={submitting}
-                style={{
-                  width: "100%",
-                  background: G,
-                  color: BG,
-                  border: "none",
-                  borderRadius: 14,
-                  padding: "clamp(14px,4vw,17px) 16px",
-                  fontFamily: "'Cinzel',serif",
-                  fontSize: "clamp(13px,3vw,14px)",
-                  letterSpacing: ".12em",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  opacity: submitting ? 0.6 : 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                  touchAction: "manipulation",
-                  minHeight: 52,
-                }}
-              >
-                <Receipt size={16} />
-                {submitting ? "PLACING ORDER…" : "SUBMIT ORDER → GET RECEIPT"}
-              </button>
+              {(effectiveMethod === "cash" ||
+                (effectiveMethod === "split" && gcashPortion === 0)) && (
+                <button
+                  onClick={() =>
+                    onConfirm(
+                      effectiveMethod === "split"
+                        ? { cashAmount: cashPortion, gcashAmount: gcashPortion }
+                        : undefined,
+                    )
+                  }
+                  disabled={submitting}
+                  style={{
+                    width: "100%",
+                    background: G,
+                    color: BG,
+                    border: "none",
+                    borderRadius: 14,
+                    padding: "clamp(14px,4vw,17px) 16px",
+                    fontFamily: "'Cinzel',serif",
+                    fontSize: "clamp(13px,3vw,14px)",
+                    letterSpacing: ".12em",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    opacity: submitting ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    touchAction: "manipulation",
+                    minHeight: 52,
+                  }}
+                >
+                  <Receipt size={16} />
+                  {submitting ? "PLACING ORDER…" : "SUBMIT ORDER → GET RECEIPT"}
+                </button>
+              )}
             </>
           )}
 
           {/* ── GCASH ── */}
-          {effectiveMethod === "gcash" && (
+          {showGcashFlow && (
             <>
-              <SectionTitle>GCash Payment</SectionTitle>
+              <SectionTitle>
+                {effectiveMethod === "split"
+                  ? "GCash Portion"
+                  : "GCash Payment"}
+              </SectionTitle>
 
               {/* ── Steps card ── */}
               <div
@@ -5004,7 +5125,9 @@ function PaymentScreen({
                   }}
                 >
                   <span style={{ color: CM, fontSize: 12 }}>
-                    Amount to send
+                    {effectiveMethod === "split"
+                      ? "Amount to send via GCash"
+                      : "Amount to send"}
                   </span>
                   <span
                     style={{
@@ -5014,7 +5137,7 @@ function PaymentScreen({
                       color: G,
                     }}
                   >
-                    ₱{total.toFixed(2)}
+                    ₱{gcashPortion.toFixed(2)}
                   </span>
                 </div>
 
@@ -5030,8 +5153,8 @@ function PaymentScreen({
                     }}
                   >
                     Tap <strong style={{ color: CM }}>COPY NUMBER</strong>{" "}
-                    first, then open GCash and send ₱{total.toFixed(2)} to that
-                    number.
+                    first, then open GCash and send ₱{gcashPortion.toFixed(2)}{" "}
+                    to that number.
                   </p>
                 )}
 
@@ -5064,7 +5187,10 @@ function PaymentScreen({
                       Number copied! Open your GCash app, go to{" "}
                       <strong style={{ color: C }}>Send Money</strong>, paste
                       the number, and send{" "}
-                      <strong style={{ color: G }}>₱{total.toFixed(2)}</strong>.
+                      <strong style={{ color: G }}>
+                        ₱{gcashPortion.toFixed(2)}
+                      </strong>
+                      .
                     </p>
                   </div>
                 )}
@@ -5530,7 +5656,13 @@ function PaymentScreen({
 
               {/* ── Confirm button ── */}
               <button
-                onClick={onConfirm}
+                onClick={() =>
+                  onConfirm(
+                    effectiveMethod === "split"
+                      ? { cashAmount: cashPortion, gcashAmount: gcashPortion }
+                      : undefined,
+                  )
+                }
                 disabled={submitting || !canConfirm}
                 style={{
                   width: "100%",
@@ -5912,7 +6044,10 @@ export default function OrderPage() {
     setForm((p: any) => ({ ...p, [f]: v }));
   }
 
-  async function submitOrder() {
+  async function submitOrder(split?: {
+    cashAmount: number;
+    gcashAmount: number;
+  }) {
     try {
       setSubmitting(true);
       const statusCheck = await fetch("/api/shop-status")
@@ -5932,6 +6067,13 @@ export default function OrderPage() {
         orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
       const total = Math.max(0, rawTotal - voucherDiscount) + deliveryFee;
       const eff: PayMethod = orderType === "delivery" ? "gcash" : paymentMethod;
+      const splitAmounts =
+        eff === "split"
+          ? {
+              cashAmount: split?.cashAmount ?? 0,
+              gcashAmount: split?.gcashAmount ?? total,
+            }
+          : null;
       const addr = form.deliveryAddress || {};
       const addrStr = [
         addr.houseNo,
@@ -5956,6 +6098,12 @@ export default function OrderPage() {
         total,
         notes: form.notes || undefined,
         paymentMethod: eff,
+        ...(splitAmounts
+          ? {
+              cashAmount: splitAmounts.cashAmount,
+              gcashAmount: splitAmounts.gcashAmount,
+            }
+          : {}),
       };
       if (orderType === "delivery") {
         Object.assign(payload, {
@@ -5971,14 +6119,14 @@ export default function OrderPage() {
         payload.customerName = form.customerName;
         if (form.pickupTime)
           payload.notes = `Pickup: ${form.pickupTime}${form.notes ? ` | ${form.notes}` : ""}`;
-        if (eff === "gcash") {
+        if (eff === "gcash" || eff === "split") {
           payload.receiptUrl = receiptUrl;
           payload.receiptKey = receiptKey;
         }
       } else {
         payload.tableNumber = form.tableNumber;
         if (form.customerName) payload.customerName = form.customerName;
-        if (eff === "gcash") {
+        if (eff === "gcash" || eff === "split") {
           payload.receiptUrl = receiptUrl;
           payload.receiptKey = receiptKey;
         }
@@ -6071,6 +6219,15 @@ export default function OrderPage() {
           .safe-bottom { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        /* Hide number input spinner arrows */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
+        }
         .menu-card { transition: border-color .2s, transform .2s, box-shadow .2s; }
         .menu-card:hover { border-color: ${BRH} !important; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.35); }
         .menu-card-img { transition: transform .4s; }
@@ -6172,7 +6329,7 @@ export default function OrderPage() {
             setReceiptUrl(url);
             setReceiptKey(key);
           }}
-          onConfirm={submitOrder}
+          onConfirm={(split) => submitOrder(split)}
           submitting={submitting}
           onBack={back}
           form={form}
