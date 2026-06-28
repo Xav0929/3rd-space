@@ -153,6 +153,7 @@ type MenuItem = {
   name: string;
   description: string;
   price: number;
+  cost?: number;
   category: string;
   image: string;
   available: boolean;
@@ -11718,6 +11719,24 @@ export default function AdminDashboard() {
     ? todaysClosedReport.totalOrders
     : orders.length;
 
+  const completedToday = orders.filter((o) => o.status === "completed");
+  const todayCost = completedToday.reduce((s, o) => {
+    return (
+      s +
+      o.items.reduce((is, it) => {
+        const mi = menuItems.find(
+          (m) =>
+            it.name === m.name ||
+            it.name.toLowerCase().startsWith(m.name.toLowerCase()),
+        );
+        return is + (mi?.cost || 0) * it.quantity;
+      }, 0)
+    );
+  }, 0);
+  const todayProfit = revenue - todayCost;
+  const todayMargin = revenue > 0 ? (todayProfit / revenue) * 100 : 0;
+  const hasCosts = menuItems.some((m) => (m.cost || 0) > 0);
+
   const ALL_TABS: {
     id: Tab;
     label: string;
@@ -12108,6 +12127,28 @@ export default function AdminDashboard() {
               label="Revenue"
               value={fmt(revenue)}
               icon={<DollarSign size={20} />}
+            />
+          )}
+          {isAdmin && hasCosts && (
+            <StatCard
+              label="Today's Cost"
+              value={fmt(todayCost)}
+              icon={<DollarSign size={20} />}
+              accent={T.red}
+            />
+          )}
+          {isAdmin && hasCosts && (
+            <StatCard
+              label="Today's Profit"
+              value={`${fmt(todayProfit)} · ${todayMargin.toFixed(1)}%`}
+              icon={<BarChart3 size={20} />}
+              accent={
+                todayMargin >= 30
+                  ? T.green
+                  : todayMargin >= 15
+                    ? "#f59e0b"
+                    : T.red
+              }
             />
           )}
           {isAdmin && (

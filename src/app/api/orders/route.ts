@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { notifyClients } from "@/lib/sse";
+import Redemption from "@/models/Redemption";
 
 function generateOrderNumber() {
   const date = new Date();
@@ -17,7 +18,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderNumber = searchParams.get("orderNumber");
 
-  // Public guest tracking by order number
   if (orderNumber) {
     const order = await Order.findOne({ orderNumber });
     if (!order) {
@@ -26,8 +26,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json([order]);
   }
 
-  // ← FIXED: allow staff/waiter to fetch all orders without admin auth
-  // Admin-only filters (status, type, date range) still work when passed
   const status = searchParams.get("status");
   const type = searchParams.get("type");
   const from = searchParams.get("from");
@@ -50,7 +48,6 @@ export async function POST(req: NextRequest) {
   await connectDB();
   const body = await req.json();
 
-  // Block orders when shop is paused + resolve active shiftDate
   const { default: mongoose } = await import("mongoose");
   const Setting =
     mongoose.models.Setting ||
@@ -98,9 +95,9 @@ export async function POST(req: NextRequest) {
     waiterName,
     source,
     deliveryFee,
+    voucherCode,
   } = body;
 
-  // Basic validation
   if (!type || !items?.length || !total) {
     return NextResponse.json(
       { error: "Missing required fields" },
@@ -115,7 +112,6 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    // Waiter-placed orders skip receipt requirement; customer-facing orders need proof
     if (source !== "waiter" && !receiptUrl && !gcashRef) {
       return NextResponse.json(
         {
@@ -143,7 +139,7 @@ export async function POST(req: NextRequest) {
       ? item.customizations
       : [],
   }));
-  // Rate limit: max 3 delivery orders per contact per 10 minutes
+
   if (type === "delivery") {
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     const recentCount = await Order.countDocuments({
@@ -182,9 +178,17 @@ export async function POST(req: NextRequest) {
     waiterName,
     source,
     deliveryFee,
+    voucherCode: voucherCode?.trim().toUpperCase() || undefined,
   });
 
-  // notify admin dashboard instantly
+  // Burn the voucher only now that the order is confirmed
+  if (voucherCode?.trim()) {
+    await Redemption.updateOne(
+      { code: voucherCode.trim().toUpperCase(), used: false },
+      { $set: { used: true, usedAt: new Date(), orderId: order._id } },
+    );
+  }
+
   notifyClients();
 
   return NextResponse.json(order, { status: 201 });
@@ -194,8 +198,6 @@ export async function PATCH(req: NextRequest) {
   await connectDB();
   const body = await req.json();
 
-  // Allow status/payment updates without strict admin auth
-  // (waiter needs to be able to confirm payment too)
   const { id, status, paymentStatus } = body;
 
   if (!id) {
@@ -217,9 +219,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  // Notify SSE subscribers (admin dashboard AND customer /track pages)
-  // immediately — without this, status changes (e.g. marking "ready")
-  // were invisible to anyone listening until their next poll cycle.
   notifyClients();
 
   return NextResponse.json(order);

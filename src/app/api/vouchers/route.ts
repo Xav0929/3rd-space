@@ -8,14 +8,6 @@ function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getClientIP(req: NextRequest): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
-
 function generateCode(type: string): string {
   const prefix = type === "drink" ? "DRK" : "FD";
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -28,14 +20,13 @@ function generateCode(type: string): string {
 export async function GET() {
   await connectDB();
   const today = getToday();
-  const [drinkCount, foodCount, todayRedemptions] = await Promise.all([
-    Redemption.countDocuments({ type: "drink", date: today }),
-    Redemption.countDocuments({ type: "food", date: today }),
-    Redemption.find({ date: today }).sort({ redeemedAt: -1 }),
-  ]);
-  const allRedemptions = await Redemption.find({ date: today }).sort({
-    redeemedAt: -1,
-  });
+  const [drinkCount, foodCount, todayRedemptions, allRedemptions] =
+    await Promise.all([
+      Redemption.countDocuments({ type: "drink", date: today }),
+      Redemption.countDocuments({ type: "food", date: today }),
+      Redemption.find({ date: today }).sort({ redeemedAt: -1 }),
+      Redemption.find({ date: today }).sort({ redeemedAt: -1 }),
+    ]);
   return NextResponse.json({
     drinkRemaining: MAX_PER_DAY - drinkCount,
     foodRemaining: MAX_PER_DAY - foodCount,
@@ -50,7 +41,6 @@ export async function POST(req: NextRequest) {
   await connectDB();
   const { type, customerName } = await req.json();
   const today = getToday();
-  const ip = getClientIP(req);
 
   if (!type || !["drink", "food"].includes(type)) {
     return NextResponse.json(
@@ -58,6 +48,7 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
   if (!customerName?.trim()) {
     return NextResponse.json(
       { error: "Please enter your name." },
@@ -65,11 +56,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const alreadyClaimed = await Redemption.findOne({ date: today, ip });
+  const normalizedName = customerName.trim().toLowerCase();
+
+  // Check by name + type (allows same person to claim one drink AND one food)
+  const alreadyClaimed = await Redemption.findOne({
+    date: today,
+    type,
+    customerName: { $regex: new RegExp(`^${normalizedName}$`, "i") },
+  });
+
   if (alreadyClaimed) {
     return NextResponse.json(
       {
-        error: `You've already claimed a voucher today. Come back tomorrow!`,
+        error: `You've already claimed a ${type} voucher today. Come back tomorrow!`,
       },
       { status: 400 },
     );
@@ -86,12 +85,10 @@ export async function POST(req: NextRequest) {
   }
 
   const code = generateCode(type);
-
   const redemption = await Redemption.create({
     type,
     date: today,
     customerName: customerName.trim(),
-    ip,
     code,
     redeemedAt: new Date(),
   });
