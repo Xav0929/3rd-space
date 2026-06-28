@@ -2075,6 +2075,7 @@ function MenuScreen({
   const visibleMenuItems = menuItems.filter((i: MenuItem) => {
     const c = i.category.toLowerCase();
     return (
+      i.available &&
       !c.includes("add-on") &&
       !c.includes("substitut") &&
       !c.includes("sauce") &&
@@ -5756,12 +5757,52 @@ function ConfirmationScreen({
   const message = () => {
     if (isCash)
       return (
-        <p style={{ color: CM, fontSize: 13, lineHeight: 1.7 }}>
-          Show Order <strong style={{ color: C }}>#{orderNumber}</strong> to the
-          cashier and pay ₱{(form as any)._total}.
-          {form.tableNumber &&
-            ` Sit back at ${form.tableNumber} — we'll bring it to you.`}
-        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div
+            style={{
+              background: "rgba(212,168,67,0.12)",
+              border: "2px solid rgba(212,168,67,0.6)",
+              borderRadius: 14,
+              padding: "18px 20px",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: 15,
+                fontWeight: 700,
+                color: G,
+                letterSpacing: ".08em",
+                marginBottom: 6,
+              }}
+            >
+              PROCEED TO THE COUNTER
+            </p>
+            <p style={{ color: C, fontSize: 13, lineHeight: 1.6 }}>
+              Show this order number and pay{" "}
+              <strong style={{ color: G, fontFamily: "'Cinzel',serif" }}>
+                ₱{(form as any)._total}
+              </strong>{" "}
+              in cash at the cashier.
+            </p>
+          </div>
+          {form.tableNumber && (
+            <div
+              style={{
+                background: "rgba(34,197,94,0.08)",
+                border: "1px solid rgba(34,197,94,0.3)",
+                borderRadius: 12,
+                padding: "12px 16px",
+                fontSize: 13,
+                color: "#4ade80",
+              }}
+            >
+              After paying, sit back at{" "}
+              <strong>Table {form.tableNumber}</strong> — we'll bring your order
+              to you.
+            </div>
+          )}
+        </div>
       );
     if (isTakeout)
       return (
