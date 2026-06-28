@@ -4,13 +4,12 @@ import { Discount } from "@/models/Discount";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   await connectDB();
+  const { id } = await params;
   const body = await req.json();
-  const discount = await Discount.findByIdAndUpdate(params.id, body, {
-    new: true,
-  });
+  const discount = await Discount.findByIdAndUpdate(id, body, { new: true });
   if (!discount)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(discount);
@@ -18,9 +17,10 @@ export async function PATCH(
 
 export async function DELETE(
   _: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   await connectDB();
-  await Discount.findByIdAndDelete(params.id);
+  const { id } = await params;
+  await Discount.findByIdAndDelete(id);
   return NextResponse.json({ ok: true });
 }
