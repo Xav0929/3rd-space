@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
     source,
     deliveryFee,
     voucherCode,
+    isTab,
   } = body;
 
   if (!type || !items?.length || !total) {
@@ -183,6 +184,7 @@ export async function POST(req: NextRequest) {
     source,
     deliveryFee,
     voucherCode: voucherCode?.trim().toUpperCase() || undefined,
+    isTab: isTab === true,
   });
 
   // Burn the voucher only now that the order is confirmed

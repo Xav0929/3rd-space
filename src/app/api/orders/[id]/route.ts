@@ -22,7 +22,25 @@ export async function PATCH(
     const { id } = await params;
     await connectDB();
     const body = await req.json();
-    const order = await Order.findByIdAndUpdate(id, body, {
+
+    // Auto-stamp when status or paymentStatus changes
+    const stampUpdate: any = { ...body };
+    if (body.status) {
+      const statusStamps: Record<string, string> = {
+        confirmed: "confirmedAt",
+        preparing: "preparingAt",
+        ready: "readyAt",
+        completed: "completedAt",
+        cancelled: "cancelledAt",
+      };
+      const field = statusStamps[body.status];
+      if (field) stampUpdate[field] = new Date();
+    }
+    if (body.paymentStatus === "confirmed") {
+      stampUpdate.paidAt = new Date();
+    }
+
+    const order = await Order.findByIdAndUpdate(id, stampUpdate, {
       returnDocument: "after",
     });
     if (!order)

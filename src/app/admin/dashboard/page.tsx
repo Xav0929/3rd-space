@@ -4442,6 +4442,9 @@ function MenuItemForm({
     if (!valid) return;
     setErr("");
     setSaving(true);
+    const finalVariants = variantInput.trim()
+      ? [...(form.variants || []), variantInput.trim()]
+      : form.variants || [];
     const cleanedOptions = (form.options || [])
       .filter((g) => g.name.trim())
       .map((g) => ({
@@ -4449,7 +4452,11 @@ function MenuItemForm({
         choices: g.choices.filter((c) => c.label.trim()),
       }))
       .filter((g) => g.choices.length > 0);
-    const ok = await onSave({ ...form, options: cleanedOptions });
+    const ok = await onSave({
+      ...form,
+      variants: finalVariants,
+      options: cleanedOptions,
+    });
     setSaving(false);
     if (!ok) setErr("Failed to save — check your connection and try again.");
   }
@@ -7660,13 +7667,15 @@ function TodayReport({
   }
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const todayOrders = orders.filter((o) => {
-    const d = new Date(o.createdAt);
-    const calKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const orderShift = (o as any).shiftDate;
-    const active = activeShiftDate ?? todayKey;
-    return orderShift ? orderShift === active : calKey === active;
-  });
+  const todayOrders = !activeShiftDate
+    ? []
+    : orders.filter((o) => {
+        const orderShift = (o as any).shiftDate;
+        if (orderShift) return orderShift === activeShiftDate;
+        const d = new Date(o.createdAt);
+        const calKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return calKey === activeShiftDate;
+      });
 
   const completed = todayOrders.filter((o) => o.status === "completed");
   const revenue = completed.reduce((s, o) => s + o.total, 0);
@@ -10019,6 +10028,7 @@ function CrewTab({
           paymentStatus: paymentMethod === "cash" ? "confirmed" : "pending",
           source: "crew",
           waiterName: staffName.trim(),
+          isTab: paymentMethod === "later",
         }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -13497,16 +13507,17 @@ export default function AdminDashboard() {
     ? dailyReports.find((r) => r.dayKey === todayCalKey)
     : null;
 
-  const liveRevenue = orders
-    .filter(
-      (o) =>
-        o.status === "completed" && (!shiftDate || o.shiftDate === shiftDate),
-    )
-    .reduce((s, o) => s + o.total, 0);
+  const liveRevenue = !shiftDate
+    ? 0
+    : orders
+        .filter((o) => o.status === "completed" && o.shiftDate === shiftDate)
+        .reduce((s, o) => s + o.total, 0);
   const revenue = todaysClosedReport ? todaysClosedReport.revenue : liveRevenue;
   const totalOrdersCount = todaysClosedReport
     ? todaysClosedReport.totalOrders
-    : orders.filter((o) => !shiftDate || o.shiftDate === shiftDate).length;
+    : !shiftDate
+      ? 0
+      : orders.filter((o) => o.shiftDate === shiftDate).length;
 
   const completedToday = orders.filter((o) => o.status === "completed");
   const todayCost = completedToday.reduce((s, o) => {

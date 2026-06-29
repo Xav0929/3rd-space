@@ -132,8 +132,12 @@ export async function POST(req: Request) {
       { upsert: true, new: true },
     );
 
-    // Archive every order that was part of this shift
-    const idsToArchive = allOrders.map((o: any) => o._id);
+    // Archive every order that was part of this shift (skip unsettled tab orders)
+    const idsToArchive = allOrders
+      .filter(
+        (o: any) => !(o.isTab === true && o.paymentStatus !== "confirmed"),
+      )
+      .map((o: any) => o._id);
     await Order.updateMany(
       { _id: { $in: idsToArchive } },
       { $set: { archived: true, archivedAt: now.toISOString() } },
@@ -150,6 +154,16 @@ export async function POST(req: Request) {
           paidOut: [],
         },
       },
+    );
+
+    // Detach surviving tab orders from this shift so they float until settled
+    await Order.updateMany(
+      {
+        isTab: true,
+        paymentStatus: { $ne: "confirmed" },
+        archived: { $ne: true },
+      },
+      { $unset: { shiftDate: "" } },
     );
 
     return NextResponse.json({ ok: true, report });

@@ -5769,18 +5769,30 @@ function ConfirmationScreen({
             <p
               style={{
                 fontFamily: "'Cinzel',serif",
-                fontSize: 15,
+                fontSize: "clamp(16px,4vw,20px)",
                 fontWeight: 700,
                 color: G,
                 letterSpacing: ".08em",
-                marginBottom: 6,
+                marginBottom: 8,
               }}
             >
               PROCEED TO THE COUNTER
             </p>
-            <p style={{ color: C, fontSize: 13, lineHeight: 1.6 }}>
+            <p
+              style={{
+                color: C,
+                fontSize: "clamp(14px,3.5vw,16px)",
+                lineHeight: 1.6,
+              }}
+            >
               Show this order number and pay{" "}
-              <strong style={{ color: G, fontFamily: "'Cinzel',serif" }}>
+              <strong
+                style={{
+                  color: G,
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: "clamp(16px,4vw,18px)",
+                }}
+              >
                 ₱{(form as any)._total}
               </strong>{" "}
               in cash at the cashier.
@@ -5846,9 +5858,11 @@ function ConfirmationScreen({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        padding: "32px clamp(14px,4vw,24px)",
+        justifyContent: "flex-start",
+        padding:
+          "clamp(24px,6vw,48px) clamp(14px,4vw,24px) clamp(32px,6vw,48px)",
         textAlign: "center",
+        overflowY: "auto",
       }}
     >
       <div
@@ -5886,53 +5900,158 @@ function ConfirmationScreen({
           margin: "0 auto 24px",
         }}
       />
-      <div
-        style={{
-          background: CARD,
-          border: `2px solid ${G}`,
-          borderRadius: 18,
-          padding: "22px clamp(20px,6vw,36px)",
-          marginBottom: 22,
-          minWidth: "min(100%,300px)",
-        }}
-      >
-        <p
-          style={{
-            color: CM,
-            fontSize: 11,
-            letterSpacing: ".15em",
-            marginBottom: 10,
-          }}
-        >
-          ORDER NUMBER
-        </p>
-        <p
-          style={{
-            fontFamily: "'Cinzel',serif",
-            fontSize: "clamp(1.4rem,6vw,2.4rem)",
-            fontWeight: 700,
-            color: G,
-            letterSpacing: ".05em",
-            wordBreak: "break-all",
-          }}
-        >
-          #{orderNumber}
-        </p>
-      </div>
-      <div
-        style={{
-          background: CARD,
-          border: `1px solid ${BR}`,
-          borderRadius: 14,
-          padding: "16px 18px",
-          marginBottom: 26,
-          maxWidth: 380,
-          width: "100%",
-          textAlign: "left",
-        }}
-      >
-        {message()}
-      </div>
+      {isCash ? (
+        <>
+          {/* HERO: big instruction first */}
+          <div
+            style={{
+              background: GD,
+              border: `2px solid ${G}`,
+              borderRadius: 18,
+              padding: "clamp(22px,5vw,32px) clamp(20px,6vw,36px)",
+              marginBottom: 20,
+              maxWidth: 420,
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: "clamp(1.2rem,5vw,2rem)",
+                fontWeight: 700,
+                letterSpacing: ".12em",
+                color: G,
+                marginBottom: 14,
+              }}
+            >
+              PROCEED TO THE COUNTER
+            </p>
+            <p
+              style={{
+                color: C,
+                fontSize: "clamp(14px,3.5vw,16px)",
+                lineHeight: 1.7,
+                marginBottom: form.tableNumber ? 14 : 0,
+              }}
+            >
+              Show your order number and pay{" "}
+              <strong
+                style={{
+                  color: G,
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: "clamp(16px,4vw,20px)",
+                }}
+              >
+                ₱{(form as any)._total}
+              </strong>{" "}
+              in cash at the cashier.
+            </p>
+            {form.tableNumber && (
+              <div
+                style={{
+                  background: "rgba(34,197,94,0.08)",
+                  border: "1px solid rgba(34,197,94,0.3)",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  color: "#4ade80",
+                }}
+              >
+                After paying, sit back at{" "}
+                <strong>Table {form.tableNumber}</strong> — we'll bring your
+                order to you.
+              </div>
+            )}
+          </div>
+          {/* Order number — secondary */}
+          <div
+            style={{
+              background: CARD,
+              border: `1px solid ${BR}`,
+              borderRadius: 14,
+              padding: "12px clamp(20px,6vw,36px)",
+              marginBottom: 26,
+              minWidth: "min(100%,300px)",
+              textAlign: "center",
+              opacity: 0.85,
+            }}
+          >
+            <p
+              style={{
+                color: CM,
+                fontSize: 10,
+                letterSpacing: ".15em",
+                marginBottom: 6,
+              }}
+            >
+              ORDER NUMBER
+            </p>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: "clamp(0.95rem,3.5vw,1.3rem)",
+                fontWeight: 700,
+                color: C,
+                letterSpacing: ".05em",
+                wordBreak: "break-all",
+              }}
+            >
+              #{orderNumber}
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div
+            style={{
+              background: CARD,
+              border: `1px solid ${BR}`,
+              borderRadius: 18,
+              padding: "clamp(18px,5vw,28px) clamp(18px,6vw,32px)",
+              marginBottom: 20,
+              maxWidth: 420,
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            {message()}
+          </div>
+          <div
+            style={{
+              background: CARD,
+              border: `1px solid rgba(212,168,67,0.35)`,
+              borderRadius: 14,
+              padding: "16px clamp(20px,6vw,36px)",
+              marginBottom: 26,
+              minWidth: "min(100%,300px)",
+            }}
+          >
+            <p
+              style={{
+                color: CM,
+                fontSize: 10,
+                letterSpacing: ".15em",
+                marginBottom: 8,
+              }}
+            >
+              ORDER NUMBER
+            </p>
+            <p
+              style={{
+                fontFamily: "'Cinzel',serif",
+                fontSize: "clamp(1.1rem,5vw,1.8rem)",
+                fontWeight: 700,
+                color: G,
+                letterSpacing: ".05em",
+                wordBreak: "break-all",
+              }}
+            >
+              #{orderNumber}
+            </p>
+          </div>
+        </>
+      )}
       <div
         style={{
           display: "flex",

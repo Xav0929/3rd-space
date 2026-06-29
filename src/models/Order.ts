@@ -79,10 +79,22 @@ const OrderSchema = new Schema(
       enum: ["pending", "confirmed"],
       default: "pending",
     },
+    isTab: { type: Boolean, default: false },
 
     notes: { type: String, default: "" },
     waiterName: { type: String, default: "" },
     shiftDate: { type: String, default: null },
+
+    // status timestamps
+    confirmedAt: { type: Date },
+    preparingAt: { type: Date },
+    readyAt: { type: Date },
+    completedAt: { type: Date },
+    cancelledAt: { type: Date },
+    paidAt: { type: Date },
+    cancelReason: { type: String },
+    cashReceived: { type: Number },
+    changeGiven: { type: Number },
 
     // discount
     discountName: { type: String },
