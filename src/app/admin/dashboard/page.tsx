@@ -37,6 +37,9 @@ import {
   Power,
   PowerOff,
   Copy as CopyIcon,
+  Printer,
+  Pin,
+  Navigation,
 } from "lucide-react";
 
 const T = {
@@ -201,6 +204,23 @@ type DailyReport = {
   cashDiff?: number | null;
 };
 
+type ShiftReport = {
+  _id: string;
+  dayKey: string;
+  shiftLabel: string;
+  openedAt: string;
+  closedAt: string;
+  revenue: number;
+  orderCount: number;
+  cancelledCount: number;
+  cashRev: number;
+  gcashRev: number;
+  startingCash: number;
+  countedCash: number | null;
+  cashDiff: number | null;
+  items: Record<string, { qty: number; revenue: number }>;
+};
+
 type Tab =
   | "orders"
   | "menu"
@@ -226,7 +246,7 @@ const TAG_STYLES: Record<Tag, { bg: string; color: string; label: string }> = {
   PINNED: {
     bg: "#d4a843",
     color: "#0b150b",
-    label: "📌 PINNED",
+    label: "PINNED",
   },
   PROMO: {
     bg: "rgba(212,168,67,0.18)",
@@ -560,8 +580,12 @@ function BoardPostCard({
             padding: "3px 10px",
             background: tag.bg,
             color: tag.color,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
           }}
         >
+          {post.tag === "PINNED" && <Pin size={10} />}
           {tag.label}
         </span>
         <span
@@ -1877,8 +1901,7 @@ function DeliveryMapPanel({
           border:3px solid white;
           box-shadow:0 0 14px rgba(212,168,67,0.8);
           display:flex;align-items:center;justify-content:center;
-          font-size:18px;
-        ">🏍</div>`,
+        "><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>`,
         className: "",
         iconSize: [36, 36],
         iconAnchor: [18, 18],
@@ -2096,8 +2119,17 @@ function DeliveryMapPanel({
           }}
         >
           {routeDistance && (
-            <span style={{ color: "#4ade80", fontSize: 12, fontWeight: 600 }}>
-              📍 {routeDistance}
+            <span
+              style={{
+                color: "#4ade80",
+                fontSize: 12,
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <Navigation size={12} /> {routeDistance}
             </span>
           )}
           {riderPos && (
@@ -2219,7 +2251,7 @@ function DeliveryMapPanel({
                 cursor: "pointer",
               }}
             >
-              🏍 NAVIGATE TO CUSTOMER
+              <Navigation size={12} /> NAVIGATE TO CUSTOMER
             </button>
           </div>
         </div>
@@ -2327,9 +2359,13 @@ function RiderTrackingButton({
             color: "#d4a843",
             textAlign: "center",
             marginBottom: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
           }}
         >
-          📍 {activeRider} is currently tracking this order
+          <MapPin size={13} /> {activeRider} is currently tracking this order
         </div>
       ) : (
         <button
@@ -2370,7 +2406,9 @@ function RiderTrackingButton({
               STOP TRACKING · #{orderNumber}
             </>
           ) : (
-            <>📍 START RIDER TRACKING</>
+            <>
+              <Navigation size={13} /> START RIDER TRACKING
+            </>
           )}
         </button>
       )}
@@ -2400,9 +2438,13 @@ function RiderTrackingButton({
               cursor: "pointer",
               fontFamily: "'Cinzel',serif",
               letterSpacing: ".06em",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
             }}
           >
-            📍 I'M HERE — ARRIVED AT CUSTOMER
+            <Check size={13} /> I'M HERE — ARRIVED AT CUSTOMER
           </button>
         </div>
       )}
@@ -3279,7 +3321,7 @@ function OrderCard({
                 whiteSpace: "nowrap",
               }}
             >
-              🖨 Receipt
+              <Printer size={12} /> Receipt
             </button>
           )}
           <div style={{ color: T.muted }}>
@@ -3966,7 +4008,7 @@ function OrderCard({
                         gap: 5,
                       }}
                     >
-                      🖨 Print Receipt
+                      <Printer size={12} /> Print Receipt
                     </button>
                     {order.paymentStatus !== "confirmed" && (
                       <button
@@ -4447,10 +4489,15 @@ function MenuItemForm({
       : form.variants || [];
     const cleanedOptions = (form.options || [])
       .filter((g) => g.name.trim())
-      .map((g) => ({
-        ...g,
-        choices: g.choices.filter((c) => c.label.trim()),
-      }))
+      .map((g) => {
+        if (g.name.toLowerCase() === "variant" && finalVariants.length > 0) {
+          return {
+            ...g,
+            choices: finalVariants.map((v: string) => ({ label: v, price: 0 })),
+          };
+        }
+        return { ...g, choices: g.choices.filter((c) => c.label.trim()) };
+      })
       .filter((g) => g.choices.length > 0);
     const ok = await onSave({
       ...form,
@@ -7341,9 +7388,12 @@ function TodayReport({
               letterSpacing: ".06em",
               cursor: "pointer",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
             }}
           >
-            🖨️ PRINT SHIFT REPORT
+            <Printer size={12} /> PRINT SHIFT REPORT
           </button>
         </div>
 
@@ -7472,8 +7522,17 @@ function TodayReport({
               </span>
             )}
             {closedReport.deliveryFees > 0 && (
-              <span style={{ color: T.muted, fontSize: 12 }}>
-                🛵 {fmt(closedReport.deliveryFees)} delivery fees
+              <span
+                style={{
+                  color: T.muted,
+                  fontSize: 12,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <Bike size={12} /> {fmt(closedReport.deliveryFees)} delivery
+                fees
               </span>
             )}
           </div>
@@ -7817,8 +7876,16 @@ function TodayReport({
                 </span>
               )}
               {deliveryFeesTotal > 0 && (
-                <span style={{ color: T.muted, fontSize: 12 }}>
-                  🛵 {fmt(deliveryFeesTotal)} delivery fees
+                <span
+                  style={{
+                    color: T.muted,
+                    fontSize: 12,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <Bike size={12} /> {fmt(deliveryFeesTotal)} delivery fees
                 </span>
               )}
             </div>
@@ -8230,11 +8297,15 @@ function AnalyticsTab({
   dailyReports,
   activeShiftDate,
   menuItems,
+  shiftReports = [],
+  currentShiftLabel = "Shift 1",
 }: {
   orders: Order[];
   dailyReports: DailyReport[];
   activeShiftDate?: string | null;
   menuItems?: MenuItem[];
+  shiftReports?: ShiftReport[];
+  currentShiftLabel?: string;
 }) {
   const w = useWindowWidth();
   const isMobile = w < 640;
@@ -8295,6 +8366,303 @@ function AnalyticsTab({
           closedReport={closedTodayReport}
           menuItems={menuItems}
         />
+      ) : analyticsView === "history" && (shiftReports?.length ?? 0) > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p
+            style={{
+              color: T.gold,
+              fontSize: 11,
+              letterSpacing: ".15em",
+              textTransform: "uppercase" as const,
+              fontFamily: "'Cinzel',serif",
+            }}
+          >
+            ──Shift Comparison
+          </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {shiftReports.map((sr) => (
+              <div
+                key={sr._id}
+                style={{
+                  background: T.bgCard,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      color: T.gold,
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {sr.shiftLabel}
+                  </p>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: T.muted,
+                      background: "rgba(239,68,68,0.1)",
+                      border: "1px solid rgba(239,68,68,0.2)",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    Closed
+                  </span>
+                </div>
+                <p
+                  style={{
+                    fontFamily: "'Cinzel',serif",
+                    fontSize: 22,
+                    fontWeight: 700,
+                    color: T.cream,
+                  }}
+                >
+                  {fmt(sr.revenue)}
+                </p>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 11 }}>Orders</span>
+                    <span
+                      style={{ color: T.cream, fontSize: 11, fontWeight: 600 }}
+                    >
+                      {sr.orderCount}
+                    </span>
+                  </div>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 11 }}>Cash</span>
+                    <span
+                      style={{ color: T.green, fontSize: 11, fontWeight: 600 }}
+                    >
+                      {fmt(sr.cashRev)}
+                    </span>
+                  </div>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 11 }}>GCash</span>
+                    <span
+                      style={{ color: T.gold, fontSize: 11, fontWeight: 600 }}
+                    >
+                      {fmt(sr.gcashRev)}
+                    </span>
+                  </div>
+                  {sr.cashDiff !== null && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        borderTop: `1px solid ${T.border}`,
+                        paddingTop: 4,
+                        marginTop: 2,
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 11 }}>
+                        {sr.cashDiff === 0
+                          ? "Balanced ✓"
+                          : sr.cashDiff > 0
+                            ? "Over"
+                            : "Short"}
+                      </span>
+                      <span
+                        style={{
+                          color: sr.cashDiff === 0 ? T.green : T.red,
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {fmt(Math.abs(sr.cashDiff))}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p style={{ color: T.faint, fontSize: 10 }}>
+                  {new Date(sr.openedAt).toLocaleTimeString("en-PH", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}{" "}
+                  –{" "}
+                  {new Date(sr.closedAt).toLocaleTimeString("en-PH", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
+                </p>
+              </div>
+            ))}
+            {activeShiftDate && (
+              <div
+                style={{
+                  background: "rgba(34,197,94,0.06)",
+                  border: "1px solid rgba(34,197,94,0.3)",
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      color: T.green,
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {currentShiftLabel}
+                  </p>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: T.green,
+                      background: "rgba(34,197,94,0.1)",
+                      border: "1px solid rgba(34,197,94,0.2)",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    Active
+                  </span>
+                </div>
+                {(() => {
+                  const liveOrders = orders.filter(
+                    (o) =>
+                      o.status === "completed" &&
+                      (o as any).shiftLabel === currentShiftLabel,
+                  );
+                  const liveRev = liveOrders.reduce((s, o) => s + o.total, 0);
+                  return (
+                    <>
+                      <p
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 22,
+                          fontWeight: 700,
+                          color: T.green,
+                        }}
+                      >
+                        {fmt(liveRev)}
+                      </p>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 11 }}>
+                            Orders
+                          </span>
+                          <span
+                            style={{
+                              color: T.cream,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {liveOrders.length}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 11 }}>
+                            Cash
+                          </span>
+                          <span
+                            style={{
+                              color: T.green,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {fmt(
+                              liveOrders
+                                .filter((o) => o.paymentMethod === "cash")
+                                .reduce((s, o) => s + o.total, 0),
+                            )}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 11 }}>
+                            GCash
+                          </span>
+                          <span
+                            style={{
+                              color: T.gold,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {fmt(
+                              liveOrders
+                                .filter((o) => o.paymentMethod === "gcash")
+                                .reduce((s, o) => s + o.total, 0),
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+          <TodayReport
+            orders={orders}
+            activeShiftDate={activeShiftDate}
+            closedReport={closedTodayReport}
+            menuItems={menuItems}
+          />
+        </div>
       ) : daysOperated === 0 ? (
         <div
           style={{
@@ -8966,9 +9334,14 @@ function AccountsTab() {
                       fontWeight: 700,
                       fontFamily: "'Cinzel',serif",
                       letterSpacing: ".06em",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
                     }}
                   >
-                    {r === "admin" ? "⚙ ADMIN" : "👤 CREW"}
+                    {r === "admin" ? <Shield size={12} /> : <Users size={12} />}
+                    {r === "admin" ? "ADMIN" : "CREW"}
                   </button>
                 ))}
               </div>
@@ -10029,6 +10402,7 @@ function CrewTab({
           source: "crew",
           waiterName: staffName.trim(),
           isTab: paymentMethod === "later",
+          shiftLabel: (window as any).__3s_shiftLabel || undefined,
         }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -10508,9 +10882,13 @@ function CrewTab({
                 {submitting ? (
                   "PLACING…"
                 ) : paymentMethod === "cash" ? (
-                  "💵 PLACE CASH ORDER"
+                  <>
+                    <Banknote size={14} /> PLACE CASH ORDER
+                  </>
                 ) : paymentMethod === "later" ? (
-                  "🤝 PLACE ORDER — PAY LATER"
+                  <>
+                    <Clock size={14} /> PLACE ORDER — PAY LATER
+                  </>
                 ) : (
                   <>
                     <QrCode size={14} /> PLACE ORDER & SHOW QR
@@ -11701,7 +12079,7 @@ function VouchersAdminTab() {
       if (res.ok) {
         setVerifyResult({
           ok: true,
-          msg: `✓ Valid! ${result.type === "drink" ? "🥤 Drink" : "🍽 Food"} voucher for ${result.customerName}. Marked as used.`,
+          msg: `✓ Valid! ${result.type === "drink" ? "Drink" : "Food"} voucher for ${result.customerName}. Marked as used.`,
         });
         setVerifyCode("");
         fetchVouchers();
@@ -11909,9 +12287,17 @@ function VouchersAdminTab() {
                       fontSize: 12,
                       color: r.type === "drink" ? T.gold : T.green,
                       fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    {r.type === "drink" ? "🥤 Drink" : "🍽 Food"}
+                    {r.type === "drink" ? (
+                      <Coffee size={12} />
+                    ) : (
+                      <UtensilsCrossed size={12} />
+                    )}
+                    {r.type === "drink" ? "Drink" : "Food"}
                   </span>
                   <span
                     style={{ fontSize: 13, color: T.cream, fontWeight: 600 }}
@@ -11997,9 +12383,17 @@ function VouchersAdminTab() {
                       fontSize: 12,
                       color: r.type === "drink" ? T.gold : T.green,
                       fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    {r.type === "drink" ? "🥤 Drink" : "🍽 Food"} Voucher
+                    {r.type === "drink" ? (
+                      <Coffee size={12} />
+                    ) : (
+                      <UtensilsCrossed size={12} />
+                    )}
+                    {r.type === "drink" ? "Drink" : "Food"} Voucher
                   </span>
                   <span
                     style={{ fontSize: 13, color: T.cream, fontWeight: 600 }}
@@ -12038,13 +12432,16 @@ function VouchersAdminTab() {
 
 // ── OPEN SHIFT MODAL ─────────────────────────────────────────────────────────
 function OpenShiftModal({
+  defaultLabel = "Shift 1",
   onConfirm,
   onCancel,
 }: {
-  onConfirm: (startingCash: number) => void;
+  defaultLabel?: string;
+  onConfirm: (startingCash: number, label: string) => void;
   onCancel: () => void;
 }) {
   const [val, setVal] = useState("");
+  const [label, setLabel] = useState(defaultLabel);
   const amount = parseFloat(val) || 0;
 
   useEffect(() => {
@@ -12114,6 +12511,37 @@ function OpenShiftModal({
               marginBottom: 6,
             }}
           >
+            SHIFT NAME
+          </label>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Shift 1"
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 10,
+              padding: "11px 14px",
+              color: T.cream,
+              fontSize: 16,
+              fontFamily: "'Cinzel',serif",
+              outline: "none",
+              boxSizing: "border-box" as const,
+              marginBottom: 12,
+            }}
+          />
+        </div>
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
             STARTING CASH (FLOAT)
           </label>
           <input
@@ -12140,7 +12568,7 @@ function OpenShiftModal({
 
         <div style={{ display: "flex", gap: 10 }}>
           <button
-            onClick={() => onConfirm(amount)}
+            onClick={() => onConfirm(amount, label.trim() || "Shift 1")}
             style={{
               flex: 1,
               padding: "12px",
@@ -12737,6 +13165,375 @@ function CloseShiftModal({
   );
 }
 
+// ── SHIFT HANDOVER MODAL ──────────────────────────────────────────────────────
+function ShiftHandoverModal({
+  currentShiftLabel,
+  nextShiftLabel,
+  cashRevThisShift,
+  startingCash,
+  onConfirm,
+  onCancel,
+}: {
+  currentShiftLabel: string;
+  nextShiftLabel: string;
+  cashRevThisShift: number;
+  startingCash: number;
+  onConfirm: (
+    countedCash: number,
+    nextLabel: string,
+    nextStartingCash: number,
+  ) => void;
+  onCancel: () => void;
+}) {
+  const [step, setStep] = useState<"count" | "next">("count");
+  const [countedInput, setCountedInput] = useState("");
+  const [nextLabel, setNextLabel] = useState(nextShiftLabel);
+  const [nextCash, setNextCash] = useState("");
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onCancel]);
+
+  const counted = parseFloat(countedInput);
+  const hasCounted = countedInput !== "" && !isNaN(counted);
+  const expectedCash = startingCash + cashRevThisShift;
+  const diff = hasCounted ? counted - expectedCash : 0;
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 3000,
+        background: "rgba(0,0,0,0.8)",
+        backdropFilter: "blur(6px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 16px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-inner"
+        style={{
+          background: "#13180f",
+          border: `1px solid ${T.borderH}`,
+          borderRadius: 18,
+          padding: "clamp(20px,5vw,28px) clamp(16px,4vw,24px)",
+          maxWidth: 420,
+          width: "100%",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          maxHeight: "90svh",
+          overflowY: "auto",
+        }}
+      >
+        {step === "count" ? (
+          <>
+            <div style={{ textAlign: "center" }}>
+              <RefreshCw
+                size={32}
+                color={T.gold}
+                style={{ margin: "0 auto 8px" }}
+              />
+              <p
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  color: T.cream,
+                  fontSize: 14,
+                  letterSpacing: ".1em",
+                  marginBottom: 2,
+                }}
+              >
+                CLOSE {currentShiftLabel.toUpperCase()}
+              </p>
+              <p style={{ color: T.muted, fontSize: 12 }}>
+                Count the drawer before handing over
+              </p>
+            </div>
+            <div
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                padding: "12px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  Starting cash
+                </span>
+                <span style={{ color: T.cream, fontSize: 12, fontWeight: 600 }}>
+                  {fmt(startingCash)}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  Cash sales this shift
+                </span>
+                <span style={{ color: T.green, fontSize: 12, fontWeight: 600 }}>
+                  {fmt(cashRevThisShift)}
+                </span>
+              </div>
+              <div
+                style={{
+                  borderTop: `1px solid ${T.border}`,
+                  paddingTop: 6,
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  Expected cash
+                </span>
+                <span style={{ color: T.gold, fontSize: 12, fontWeight: 700 }}>
+                  {fmt(expectedCash)}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 6,
+                }}
+              >
+                COUNTED CASH
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={countedInput}
+                onChange={(e) => setCountedInput(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.borderH}`,
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  color: T.cream,
+                  fontSize: 22,
+                  fontFamily: "'Cinzel',serif",
+                  outline: "none",
+                  boxSizing: "border-box" as const,
+                }}
+              />
+            </div>
+            {hasCounted && (
+              <div
+                style={{
+                  background:
+                    diff === 0
+                      ? "rgba(34,197,94,0.08)"
+                      : "rgba(239,68,68,0.08)",
+                  border: `1px solid ${diff === 0 ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span style={{ color: T.muted, fontSize: 12 }}>
+                  {diff === 0
+                    ? "Drawer matches ✓"
+                    : diff > 0
+                      ? "Over by"
+                      : "Short by"}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'Cinzel',serif",
+                    color: diff === 0 ? T.green : T.red,
+                    fontSize: 16,
+                    fontWeight: 700,
+                  }}
+                >
+                  {fmt(Math.abs(diff))}
+                </span>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => hasCounted && setStep("next")}
+                disabled={!hasCounted}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: hasCounted ? T.gold : "rgba(212,168,67,0.15)",
+                  border: "none",
+                  borderRadius: 10,
+                  color: hasCounted ? "#0a0f0a" : T.muted,
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: hasCounted ? "pointer" : "not-allowed",
+                }}
+              >
+                NEXT →
+              </button>
+              <button
+                onClick={onCancel}
+                style={{
+                  padding: "12px 18px",
+                  background: "rgba(255,255,255,0.05)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 10,
+                  color: T.muted,
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ textAlign: "center" }}>
+              <Power
+                size={32}
+                color={T.green}
+                style={{ margin: "0 auto 8px" }}
+              />
+              <p
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  color: T.cream,
+                  fontSize: 14,
+                  letterSpacing: ".1em",
+                  marginBottom: 2,
+                }}
+              >
+                OPEN NEXT SHIFT
+              </p>
+              <p style={{ color: T.muted, fontSize: 12 }}>
+                Set up the incoming crew
+              </p>
+            </div>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 6,
+                }}
+              >
+                SHIFT NAME
+              </label>
+              <input
+                value={nextLabel}
+                onChange={(e) => setNextLabel(e.target.value)}
+                placeholder="e.g. Shift 2"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.borderH}`,
+                  borderRadius: 10,
+                  padding: "11px 14px",
+                  color: T.cream,
+                  fontSize: 16,
+                  fontFamily: "'Cinzel',serif",
+                  outline: "none",
+                  boxSizing: "border-box" as const,
+                  marginBottom: 12,
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 6,
+                }}
+              >
+                STARTING CASH (FLOAT)
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={nextCash}
+                onChange={(e) => setNextCash(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.borderH}`,
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  color: T.cream,
+                  fontSize: 22,
+                  fontFamily: "'Cinzel',serif",
+                  outline: "none",
+                  boxSizing: "border-box" as const,
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() =>
+                  onConfirm(
+                    counted,
+                    nextLabel.trim() || nextShiftLabel,
+                    parseFloat(nextCash) || 0,
+                  )
+                }
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: T.green,
+                  border: "none",
+                  borderRadius: 10,
+                  color: "#0a0f0a",
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                HAND OVER & OPEN {(nextLabel || nextShiftLabel).toUpperCase()}
+              </button>
+              <button
+                onClick={() => setStep("count")}
+                style={{
+                  padding: "12px 18px",
+                  background: "rgba(255,255,255,0.05)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 10,
+                  color: T.muted,
+                  fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                ← Back
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── ROOT ──────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const w = useWindowWidth();
@@ -12766,6 +13563,14 @@ export default function AdminDashboard() {
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [discounts, setDiscounts] = useState<DiscountPreset[]>([]);
   const [shopOpenedAt, setShopOpenedAt] = useState<string | null>(null);
+  const [shiftLabel, setShiftLabel] = useState("Shift 1");
+  useEffect(() => {
+    (window as any).__3s_shiftLabel = shiftLabel;
+  }, [shiftLabel]);
+  const [shiftStartingCash, setShiftStartingCash] = useState(0);
+  const [shiftReports, setShiftReports] = useState<ShiftReport[]>([]);
+  const [showShiftOptions, setShowShiftOptions] = useState(false);
+  const [showHandoverFlow, setShowHandoverFlow] = useState(false);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [activeConfirm, setActiveConfirm] = useState<{
@@ -12821,7 +13626,11 @@ export default function AdminDashboard() {
 
   async function toggleShop(
     next: boolean,
-    extra?: { startingCash?: number; countedCash?: number },
+    extra?: {
+      startingCash?: number;
+      countedCash?: number;
+      shiftLabel?: string;
+    },
   ) {
     setShopToggling(true);
     try {
@@ -12836,11 +13645,17 @@ export default function AdminDashboard() {
           open: next,
           openedAt: newOpenedAt,
           startingCash: extra?.startingCash,
+          shiftLabel: extra?.shiftLabel,
         }),
       });
       if (res.ok) {
         setShopOpen(next);
         if (next && !shopOpenedAt && newOpenedAt) setShopOpenedAt(newOpenedAt);
+        if (next && extra?.shiftLabel) {
+          setShiftLabel(extra.shiftLabel);
+        }
+        if (next && extra?.startingCash != null)
+          setShiftStartingCash(extra.startingCash);
         if (next) {
           const statusRes = await fetch("/api/shop-status");
           const statusData = await statusRes.json();
@@ -12872,9 +13687,9 @@ export default function AdminDashboard() {
                 if (Array.isArray(data)) setDailyReports(data);
               })
               .catch(() => {});
-            showToast("🚫 Store closed · Today's report saved ✓");
+            showToast("Store closed — today's report saved");
           } else {
-            showToast("🚫 Store paused · Report save failed", false);
+            showToast("Store paused — report save failed", false);
           }
         } else {
           showToast(next ? "✓ Store is now open" : "🚫 Store is now closed");
@@ -12969,6 +13784,52 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handoverShift(
+    countedCash: number,
+    nextLabel: string,
+    nextStartingCash: number,
+  ) {
+    setShopToggling(true);
+    try {
+      const reportRes = await fetch("/api/shift-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          openedAt: shopOpenedAt,
+          closedAt: new Date().toISOString(),
+          countedCash,
+          shiftLabel,
+          startingCash: shiftStartingCash,
+        }),
+      });
+      if (reportRes.ok) {
+        const saved = await reportRes.json();
+        setShiftReports((p) => [...p, saved]);
+      }
+      const nextOpenedAt = new Date().toISOString();
+      const res = await fetch("/api/shop-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          open: true,
+          openedAt: nextOpenedAt,
+          startingCash: nextStartingCash,
+          shiftLabel: nextLabel,
+        }),
+      });
+      if (res.ok) {
+        setShiftLabel(nextLabel);
+        setShiftStartingCash(nextStartingCash);
+        setShopOpenedAt(nextOpenedAt);
+        showToast(`✓ ${shiftLabel} closed — ${nextLabel} started`);
+      }
+    } catch {
+      showToast("Handover failed", false);
+    }
+    setShopToggling(false);
+    setShowHandoverFlow(false);
+  }
+
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
@@ -12983,6 +13844,14 @@ export default function AdminDashboard() {
         setShopOpen(d.open);
         if (d.openedAt) setShopOpenedAt(d.openedAt);
         if (d.shiftDate) setShiftDate(d.shiftDate);
+        if (d.shiftLabel) setShiftLabel(d.shiftLabel);
+        if (d.startingCash) setShiftStartingCash(d.startingCash);
+      })
+      .catch(() => {});
+    fetch("/api/shift-reports")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setShiftReports(data);
       })
       .catch(() => {});
     fetch("/api/daily-close", { method: "GET" })
@@ -13152,7 +14021,7 @@ export default function AdminDashboard() {
             console.error("sound error", e);
           }
           showToast(
-            `🔔 ${newOrders.length} new order${newOrders.length > 1 ? "s" : ""}!`,
+            `${newOrders.length} new order${newOrders.length > 1 ? "s" : ""}!`,
           );
         }
         prevOrderIdsRef.current = new Set(fetched.map((o) => o._id));
@@ -13687,7 +14556,10 @@ export default function AdminDashboard() {
                 <Shield size={10} /> ADMIN
               </>
             ) : (
-              <>👤 {isMobile ? staffName.split(" ")[0] : staffName}</>
+              <>
+                <Users size={10} />{" "}
+                {isMobile ? staffName.split(" ")[0] : staffName}
+              </>
             )}
           </div>
           {activeOrders.length > 0 && (
@@ -13741,7 +14613,7 @@ export default function AdminDashboard() {
                     flexShrink: 0,
                   }}
                 />
-                {shopOpen ? "STORE OPEN" : "STORE CLOSED"}
+                {shopOpen ? `${shiftLabel} · OPEN` : "STORE CLOSED"}
               </span>
 
               {/* Action button — always shows what clicking will DO */}
@@ -13749,8 +14621,8 @@ export default function AdminDashboard() {
                 onClick={() => {
                   if (shopToggling) return;
                   const next = !shopOpen;
-                  if (!next) {
-                    setShowCloseShiftModal(true);
+                  if (shopOpen) {
+                    setShowShiftOptions(true);
                   } else {
                     setShowOpenShiftModal(true);
                   }
@@ -14167,6 +15039,8 @@ export default function AdminDashboard() {
             dailyReports={dailyReports}
             activeShiftDate={shiftDate}
             menuItems={menuItems}
+            shiftReports={shiftReports}
+            currentShiftLabel={shiftLabel}
           />
         ) : tab === "board" ? (
           <BoardTab posts={posts} setPosts={setPosts} />
@@ -14182,11 +15056,150 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {showShiftOptions && (
+        <div
+          onClick={() => setShowShiftOptions(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 3000,
+            background: "rgba(0,0,0,0.8)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0 16px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="modal-inner"
+            style={{
+              background: "#13180f",
+              border: `1px solid ${T.borderH}`,
+              borderRadius: 18,
+              padding: "28px 24px",
+              maxWidth: 360,
+              width: "100%",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <PowerOff
+                size={32}
+                color={T.gold}
+                style={{ margin: "0 auto 8px" }}
+              />
+              <p
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  color: T.cream,
+                  fontSize: 14,
+                  letterSpacing: ".1em",
+                  marginBottom: 2,
+                }}
+              >
+                CLOSE SHIFT
+              </p>
+              <p style={{ color: T.muted, fontSize: 12 }}>
+                Current: <strong style={{ color: T.gold }}>{shiftLabel}</strong>
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setShowShiftOptions(false);
+                setShowHandoverFlow(true);
+              }}
+              style={{
+                width: "100%",
+                padding: "14px",
+                background: "rgba(212,168,67,0.12)",
+                border: `1px solid ${T.borderH}`,
+                borderRadius: 10,
+                color: T.gold,
+                fontFamily: "'Cinzel',serif",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <RefreshCw size={14} /> HAND OVER TO NEXT SHIFT
+            </button>
+            <button
+              onClick={() => {
+                setShowShiftOptions(false);
+                setShowCloseShiftModal(true);
+              }}
+              style={{
+                width: "100%",
+                padding: "14px",
+                background: "rgba(239,68,68,0.1)",
+                border: "1px solid rgba(239,68,68,0.4)",
+                borderRadius: 10,
+                color: T.red,
+                fontFamily: "'Cinzel',serif",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: ".08em",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <PowerOff size={14} /> END OF DAY
+            </button>
+            <button
+              onClick={() => setShowShiftOptions(false)}
+              style={{
+                padding: "10px",
+                background: "rgba(255,255,255,0.05)",
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                color: T.muted,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      {showHandoverFlow && (
+        <ShiftHandoverModal
+          currentShiftLabel={shiftLabel}
+          nextShiftLabel={`Shift ${parseInt(shiftLabel.replace(/\D/g, "") || "1") + 1}`}
+          cashRevThisShift={orders
+            .filter(
+              (o) =>
+                o.status === "completed" &&
+                o.paymentMethod === "cash" &&
+                (o as any).shiftLabel === shiftLabel,
+            )
+            .reduce((s, o) => s + o.total, 0)}
+          startingCash={shiftStartingCash}
+          onConfirm={(countedCash, nextLabel, nextCash) =>
+            handoverShift(countedCash, nextLabel, nextCash)
+          }
+          onCancel={() => setShowHandoverFlow(false)}
+        />
+      )}
       {showOpenShiftModal && (
         <OpenShiftModal
-          onConfirm={(startingCash) => {
+          defaultLabel={shiftLabel}
+          onConfirm={(startingCash, label) => {
             setShowOpenShiftModal(false);
-            toggleShop(true, { startingCash });
+            toggleShop(true, { startingCash, shiftLabel: label });
           }}
           onCancel={() => setShowOpenShiftModal(false)}
         />

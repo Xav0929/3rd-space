@@ -84,6 +84,7 @@ const OrderSchema = new Schema(
     notes: { type: String, default: "" },
     waiterName: { type: String, default: "" },
     shiftDate: { type: String, default: null },
+    shiftLabel: { type: String, default: null },
 
     // status timestamps
     confirmedAt: { type: Date },
