@@ -208,6 +208,7 @@ type ShiftReport = {
   _id: string;
   dayKey: string;
   shiftLabel: string;
+  openedBy?: string | null;
   openedAt: string;
   closedAt: string;
   revenue: number;
@@ -470,6 +471,12 @@ function ago(d: string) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function PinDot({ color = "gold" }: { color?: PinColor }) {
@@ -3019,17 +3026,19 @@ function OrderCard({
               <Badge status={order.status} />
               <span
                 style={{
-                  fontSize: 11,
-                  color: T.muted,
-                  background: "rgba(232,213,163,0.08)",
-                  padding: "3px 8px",
-                  borderRadius: 4,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: T.cream,
+                  background: "rgba(232,213,163,0.14)",
+                  border: `1px solid ${T.border}`,
+                  padding: "5px 12px",
+                  borderRadius: 6,
                 }}
               >
                 {order.type === "delivery" ? (
                   <>
                     <Bike
-                      size={11}
+                      size={14}
                       style={{
                         display: "inline",
                         verticalAlign: "middle",
@@ -3041,7 +3050,7 @@ function OrderCard({
                 ) : order.type === "takeout" ? (
                   <>
                     <Coffee
-                      size={11}
+                      size={14}
                       style={{
                         display: "inline",
                         verticalAlign: "middle",
@@ -3053,7 +3062,7 @@ function OrderCard({
                 ) : (
                   <>
                     <Armchair
-                      size={11}
+                      size={14}
                       style={{
                         display: "inline",
                         verticalAlign: "middle",
@@ -3119,7 +3128,7 @@ function OrderCard({
                     ? `Table ${order.tableNumber}${order.customerName ? ` · ${order.customerName}` : ""}`
                     : order.customerName || "Walk-in"}
               {" · "}
-              {ago(order.createdAt)}
+              {fmtDate(order.createdAt)} · {ago(order.createdAt)}
             </p>
             <div
               style={{
@@ -8299,6 +8308,7 @@ function AnalyticsTab({
   menuItems,
   shiftReports = [],
   currentShiftLabel = "Shift 1",
+  activeShiftOpenedAt,
 }: {
   orders: Order[];
   dailyReports: DailyReport[];
@@ -8306,6 +8316,7 @@ function AnalyticsTab({
   menuItems?: MenuItem[];
   shiftReports?: ShiftReport[];
   currentShiftLabel?: string;
+  activeShiftOpenedAt?: string | null;
 }) {
   const w = useWindowWidth();
   const isMobile = w < 640;
@@ -8406,16 +8417,23 @@ function AnalyticsTab({
                     alignItems: "center",
                   }}
                 >
-                  <p
-                    style={{
-                      fontFamily: "'Cinzel',serif",
-                      color: T.gold,
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {sr.shiftLabel}
-                  </p>
+                  <div>
+                    <p
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        color: T.gold,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {sr.shiftLabel}
+                    </p>
+                    {sr.openedBy && (
+                      <p style={{ color: T.faint, fontSize: 10, marginTop: 2 }}>
+                        by {sr.openedBy}
+                      </p>
+                    )}
+                  </div>
                   <span
                     style={{
                       fontSize: 10,
@@ -8516,6 +8534,98 @@ function AnalyticsTab({
                 </p>
               </div>
             ))}
+            {(() => {
+              const windows: { start: number; end: number }[] =
+                shiftReports.map((sr) => ({
+                  start: new Date(sr.openedAt).getTime(),
+                  end: new Date(sr.closedAt).getTime(),
+                }));
+              if (activeShiftOpenedAt) {
+                windows.push({
+                  start: new Date(activeShiftOpenedAt).getTime(),
+                  end: Date.now(),
+                });
+              }
+              const untrackedOrders = orders.filter((o) => {
+                if (o.status !== "completed") return false;
+                const t = new Date(o.createdAt).getTime();
+                const dKey = `${new Date(o.createdAt).getFullYear()}-${String(new Date(o.createdAt).getMonth() + 1).padStart(2, "0")}-${String(new Date(o.createdAt).getDate()).padStart(2, "0")}`;
+                if (dKey !== todayCalKey) return false;
+                return !windows.some((w) => t >= w.start && t <= w.end);
+              });
+              const untrackedRev = untrackedOrders.reduce(
+                (s, o) => s + o.total,
+                0,
+              );
+              if (untrackedRev <= 0) return null;
+              return (
+                <div
+                  style={{
+                    background: "rgba(239,68,68,0.06)",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        color: T.red,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Untracked
+                    </p>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: T.red,
+                        background: "rgba(239,68,68,0.1)",
+                        border: "1px solid rgba(239,68,68,0.2)",
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      No Shift
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: "'Cinzel',serif",
+                      fontSize: 22,
+                      fontWeight: 700,
+                      color: T.cream,
+                    }}
+                  >
+                    {fmt(untrackedRev)}
+                  </p>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 11 }}>Orders</span>
+                    <span
+                      style={{ color: T.cream, fontSize: 11, fontWeight: 600 }}
+                    >
+                      {untrackedOrders.length}
+                    </span>
+                  </div>
+                  <p style={{ color: T.faint, fontSize: 10 }}>
+                    Placed outside any tracked shift window
+                  </p>
+                </div>
+              );
+            })()}
             {activeShiftDate && (
               <div
                 style={{
@@ -8562,7 +8672,8 @@ function AnalyticsTab({
                   const liveOrders = orders.filter(
                     (o) =>
                       o.status === "completed" &&
-                      (o as any).shiftLabel === currentShiftLabel,
+                      activeShiftOpenedAt &&
+                      new Date(o.createdAt) >= new Date(activeShiftOpenedAt),
                   );
                   const liveRev = liveOrders.reduce((s, o) => s + o.total, 0);
                   return (
@@ -10244,6 +10355,10 @@ function CrewTab({
   const [showCartMobile, setShowCartMobile] = useState(false);
   const [selectedDiscount, setSelectedDiscount] =
     useState<DiscountPreset | null>(null);
+  const [orderType, setOrderType] = useState<"dine-in" | "delivery">("dine-in");
+  const [customerContact, setCustomerContact] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
 
   useEffect(() => {
     fetchMyOrders();
@@ -10363,17 +10478,37 @@ function CrewTab({
   }
 
   async function placeOrder() {
-    if ((!tableNumber.trim() && !customerName.trim()) || cart.length === 0)
-      return;
+    const deliveryFee = parseFloat(deliveryFeeInput) || 0;
+    const grandTotal =
+      orderType === "delivery" ? cartTotal + deliveryFee : cartTotal;
+
+    if (orderType === "dine-in") {
+      if ((!tableNumber.trim() && !customerName.trim()) || cart.length === 0)
+        return;
+    } else {
+      if (!customerName.trim() || !deliveryAddress.trim() || cart.length === 0)
+        return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "dine-in",
-          tableNumber: tableNumber.trim() || undefined,
+          type: orderType,
+          tableNumber:
+            orderType === "dine-in"
+              ? tableNumber.trim() || undefined
+              : undefined,
           customerName: customerName.trim() || undefined,
+          customerContact:
+            orderType === "delivery"
+              ? customerContact.trim() || undefined
+              : undefined,
+          deliveryAddress:
+            orderType === "delivery" ? deliveryAddress.trim() : undefined,
+          deliveryFee: orderType === "delivery" ? deliveryFee : undefined,
           items: cart.map((c) => {
             const custLabels = c.customizations.map((x) =>
               x.price > 0 ? `${x.label} (+₱${x.price})` : x.label,
@@ -10388,7 +10523,7 @@ function CrewTab({
               customizations: c.customizations,
             };
           }),
-          total: cartTotal,
+          total: grandTotal,
           ...(selectedDiscount
             ? {
                 discountName: selectedDiscount.name,
@@ -10409,16 +10544,19 @@ function CrewTab({
       const data = await res.json();
       if (paymentMethod === "gcash") {
         setShowQR({
-          total: cartTotal,
+          total: grandTotal,
           orderNumber: data.orderNumber,
           orderId: data._id,
         });
       } else if (paymentMethod === "cash") {
-        setShowCashNote({ total: cartTotal, orderNumber: data.orderNumber });
+        setShowCashNote({ total: grandTotal, orderNumber: data.orderNumber });
       } else {
         setCart([]);
         setTableNumber("");
         setCustomerName("");
+        setCustomerContact("");
+        setDeliveryAddress("");
+        setDeliveryFeeInput("");
         onOrderPlaced();
         fetchMyOrders();
       }
@@ -10479,68 +10617,232 @@ function CrewTab({
           gap: 12,
         }}
       >
-        <div>
-          <label
-            style={{
-              color: T.muted,
-              fontSize: 10,
-              letterSpacing: ".1em",
-              display: "block",
-              marginBottom: 8,
-              fontFamily: "'Cinzel',serif",
-            }}
-          >
-            TABLE NUMBER
-          </label>
-          <input
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            placeholder="e.g. 5 (optional if name given)"
-            style={{
-              width: "100%",
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${T.border}`,
-              borderRadius: 8,
-              padding: "10px 12px",
-              color: T.cream,
-              fontSize: 14,
-              outline: "none",
-              boxSizing: "border-box",
-              fontFamily: "'Cinzel',serif",
-              letterSpacing: ".04em",
-            }}
-          />
+        <div style={{ display: "flex", gap: 8 }}>
+          {(["dine-in", "delivery"] as const).map((t) => {
+            const a = orderType === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setOrderType(t)}
+                style={{
+                  flex: 1,
+                  padding: "9px 8px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  background: a ? T.goldDim : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${a ? T.borderH : T.border}`,
+                  color: a ? T.gold : T.muted,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: "'Cinzel',serif",
+                  letterSpacing: ".06em",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                {t === "dine-in" ? <Armchair size={13} /> : <Bike size={13} />}
+                {t === "dine-in" ? "DINE-IN" : "DELIVERY"}
+              </button>
+            );
+          })}
         </div>
-        <div>
-          <label
-            style={{
-              color: T.muted,
-              fontSize: 10,
-              letterSpacing: ".1em",
-              display: "block",
-              marginBottom: 8,
-              fontFamily: "'Cinzel',serif",
-            }}
-          >
-            CUSTOMER / FRIEND NAME
-          </label>
-          <input
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="e.g. Kuya Jun (no table needed)"
-            style={{
-              width: "100%",
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${T.border}`,
-              borderRadius: 8,
-              padding: "10px 12px",
-              color: T.cream,
-              fontSize: 14,
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
+        {orderType === "dine-in" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 8,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                TABLE NUMBER
+              </label>
+              <input
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+                placeholder="e.g. 5 (optional if name given)"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  color: T.cream,
+                  fontSize: 14,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  fontFamily: "'Cinzel',serif",
+                  letterSpacing: ".04em",
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 8,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                CUSTOMER / FRIEND NAME
+              </label>
+              <input
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="e.g. Kuya Jun (no table needed)"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  color: T.cream,
+                  fontSize: 14,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 8,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                CUSTOMER NAME *
+              </label>
+              <input
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="e.g. Maya (France's friend)"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  color: T.cream,
+                  fontSize: 14,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 8,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                PHONE (OPTIONAL)
+              </label>
+              <input
+                value={customerContact}
+                onChange={(e) => setCustomerContact(e.target.value)}
+                placeholder="09XX XXX XXXX"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  color: T.cream,
+                  fontSize: 14,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 8,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                DELIVERY ADDRESS *
+              </label>
+              <textarea
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                placeholder="Full address as told by customer"
+                rows={2}
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  color: T.cream,
+                  fontSize: 13,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  color: T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".1em",
+                  display: "block",
+                  marginBottom: 8,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                DELIVERY FEE (₱)
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={deliveryFeeInput}
+                onChange={(e) => setDeliveryFeeInput(e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
+                placeholder="0"
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  color: T.cream,
+                  fontSize: 14,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
       <div
         style={{
@@ -10845,7 +11147,9 @@ function CrewTab({
               <button
                 onClick={placeOrder}
                 disabled={
-                  (!tableNumber.trim() && !customerName.trim()) ||
+                  (orderType === "dine-in"
+                    ? !tableNumber.trim() && !customerName.trim()
+                    : !customerName.trim() || !deliveryAddress.trim()) ||
                   cart.length === 0 ||
                   submitting
                 }
@@ -10853,12 +11157,16 @@ function CrewTab({
                   width: "100%",
                   padding: "13px",
                   background:
-                    (tableNumber.trim() || customerName.trim()) &&
+                    (orderType === "dine-in"
+                      ? tableNumber.trim() || customerName.trim()
+                      : customerName.trim() && deliveryAddress.trim()) &&
                     cart.length > 0
                       ? T.gold
                       : "rgba(212,168,67,0.25)",
                   color:
-                    (tableNumber.trim() || customerName.trim()) &&
+                    (orderType === "dine-in"
+                      ? tableNumber.trim() || customerName.trim()
+                      : customerName.trim() && deliveryAddress.trim()) &&
                     cart.length > 0
                       ? "#0a0f0a"
                       : T.muted,
@@ -10895,18 +11203,33 @@ function CrewTab({
                   </>
                 )}
               </button>
-              {!tableNumber.trim() && !customerName.trim() && (
-                <p
-                  style={{
-                    color: "rgba(245,158,11,0.7)",
-                    fontSize: 11,
-                    textAlign: "center",
-                    marginTop: 6,
-                  }}
-                >
-                  Enter a table number or a name to proceed
-                </p>
-              )}
+              {orderType === "dine-in" &&
+                !tableNumber.trim() &&
+                !customerName.trim() && (
+                  <p
+                    style={{
+                      color: "rgba(245,158,11,0.7)",
+                      fontSize: 11,
+                      textAlign: "center",
+                      marginTop: 6,
+                    }}
+                  >
+                    Enter a table number or a name to proceed
+                  </p>
+                )}
+              {orderType === "delivery" &&
+                (!customerName.trim() || !deliveryAddress.trim()) && (
+                  <p
+                    style={{
+                      color: "rgba(245,158,11,0.7)",
+                      fontSize: 11,
+                      textAlign: "center",
+                      marginTop: 6,
+                    }}
+                  >
+                    Enter customer name and delivery address
+                  </p>
+                )}
             </div>
           </>
         )}
@@ -12945,6 +13268,8 @@ function CloseShiftModal({
 }) {
   const [loading, setLoading] = useState(true);
   const [startingCash, setStartingCash] = useState(0);
+  const [paidIn, setPaidIn] = useState(0);
+  const [paidOut, setPaidOut] = useState(0);
   const [countedInput, setCountedInput] = useState("");
 
   useEffect(() => {
@@ -12952,6 +13277,17 @@ function CloseShiftModal({
       .then((r) => r.json())
       .then((d) => {
         setStartingCash(d.startingCash || 0);
+      })
+      .catch(() => {});
+    fetch("/api/shop-status/cash-log")
+      .then((r) => r.json())
+      .then((d) => {
+        setPaidIn(
+          (d.paidIn || []).reduce((s: number, e: any) => s + e.amount, 0),
+        );
+        setPaidOut(
+          (d.paidOut || []).reduce((s: number, e: any) => s + e.amount, 0),
+        );
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -12963,7 +13299,7 @@ function CloseShiftModal({
     return () => window.removeEventListener("keydown", fn);
   }, [onCancel]);
 
-  const expected = startingCash + cashRevToday;
+  const expected = startingCash + cashRevToday + paidIn - paidOut;
   const counted = parseFloat(countedInput);
   const hasCounted = countedInput !== "" && !isNaN(counted);
   const diff = hasCounted ? counted - expected : 0;
@@ -13046,6 +13382,8 @@ function CloseShiftModal({
           >
             {row("Starting cash", fmt(startingCash))}
             {row("Cash sales today", fmt(cashRevToday), T.green)}
+            {paidIn > 0 && row("Paid in", fmt(paidIn), T.green)}
+            {paidOut > 0 && row("Paid out", `-${fmt(paidOut)}`, T.red)}
             <div
               style={{
                 borderTop: `1px solid ${T.border}`,
@@ -13189,6 +13527,22 @@ function ShiftHandoverModal({
   const [countedInput, setCountedInput] = useState("");
   const [nextLabel, setNextLabel] = useState(nextShiftLabel);
   const [nextCash, setNextCash] = useState("");
+  const [paidIn, setPaidIn] = useState(0);
+  const [paidOut, setPaidOut] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/shop-status/cash-log")
+      .then((r) => r.json())
+      .then((d) => {
+        setPaidIn(
+          (d.paidIn || []).reduce((s: number, e: any) => s + e.amount, 0),
+        );
+        setPaidOut(
+          (d.paidOut || []).reduce((s: number, e: any) => s + e.amount, 0),
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
@@ -13198,7 +13552,7 @@ function ShiftHandoverModal({
 
   const counted = parseFloat(countedInput);
   const hasCounted = countedInput !== "" && !isNaN(counted);
-  const expectedCash = startingCash + cashRevThisShift;
+  const expectedCash = startingCash + cashRevThisShift + paidIn - paidOut;
   const diff = hasCounted ? counted - expectedCash : 0;
 
   return (
@@ -13284,6 +13638,28 @@ function ShiftHandoverModal({
                   {fmt(cashRevThisShift)}
                 </span>
               </div>
+              {paidIn > 0 && (
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ color: T.muted, fontSize: 12 }}>Paid in</span>
+                  <span
+                    style={{ color: T.green, fontSize: 12, fontWeight: 600 }}
+                  >
+                    {fmt(paidIn)}
+                  </span>
+                </div>
+              )}
+              {paidOut > 0 && (
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ color: T.muted, fontSize: 12 }}>Paid out</span>
+                  <span style={{ color: T.red, fontSize: 12, fontWeight: 600 }}>
+                    -{fmt(paidOut)}
+                  </span>
+                </div>
+              )}
               <div
                 style={{
                   borderTop: `1px solid ${T.border}`,
@@ -13571,6 +13947,7 @@ export default function AdminDashboard() {
   const [shiftReports, setShiftReports] = useState<ShiftReport[]>([]);
   const [showShiftOptions, setShowShiftOptions] = useState(false);
   const [showHandoverFlow, setShowHandoverFlow] = useState(false);
+  const [showCashLog, setShowCashLog] = useState(false);
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [activeConfirm, setActiveConfirm] = useState<{
@@ -13800,6 +14177,7 @@ export default function AdminDashboard() {
           countedCash,
           shiftLabel,
           startingCash: shiftStartingCash,
+          openedBy: staffName,
         }),
       });
       if (reportRes.ok) {
@@ -14376,11 +14754,16 @@ export default function AdminDashboard() {
     ? dailyReports.find((r) => r.dayKey === todayCalKey)
     : null;
 
-  const liveRevenue = !shiftDate
-    ? 0
-    : orders
-        .filter((o) => o.status === "completed" && o.shiftDate === shiftDate)
-        .reduce((s, o) => s + o.total, 0);
+  const liveRevenue =
+    !shiftDate || !shopOpenedAt
+      ? 0
+      : orders
+          .filter(
+            (o) =>
+              o.status === "completed" &&
+              new Date(o.createdAt) >= new Date(shopOpenedAt),
+          )
+          .reduce((s, o) => s + o.total, 0);
   const revenue = todaysClosedReport ? todaysClosedReport.revenue : liveRevenue;
   const totalOrdersCount = todaysClosedReport
     ? todaysClosedReport.totalOrders
@@ -14669,6 +15052,29 @@ export default function AdminDashboard() {
                   </>
                 )}
               </button>
+              {shopOpen && (
+                <button
+                  onClick={() => setShowCashLog(true)}
+                  style={{
+                    padding: "7px 13px",
+                    background: "rgba(91,155,213,0.1)",
+                    border: "1px solid rgba(91,155,213,0.35)",
+                    borderRadius: 8,
+                    color: T.blue,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    fontFamily: "'Cinzel',serif",
+                    letterSpacing: ".06em",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <Banknote size={12} />
+                  {!isMobile && " CASH MGMT"}
+                </button>
+              )}
               {/* {isAdmin && (
                 <button
                   onClick={async () => {
@@ -15041,6 +15447,7 @@ export default function AdminDashboard() {
             menuItems={menuItems}
             shiftReports={shiftReports}
             currentShiftLabel={shiftLabel}
+            activeShiftOpenedAt={shopOpenedAt}
           />
         ) : tab === "board" ? (
           <BoardTab posts={posts} setPosts={setPosts} />
@@ -15184,7 +15591,8 @@ export default function AdminDashboard() {
               (o) =>
                 o.status === "completed" &&
                 o.paymentMethod === "cash" &&
-                (o as any).shiftLabel === shiftLabel,
+                shopOpenedAt &&
+                new Date(o.createdAt) >= new Date(shopOpenedAt),
             )
             .reduce((s, o) => s + o.total, 0)}
           startingCash={shiftStartingCash}
@@ -15194,6 +15602,7 @@ export default function AdminDashboard() {
           onCancel={() => setShowHandoverFlow(false)}
         />
       )}
+      {showCashLog && <CashLogModal onClose={() => setShowCashLog(false)} />}
       {showOpenShiftModal && (
         <OpenShiftModal
           defaultLabel={shiftLabel}

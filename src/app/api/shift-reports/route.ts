@@ -25,12 +25,16 @@ export async function POST(req: NextRequest) {
     countedCash,
     shiftLabel,
     startingCash: bodyStartingCash,
+    openedBy,
   } = body;
 
   const today = new Date();
   const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const shiftOrders = await Order.find({ shiftLabel, shiftDate: dayKey });
+  const windowEnd = closedAt ? new Date(closedAt) : new Date();
+  const shiftOrders = await Order.find({
+    createdAt: { $gte: new Date(openedAt), $lte: windowEnd },
+  });
   const completed = shiftOrders.filter((o: any) => o.status === "completed");
   const revenue = completed.reduce((s: number, o: any) => s + o.total, 0);
   const cashRev = completed
@@ -60,6 +64,7 @@ export async function POST(req: NextRequest) {
   const report = await ShiftReport.create({
     dayKey,
     shiftLabel,
+    openedBy: openedBy || null,
     openedAt,
     closedAt: closedAt || new Date().toISOString(),
     revenue,

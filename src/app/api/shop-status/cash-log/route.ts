@@ -40,6 +40,21 @@ export async function POST(req: Request) {
   }
 }
 
+export async function DELETE() {
+  try {
+    await connectDB();
+    await Setting.findOneAndUpdate(
+      { key: "shopStatus" },
+      { $set: { paidIn: [], paidOut: [] } },
+      { upsert: true },
+    );
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[cash-log DELETE]", e);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
+  }
+}
+
 export async function GET() {
   try {
     await connectDB();
