@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    if (source !== "waiter" && !receiptUrl && !gcashRef) {
+    if (source !== "waiter" && source !== "crew" && !receiptUrl && !gcashRef) {
       return NextResponse.json(
         {
           error:

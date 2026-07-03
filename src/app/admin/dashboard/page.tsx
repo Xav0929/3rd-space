@@ -10540,7 +10540,10 @@ function CrewTab({
           shiftLabel: (window as any).__3s_shiftLabel || undefined,
         }),
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Order failed (${res.status})`);
+      }
       const data = await res.json();
       if (paymentMethod === "gcash") {
         setShowQR({
@@ -10560,8 +10563,12 @@ function CrewTab({
         onOrderPlaced();
         fetchMyOrders();
       }
-    } catch {
-      alert("Failed to place order. Please try again.");
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to place order. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -14247,10 +14254,25 @@ export default function AdminDashboard() {
     const savedRole = localStorage.getItem("3s_role") as Role;
     const savedName = localStorage.getItem("3s_name") || "";
     if (savedRole && savedName && !savedName.includes("@")) {
-      setRole(savedRole);
-      setStaffName(savedName);
-      if (savedRole === "staff") setTab("crew");
-      fetchData();
+      // Verify the real server-side session before trusting localStorage —
+      // avoids a stale "logged in" UI when the cookie is missing/expired/
+      // scoped to a different host (e.g. www vs bare domain).
+      fetch("/api/accounts/session")
+        .then((r) => {
+          if (!r.ok) throw new Error("no session");
+          return r.json();
+        })
+        .then((d) => {
+          setRole(d.role);
+          setStaffName(d.displayName);
+          if (d.role === "staff") setTab("crew");
+          fetchData();
+        })
+        .catch(() => {
+          localStorage.removeItem("3s_role");
+          localStorage.removeItem("3s_name");
+          setLoading(false);
+        });
     } else {
       localStorage.removeItem("3s_role");
       localStorage.removeItem("3s_name");
@@ -14317,30 +14339,9 @@ export default function AdminDashboard() {
   }
 
   async function legacyLogin() {
-    const adminPw = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin";
-    const staffPw = process.env.NEXT_PUBLIC_STAFF_PASSWORD || "staff";
-    if (password === adminPw) {
-      const name = username.trim() || "Admin";
-      setRole("admin");
-      setStaffName(name);
-      localStorage.setItem("3s_role", "admin");
-      localStorage.setItem("3s_name", name);
-      fetchData();
-    } else if (password === staffPw) {
-      if (!username.trim()) {
-        setLoginErr("Enter your name to continue.");
-        return;
-      }
-      setRole("staff");
-      setStaffName(username.trim());
-      localStorage.setItem("3s_role", "staff");
-      localStorage.setItem("3s_name", username.trim());
-      setTab("crew");
-      fetchData();
-    } else {
-      setLoginErr("Incorrect password.");
-      setTimeout(() => setLoginErr(""), 2500);
-    }
+    setLoginErr(
+      "Legacy password login is disabled — please use your account username and password.",
+    );
     setPassword("");
   }
 

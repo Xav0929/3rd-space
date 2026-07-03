@@ -8,6 +8,9 @@ export async function POST() {
 
   await db.collection("orders").deleteMany({});
   await db.collection("dailyreports").deleteMany({});
+  await db.collection("shiftreports").deleteMany({});
+  await db.collection("settings").deleteMany({ key: "shopStatus" });
+  await db.collection("redemptions").deleteMany({});
 
   return NextResponse.json({ ok: true });
 }

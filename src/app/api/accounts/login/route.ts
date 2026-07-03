@@ -39,6 +39,8 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
+      domain:
+        process.env.NODE_ENV === "production" ? ".3rdspace.shop" : undefined,
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
     return res;
