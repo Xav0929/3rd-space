@@ -44,3 +44,29 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
+    }
+
+    await connectDB();
+    const item = await MenuItem.findByIdAndDelete(id);
+    if (!item)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Menu DELETE error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete item" },
+      { status: 500 },
+    );
+  }
+}
