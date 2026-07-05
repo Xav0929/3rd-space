@@ -18,6 +18,9 @@ const OrderItemSchema = new Schema({
   price: { type: Number, required: true },
   quantity: { type: Number, required: true },
   customizations: { type: [OrderItemCustomizationSchema], default: [] },
+  discountName: { type: String },
+  discountPct: { type: Number },
+  discountAmount: { type: Number },
 });
 
 const OrderSchema = new Schema(

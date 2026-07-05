@@ -67,7 +67,14 @@ export async function buildEscPosReceipt(order: {
   tableNumber?: string;
   customerName?: string;
   deliveryAddress?: string;
-  items: { name: string; price: number; quantity: number }[];
+  items: {
+    name: string;
+    price: number;
+    quantity: number;
+    discountName?: string;
+    discountPct?: number;
+    discountAmount?: number;
+  }[];
   total: number;
   deliveryFee?: number;
   paymentMethod?: string;
@@ -138,10 +145,17 @@ export async function buildEscPosReceipt(order: {
   line("--------------------------------");
 
   order.items.forEach((it) => {
+    const lineTotal = it.price * it.quantity;
     const left = `${it.quantity}x ${it.name}`;
-    const right = `P${(it.price * it.quantity).toFixed(2)}`;
+    const right = `P${lineTotal.toFixed(2)}`;
     const pad = Math.max(1, 32 - left.length - right.length);
     line(left + " ".repeat(pad) + right);
+    if (it.discountPct && it.discountAmount) {
+      const dl = `  ${it.discountName || "Discount"} (${it.discountPct}%)`;
+      const dr = `-P${it.discountAmount.toFixed(2)}`;
+      const dpad = Math.max(1, 32 - dl.length - dr.length);
+      line(dl + " ".repeat(dpad) + dr);
+    }
   });
 
   line("--------------------------------");

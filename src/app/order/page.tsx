@@ -3806,7 +3806,34 @@ function CheckoutScreen({
     msg: string;
   } | null>(voucherCode ? { ok: true, msg: `✓ Voucher applied` } : null);
 
+  const DRINK_CATEGORY_KEYWORDS = [
+    "3rd space",
+    "coffee",
+    "matcha",
+    "tea",
+    "non",
+    "oat",
+    "brain fuel",
+    "flavored soda",
+  ];
+  function isDrinkItem(item: { category: string }) {
+    const c = item.category.toLowerCase();
+    return DRINK_CATEGORY_KEYWORDS.some((k) => c.includes(k));
+  }
+
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const drinkSubtotal = cart
+    .filter((i) => isDrinkItem(i))
+    .reduce((s, i) => s + i.price * i.quantity, 0);
+  const foodSubtotal = cart
+    .filter((i) => !isDrinkItem(i))
+    .reduce((s, i) => s + i.price * i.quantity, 0);
+  const voucherEligibleSubtotal =
+    voucherType === "drink"
+      ? drinkSubtotal
+      : voucherType === "food"
+        ? foodSubtotal
+        : 0;
   const deliveryFee =
     orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
   const discountedTotal = Math.max(0, rawTotal - voucherDiscount);
@@ -3827,14 +3854,27 @@ function CheckoutScreen({
       });
       const data = await res.json();
       if (res.ok) {
+        const eligibleBase =
+          data.type === "drink" ? drinkSubtotal : foodSubtotal;
+        if (eligibleBase <= 0) {
+          setVoucherCode("");
+          setVoucherDiscount(0);
+          setVoucherType(null);
+          setVoucherResult({
+            ok: false,
+            msg: `This is a ${data.type} voucher — add a ${data.type} item to your cart to use it.`,
+          });
+          setVoucherChecking(false);
+          return;
+        }
         const pct = data.type === "drink" ? 0.1 : 0.05;
-        const disc = parseFloat((rawTotal * pct).toFixed(2));
+        const disc = parseFloat((eligibleBase * pct).toFixed(2));
         setVoucherCode(voucherInput.trim().toUpperCase());
         setVoucherDiscount(disc);
         setVoucherType(data.type);
         setVoucherResult({
           ok: true,
-          msg: `✓ ${data.type === "drink" ? "10% drink" : "5% food"} voucher — saves ₱${disc.toFixed(2)}`,
+          msg: `✓ ${data.type === "drink" ? "10% drink" : "5% food"} voucher — saves ₱${disc.toFixed(2)} (on ${data.type} items only)`,
         });
       } else {
         setVoucherCode("");

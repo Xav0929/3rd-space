@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
+import { MenuItem } from "@/models/MenuItem";
 import { notifyClients } from "@/lib/sse";
 import Redemption from "@/models/Redemption";
 
@@ -81,7 +82,6 @@ export async function POST(req: NextRequest) {
   const {
     type,
     items,
-    total,
     customerName,
     customerContact,
     deliveryAddress,
@@ -100,12 +100,80 @@ export async function POST(req: NextRequest) {
     voucherCode,
     isTab,
   } = body;
+  const total = body.total;
 
   if (!type || !items?.length || !total) {
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 },
     );
+  }
+
+  // ── Server-side voucher validation ──────────────────────────────────
+  // Never trust the client-computed total when a voucher is present.
+  // Re-derive category info per item and recompute the discount ourselves.
+  let serverVoucherType: "drink" | "food" | null = null;
+  if (voucherCode?.trim()) {
+    const redemption = await Redemption.findOne({
+      code: voucherCode.trim().toUpperCase(),
+      used: false,
+    });
+    if (!redemption) {
+      return NextResponse.json(
+        { error: "Voucher is invalid, already used, or not found." },
+        { status: 400 },
+      );
+    }
+    serverVoucherType = redemption.type;
+
+    const DRINK_CATEGORY_KEYWORDS = [
+      "3rd space",
+      "coffee",
+      "matcha",
+      "tea",
+      "non",
+      "oat",
+      "brain fuel",
+      "flavored soda",
+    ];
+    const ids = items.map((i: any) => i.id || i.menuItemId).filter(Boolean);
+    const menuDocs = await MenuItem.find({ _id: { $in: ids } }).lean();
+    const categoryByMenuItemId: Record<string, string> = Object.fromEntries(
+      menuDocs.map((m: any) => [String(m._id), m.category || ""]),
+    );
+
+    const isDrink = (cat: string) =>
+      DRINK_CATEGORY_KEYWORDS.some((k) => cat.toLowerCase().includes(k));
+
+    let eligibleSubtotal = 0;
+    for (const it of items) {
+      const cat = categoryByMenuItemId[String(it.id || it.menuItemId)] || "";
+      const lineTotal = it.price * it.quantity;
+      const matches =
+        serverVoucherType === "drink" ? isDrink(cat) : !isDrink(cat);
+      if (matches) eligibleSubtotal += lineTotal;
+    }
+
+    if (eligibleSubtotal <= 0) {
+      return NextResponse.json(
+        {
+          error: `This is a ${serverVoucherType} voucher — your cart has no ${serverVoucherType} items.`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const pct = serverVoucherType === "drink" ? 0.1 : 0.05;
+    const expectedDiscount = Math.round(eligibleSubtotal * pct * 100) / 100;
+    const rawSubtotal = items.reduce(
+      (s: number, i: any) => s + i.price * i.quantity,
+      0,
+    );
+    const expectedTotal =
+      Math.max(0, rawSubtotal - expectedDiscount) + (deliveryFee || 0);
+
+    // Overwrite whatever the client sent with the server-computed total.
+    body.total = expectedTotal;
   }
 
   if (type === "delivery") {

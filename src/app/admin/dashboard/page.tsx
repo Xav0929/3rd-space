@@ -107,6 +107,9 @@ type OrderItem = {
   price: number;
   quantity: number;
   customizations?: { type: string; label: string; price: number }[];
+  discountName?: string;
+  discountPct?: number;
+  discountAmount?: number;
 };
 type DiscountPreset = {
   _id: string;
@@ -2840,8 +2843,8 @@ function OrderCard({
   onSetPaymentMethod,
   onDelete,
   onItemsUpdate,
-  onApplyDiscount,
-  onRemoveDiscount,
+  onApplyItemDiscount,
+  onRemoveItemDiscount,
   discounts,
   staffName,
 }: {
@@ -2861,8 +2864,13 @@ function OrderCard({
     items: OrderItem[],
     total: number,
   ) => Promise<void> | void;
-  onApplyDiscount: (id: string, name: string, pct: number) => Promise<void>;
-  onRemoveDiscount: (id: string) => Promise<void>;
+  onApplyItemDiscount: (
+    id: string,
+    itemIndex: number,
+    name: string,
+    pct: number,
+  ) => Promise<void>;
+  onRemoveItemDiscount: (id: string, itemIndex: number) => Promise<void>;
   discounts: DiscountPreset[];
   staffName: string;
 }) {
@@ -2872,7 +2880,9 @@ function OrderCard({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showCashRegister, setShowCashRegister] = useState(false);
   const [showEditItems, setShowEditItems] = useState(false);
-  const [showDiscountPicker, setShowDiscountPicker] = useState(false);
+  const [openItemDiscountIdx, setOpenItemDiscountIdx] = useState<number | null>(
+    null,
+  );
   const nextStatus = STATUS_CFG[order.status].next;
   // Only mount map/tracking when card is open
   const isDeliveryOpen = open && order.type === "delivery";
@@ -3638,6 +3648,8 @@ function OrderCard({
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: 8,
                       }}
                     >
                       <span
@@ -3649,15 +3661,166 @@ function OrderCard({
                       >
                         {it.quantity}× {it.name}
                       </span>
-                      <span
+                      <div
                         style={{
-                          color: T.cream,
-                          fontSize: 16,
-                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexShrink: 0,
                         }}
                       >
-                        ₱{(it.price * it.quantity).toFixed(2)}
-                      </span>
+                        {(it as any).discountPct ? (
+                          <span
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 15,
+                                color: T.muted,
+                                textDecoration: "line-through",
+                              }}
+                            >
+                              ₱{(it.price * it.quantity).toFixed(2)}
+                            </span>
+                            <span
+                              style={{
+                                color: T.green,
+                                fontSize: 16,
+                                fontWeight: 700,
+                              }}
+                            >
+                              ₱
+                              {(
+                                it.price * it.quantity -
+                                ((it as any).discountAmount || 0)
+                              ).toFixed(2)}
+                            </span>
+                            {order.status !== "completed" &&
+                              order.status !== "cancelled" && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemoveItemDiscount(order._id, i);
+                                  }}
+                                  title="Remove discount"
+                                  style={{
+                                    background: "rgba(239,68,68,0.08)",
+                                    border: "1px solid rgba(239,68,68,0.25)",
+                                    color: T.red,
+                                    borderRadius: 6,
+                                    padding: "3px 6px",
+                                    cursor: "pointer",
+                                    fontSize: 10,
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              )}
+                          </span>
+                        ) : (
+                          <>
+                            <span
+                              style={{
+                                color: T.cream,
+                                fontSize: 16,
+                                fontWeight: 600,
+                              }}
+                            >
+                              ₱{(it.price * it.quantity).toFixed(2)}
+                            </span>
+                            {order.status !== "completed" &&
+                              order.status !== "cancelled" &&
+                              discounts.length > 0 && (
+                                <div style={{ position: "relative" }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenItemDiscountIdx((p) =>
+                                        p === i ? null : i,
+                                      );
+                                    }}
+                                    style={{
+                                      background: T.goldGlow,
+                                      border: `1px solid ${T.border}`,
+                                      color: T.muted,
+                                      borderRadius: 6,
+                                      padding: "4px 8px",
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                    }}
+                                  >
+                                    <DollarSign size={10} />
+                                    Discount
+                                  </button>
+                                  {openItemDiscountIdx === i && (
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      style={{
+                                        position: "absolute",
+                                        top: "calc(100% + 6px)",
+                                        right: 0,
+                                        minWidth: 170,
+                                        background: "#141f14",
+                                        border: `1px solid ${T.borderH}`,
+                                        borderRadius: 10,
+                                        zIndex: 999,
+                                        maxHeight: 200,
+                                        overflowY: "auto",
+                                        boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+                                      }}
+                                    >
+                                      {discounts.map((d) => (
+                                        <button
+                                          key={d._id}
+                                          onClick={() => {
+                                            onApplyItemDiscount(
+                                              order._id,
+                                              i,
+                                              d.name,
+                                              d.percentage,
+                                            );
+                                            setOpenItemDiscountIdx(null);
+                                          }}
+                                          style={{
+                                            width: "100%",
+                                            padding: "9px 12px",
+                                            background: "transparent",
+                                            border: "none",
+                                            borderBottom: `1px solid ${T.border}`,
+                                            color: T.cream,
+                                            fontSize: 12,
+                                            cursor: "pointer",
+                                            textAlign: "left",
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                          }}
+                                        >
+                                          <span>{d.name}</span>
+                                          <span
+                                            style={{
+                                              color: T.gold,
+                                              fontWeight: 700,
+                                            }}
+                                          >
+                                            {d.percentage}%
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                          </>
+                        )}
+                      </div>
                     </div>
                     {it.customizations && it.customizations.length > 0 && (
                       <div
@@ -4226,120 +4389,6 @@ function OrderCard({
                 alignItems: "center",
               }}
             >
-              {/* Discount picker */}
-              {order.status !== "completed" &&
-                order.status !== "cancelled" &&
-                discounts.length > 0 && (
-                  <div style={{ position: "relative", flexShrink: 0 }}>
-                    {order.discountPct ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemoveDiscount(order._id);
-                        }}
-                        style={{
-                          padding: "9px 12px",
-                          background: "rgba(34,197,94,0.08)",
-                          border: "1px solid rgba(34,197,94,0.25)",
-                          color: T.green,
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                        }}
-                      >
-                        ✓ {order.discountName} ({order.discountPct}%)
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDiscountPicker((p) => !p);
-                        }}
-                        style={{
-                          padding: "9px 12px",
-                          background: T.goldGlow,
-                          border: `1px solid ${T.border}`,
-                          color: T.muted,
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <DollarSign size={12} />
-                        Apply Discount
-                      </button>
-                    )}
-                    {showDiscountPicker && !order.discountPct && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          position: "absolute",
-                          bottom: "calc(100% + 6px)",
-                          left: 0,
-                          minWidth: 180,
-                          background: "#141f14",
-                          border: `1px solid ${T.borderH}`,
-                          borderRadius: 10,
-                          zIndex: 999,
-                          maxHeight: 220,
-                          overflowY: "auto",
-                          boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
-                        }}
-                      >
-                        {discounts.map((d) => (
-                          <button
-                            key={d._id}
-                            onClick={() => {
-                              onApplyDiscount(order._id, d.name, d.percentage);
-                              setShowDiscountPicker(false);
-                            }}
-                            style={{
-                              width: "100%",
-                              padding: "10px 14px",
-                              background: "transparent",
-                              border: "none",
-                              borderBottom: `1px solid ${T.border}`,
-                              color: T.cream,
-                              fontSize: 13,
-                              cursor: "pointer",
-                              textAlign: "left",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = T.goldGlow)
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = "transparent")
-                            }
-                          >
-                            <span>{d.name}</span>
-                            <span
-                              style={{
-                                color: T.gold,
-                                fontWeight: 700,
-                                fontFamily: "'Cinzel',serif",
-                              }}
-                            >
-                              {d.percentage}% off
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               {order.status !== "completed" && order.status !== "cancelled" && (
                 <button
                   onClick={(e) => {
@@ -10423,20 +10472,25 @@ function CrewTab({
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
 
   function addItem(item: MenuItem) {
+    const hasAdminVariant = item.options?.some(
+      (g) => g.name.toLowerCase() === "variant",
+    );
+    if (!hasAdminVariant) {
+      const nameKey = item.name.toLowerCase();
+      const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
+        nameKey.includes(k),
+      )?.[1];
+      const effectiveVariants =
+        item.variants && item.variants.length > 0
+          ? item.variants.map((v) => ({ label: v }))
+          : nameVariants;
+      if (effectiveVariants && effectiveVariants.length > 0) {
+        setVariantItem({ ...item, variants: effectiveVariants as any });
+        return;
+      }
+    }
     if (item.options && item.options.length > 0) {
       setGenericOptionsItem(item);
-      return;
-    }
-    const nameKey = item.name.toLowerCase();
-    const nameVariants = Object.entries(ITEM_VARIANTS).find(([k]) =>
-      nameKey.includes(k),
-    )?.[1];
-    const effectiveVariants =
-      item.variants && item.variants.length > 0
-        ? item.variants.map((v) => ({ label: v }))
-        : nameVariants;
-    if (effectiveVariants && effectiveVariants.length > 0) {
-      setVariantItem({ ...item, variants: effectiveVariants as any });
       return;
     }
     const config = getCrewCustomizations(
@@ -11340,6 +11394,18 @@ function CrewTab({
                         ...(price != null ? { price } : {}),
                       };
                       setVariantItem(null);
+                      if (resolved.options && resolved.options.length > 0) {
+                        const nonVariantOptions = resolved.options.filter(
+                          (g: any) => g.name.toLowerCase() !== "variant",
+                        );
+                        if (nonVariantOptions.length > 0) {
+                          setGenericOptionsItem({
+                            ...resolved,
+                            options: nonVariantOptions,
+                          });
+                          return;
+                        }
+                      }
                       const config = getCrewCustomizations(
                         resolved.category,
                         resolved.name,
@@ -14085,83 +14151,88 @@ export default function AdminDashboard() {
     setShopToggling(false);
   }
 
-  async function applyDiscount(
+  async function applyItemDiscount(
     orderId: string,
+    itemIndex: number,
     discountName: string,
     discountPct: number,
   ) {
     const target = orders.find((o) => o._id === orderId);
     if (!target) return;
-    const originalTotal = target.originalTotal ?? target.total;
-    const discountAmount = Math.round(originalTotal * discountPct) / 100;
-    const newTotal = Math.max(0, originalTotal - discountAmount);
     const prevOrders = orders;
+    const item = target.items[itemIndex];
+    const lineTotal = item.price * item.quantity;
+    const discountAmount = Math.round(lineTotal * discountPct) / 100;
+
     setOrders((p) =>
-      p.map((o) =>
-        o._id === orderId
-          ? {
-              ...o,
-              discountName,
-              discountPct,
-              discountAmount,
-              originalTotal,
-              total: newTotal,
-            }
-          : o,
-      ),
+      p.map((o) => {
+        if (o._id !== orderId) return o;
+        const items = o.items.map((it, i) =>
+          i === itemIndex
+            ? { ...it, discountName, discountPct, discountAmount }
+            : it,
+        );
+        const newTotal =
+          items.reduce(
+            (s, it: any) =>
+              s + it.price * it.quantity - (it.discountAmount || 0),
+            0,
+          ) + ((o as any).deliveryFee || 0);
+        return { ...o, items, total: newTotal };
+      }),
     );
-    showToast(`✓ ${discountPct}% discount applied`);
+    showToast(`✓ ${discountPct}% discount applied to item`);
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          discountName,
-          discountPct,
-          discountAmount,
-          originalTotal,
-          total: newTotal,
+          itemDiscount: { itemIndex, discountName, discountPct },
         }),
       });
       if (!res.ok) throw new Error();
+      const updated = await res.json();
+      setOrders((p) => p.map((o) => (o._id === orderId ? updated : o)));
     } catch {
       setOrders(prevOrders);
       showToast("Failed to apply discount", false);
     }
   }
 
-  async function removeDiscount(orderId: string) {
-    const target = orders.find((o) => o._id === orderId);
-    if (!target?.originalTotal) return;
+  async function removeItemDiscount(orderId: string, itemIndex: number) {
     const prevOrders = orders;
     setOrders((p) =>
-      p.map((o) =>
-        o._id === orderId
-          ? {
-              ...o,
-              discountName: undefined,
-              discountPct: undefined,
-              discountAmount: undefined,
-              originalTotal: undefined,
-              total: o.originalTotal!,
-            }
-          : o,
-      ),
+      p.map((o) => {
+        if (o._id !== orderId) return o;
+        const items = o.items.map((it, i) =>
+          i === itemIndex
+            ? {
+                ...it,
+                discountName: undefined,
+                discountPct: undefined,
+                discountAmount: undefined,
+              }
+            : it,
+        );
+        const newTotal =
+          items.reduce(
+            (s, it: any) =>
+              s + it.price * it.quantity - (it.discountAmount || 0),
+            0,
+          ) + ((o as any).deliveryFee || 0);
+        return { ...o, items, total: newTotal };
+      }),
     );
     showToast("Discount removed");
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          discountName: null,
-          discountPct: null,
-          discountAmount: null,
-          total: target.originalTotal,
-          originalTotal: null,
-        }),
+        body: JSON.stringify({ itemDiscount: { itemIndex, remove: true } }),
       });
       if (!res.ok) throw new Error();
+      const updated = await res.json();
+      setOrders((p) => p.map((o) => (o._id === orderId ? updated : o)));
     } catch {
       setOrders(prevOrders);
       showToast("Failed to remove discount", false);
@@ -15383,8 +15454,8 @@ export default function AdminDashboard() {
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
                       onItemsUpdate={updateItems}
-                      onApplyDiscount={applyDiscount}
-                      onRemoveDiscount={removeDiscount}
+                      onApplyItemDiscount={applyItemDiscount}
+                      onRemoveItemDiscount={removeItemDiscount}
                       discounts={discounts}
                       staffName={staffName}
                     />
@@ -15421,8 +15492,8 @@ export default function AdminDashboard() {
                       onSetPaymentMethod={setPaymentMethod}
                       onDelete={deleteOrder}
                       onItemsUpdate={updateItems}
-                      onApplyDiscount={applyDiscount}
-                      onRemoveDiscount={removeDiscount}
+                      onApplyItemDiscount={applyItemDiscount}
+                      onRemoveItemDiscount={removeItemDiscount}
                       discounts={discounts}
                       staffName={staffName}
                     />
