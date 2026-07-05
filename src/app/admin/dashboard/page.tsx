@@ -14584,10 +14584,20 @@ export default function AdminDashboard() {
   async function fetchData(silent = false): Promise<void> {
     try {
       if (!silent) setLoading(true);
-      const [oRes, mRes] = await Promise.all([
+      const [oRes, mRes, sRes] = await Promise.all([
         fetch("/api/orders"),
         fetch("/api/menu"),
+        fetch("/api/shop-status"),
       ]);
+      if (sRes.ok) {
+        const s = await sRes.json();
+        setShopOpen(s.open);
+        setShopOpenedAt(s.openedAt ?? null);
+        setShiftDate(s.shiftDate ?? null);
+        if (s.shiftLabel) setShiftLabel(s.shiftLabel);
+        if (typeof s.startingCash === "number")
+          setShiftStartingCash(s.startingCash);
+      }
       if (oRes.ok) {
         const fetched: Order[] = await oRes.json();
         const newOrders = fetched.filter(
@@ -14980,16 +14990,17 @@ export default function AdminDashboard() {
     ? dailyReports.find((r) => r.dayKey === todayCalKey)
     : null;
 
-  const liveRevenue =
-    !shiftDate || !shopOpenedAt
-      ? 0
-      : orders
-          .filter(
-            (o) =>
-              o.status === "completed" &&
-              new Date(o.createdAt) >= new Date(shopOpenedAt),
-          )
-          .reduce((s, o) => s + o.total, 0);
+  const liveRevenue = !shiftDate
+    ? 0
+    : orders
+        .filter(
+          (o) =>
+            o.status === "completed" &&
+            ((o as any).shiftDate
+              ? (o as any).shiftDate === shiftDate
+              : new Date(o.createdAt) >= new Date(shopOpenedAt || 0)),
+        )
+        .reduce((s, o) => s + o.total, 0);
   const revenue = todaysClosedReport ? todaysClosedReport.revenue : liveRevenue;
   const totalOrdersCount = todaysClosedReport
     ? todaysClosedReport.totalOrders
