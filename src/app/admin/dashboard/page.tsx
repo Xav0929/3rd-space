@@ -128,6 +128,9 @@ type Order = {
   discountName?: string;
   discountPct?: number;
   discountAmount?: number;
+  voucherCode?: string;
+  voucherDiscount?: number;
+  voucherItemName?: string;
   customerName?: string;
   customerContact?: string;
   deliveryAddress?: string;
@@ -223,6 +226,8 @@ type ShiftReport = {
   countedCash: number | null;
   cashDiff: number | null;
   items: Record<string, { qty: number; revenue: number }>;
+  paidInTotal?: number;
+  paidOutTotal?: number;
 };
 
 type Tab =
@@ -3639,289 +3644,356 @@ function OrderCard({
                   gap: 5,
                 }}
               >
-                {order.items.map((it, i) => (
-                  <div
-                    key={i}
-                    style={{ display: "flex", flexDirection: "column", gap: 2 }}
-                  >
+                {order.items.map((it, i) => {
+                  const hasVoucher =
+                    !!order.voucherItemName &&
+                    it.name.startsWith(order.voucherItemName);
+                  return (
                     <div
+                      key={i}
                       style={{
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: 8,
+                        flexDirection: "column",
+                        gap: 2,
                       }}
                     >
-                      <span
-                        style={{
-                          color: T.cream,
-                          fontSize: 16,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {it.quantity}× {it.name}
-                      </span>
                       <div
                         style={{
                           display: "flex",
-                          alignItems: "center",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
                           gap: 8,
-                          flexShrink: 0,
                         }}
                       >
-                        {(it as any).discountPct ? (
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                          >
+                        <span
+                          style={{
+                            color: T.cream,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {it.quantity}× {it.name}
+                          {hasVoucher && (
                             <span
                               style={{
-                                fontSize: 15,
-                                color: T.muted,
-                                textDecoration: "line-through",
-                              }}
-                            >
-                              ₱{(it.price * it.quantity).toFixed(2)}
-                            </span>
-                            <span
-                              style={{
-                                color: T.green,
-                                fontSize: 16,
+                                color: "#4ade80",
+                                fontSize: 10,
                                 fontWeight: 700,
+                                letterSpacing: ".04em",
+                                background: "rgba(74,222,128,.1)",
+                                border: "1px solid rgba(74,222,128,.3)",
+                                borderRadius: 5,
+                                padding: "2px 6px",
                               }}
                             >
-                              ₱
-                              {(
-                                it.price * it.quantity -
-                                ((it as any).discountAmount || 0)
-                              ).toFixed(2)}
+                              🎟 VOUCHER -₱
+                              {(order.voucherDiscount || 0).toFixed(2)}
                             </span>
-                            {order.status !== "completed" &&
-                              order.status !== "cancelled" && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRemoveItemDiscount(order._id, i);
-                                  }}
-                                  title="Remove discount"
-                                  style={{
-                                    background: "rgba(239,68,68,0.08)",
-                                    border: "1px solid rgba(239,68,68,0.25)",
-                                    color: T.red,
-                                    borderRadius: 6,
-                                    padding: "3px 6px",
-                                    cursor: "pointer",
-                                    fontSize: 10,
-                                  }}
-                                >
-                                  ✕
-                                </button>
-                              )}
-                          </span>
-                        ) : (
-                          <>
+                          )}
+                        </span>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {(it as any).discountPct ? (
                             <span
                               style={{
-                                color: T.cream,
-                                fontSize: 16,
-                                fontWeight: 600,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
                               }}
                             >
-                              ₱{(it.price * it.quantity).toFixed(2)}
-                            </span>
-                            {order.status !== "completed" &&
-                              order.status !== "cancelled" &&
-                              discounts.length > 0 && (
-                                <div style={{ position: "relative" }}>
+                              <span
+                                style={{
+                                  fontSize: 15,
+                                  color: T.muted,
+                                  textDecoration: "line-through",
+                                }}
+                              >
+                                ₱{(it.price * it.quantity).toFixed(2)}
+                              </span>
+                              <span
+                                style={{
+                                  color: T.green,
+                                  fontSize: 16,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ₱
+                                {(
+                                  it.price * it.quantity -
+                                  ((it as any).discountAmount || 0)
+                                ).toFixed(2)}
+                              </span>
+                              {order.status !== "completed" &&
+                                order.status !== "cancelled" && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setOpenItemDiscountIdx((p) =>
-                                        p === i ? null : i,
-                                      );
+                                      onRemoveItemDiscount(order._id, i);
                                     }}
+                                    title="Remove discount"
                                     style={{
-                                      background: T.goldGlow,
-                                      border: `1px solid ${T.border}`,
-                                      color: T.muted,
+                                      background: "rgba(239,68,68,0.08)",
+                                      border: "1px solid rgba(239,68,68,0.25)",
+                                      color: T.red,
                                       borderRadius: 6,
-                                      padding: "4px 8px",
-                                      fontSize: 10,
-                                      fontWeight: 700,
+                                      padding: "3px 6px",
                                       cursor: "pointer",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 3,
+                                      fontSize: 10,
                                     }}
                                   >
-                                    <DollarSign size={10} />
-                                    Discount
+                                    ✕
                                   </button>
-                                  {openItemDiscountIdx === i && (
-                                    <div
-                                      onClick={(e) => e.stopPropagation()}
+                                )}
+                            </span>
+                          ) : hasVoucher ? (
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 15,
+                                  color: T.muted,
+                                  textDecoration: "line-through",
+                                }}
+                              >
+                                ₱{(it.price * it.quantity).toFixed(2)}
+                              </span>
+                              <span
+                                style={{
+                                  color: "#4ade80",
+                                  fontSize: 16,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ₱
+                                {(
+                                  it.price * it.quantity -
+                                  (order.voucherDiscount || 0)
+                                ).toFixed(2)}
+                              </span>
+                            </span>
+                          ) : (
+                            <>
+                              <span
+                                style={{
+                                  color: T.cream,
+                                  fontSize: 16,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ₱{(it.price * it.quantity).toFixed(2)}
+                              </span>
+                              {order.status !== "completed" &&
+                                order.status !== "cancelled" &&
+                                discounts.length > 0 && (
+                                  <div style={{ position: "relative" }}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenItemDiscountIdx((p) =>
+                                          p === i ? null : i,
+                                        );
+                                      }}
                                       style={{
-                                        position: "absolute",
-                                        top: "calc(100% + 6px)",
-                                        right: 0,
-                                        minWidth: 170,
-                                        background: "#141f14",
-                                        border: `1px solid ${T.borderH}`,
-                                        borderRadius: 10,
-                                        zIndex: 999,
-                                        maxHeight: 200,
-                                        overflowY: "auto",
-                                        boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+                                        background: T.goldGlow,
+                                        border: `1px solid ${T.border}`,
+                                        color: T.muted,
+                                        borderRadius: 6,
+                                        padding: "4px 8px",
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 3,
                                       }}
                                     >
-                                      {discounts.map((d) => (
-                                        <button
-                                          key={d._id}
-                                          onClick={() => {
-                                            onApplyItemDiscount(
-                                              order._id,
-                                              i,
-                                              d.name,
-                                              d.percentage,
-                                            );
-                                            setOpenItemDiscountIdx(null);
-                                          }}
-                                          style={{
-                                            width: "100%",
-                                            padding: "9px 12px",
-                                            background: "transparent",
-                                            border: "none",
-                                            borderBottom: `1px solid ${T.border}`,
-                                            color: T.cream,
-                                            fontSize: 12,
-                                            cursor: "pointer",
-                                            textAlign: "left",
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                          }}
-                                        >
-                                          <span>{d.name}</span>
-                                          <span
+                                      <DollarSign size={10} />
+                                      Discount
+                                    </button>
+                                    {openItemDiscountIdx === i && (
+                                      <div
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                          position: "absolute",
+                                          top: "calc(100% + 6px)",
+                                          right: 0,
+                                          minWidth: 170,
+                                          background: "#141f14",
+                                          border: `1px solid ${T.borderH}`,
+                                          borderRadius: 10,
+                                          zIndex: 999,
+                                          maxHeight: 200,
+                                          overflowY: "auto",
+                                          boxShadow:
+                                            "0 8px 24px rgba(0,0,0,0.6)",
+                                        }}
+                                      >
+                                        {discounts.map((d) => (
+                                          <button
+                                            key={d._id}
+                                            onClick={() => {
+                                              onApplyItemDiscount(
+                                                order._id,
+                                                i,
+                                                d.name,
+                                                d.percentage,
+                                              );
+                                              setOpenItemDiscountIdx(null);
+                                            }}
                                             style={{
-                                              color: T.gold,
-                                              fontWeight: 700,
+                                              width: "100%",
+                                              padding: "9px 12px",
+                                              background: "transparent",
+                                              border: "none",
+                                              borderBottom: `1px solid ${T.border}`,
+                                              color: T.cream,
+                                              fontSize: 12,
+                                              cursor: "pointer",
+                                              textAlign: "left",
+                                              display: "flex",
+                                              justifyContent: "space-between",
                                             }}
                                           >
-                                            {d.percentage}%
-                                          </span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                          </>
-                        )}
+                                            <span>{d.name}</span>
+                                            <span
+                                              style={{
+                                                color: T.gold,
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              {d.percentage}%
+                                            </span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                            </>
+                          )}
+                        </div>
                       </div>
+                      {it.customizations && it.customizations.length > 0 && (
+                        <div
+                          style={{
+                            paddingLeft: 14,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
+                            marginTop: 2,
+                          }}
+                        >
+                          {Object.entries(
+                            it.customizations.reduce(
+                              (
+                                groups: Record<
+                                  string,
+                                  typeof it.customizations
+                                >,
+                                c,
+                              ) => {
+                                // Resolve legacy type values to friendly display labels
+                                const EGG_STYLES = new Set([
+                                  "sunny side up",
+                                  "over easy",
+                                  "over hard",
+                                  "soft scramble",
+                                  "hard scramble",
+                                  "soft boiled",
+                                  "hard boiled",
+                                  "soft boil",
+                                  "hard boil",
+                                ]);
+                                const MILK_LABELS = new Set([
+                                  "regular milk",
+                                  "oat milk",
+                                ]);
+                                const BASE_LABELS = new Set([
+                                  "coffee",
+                                  "matcha",
+                                ]);
+                                const rawType = c.type?.trim() || "Option";
+                                let key = rawType;
+                                const lc = (c.label || "").toLowerCase();
+                                if (rawType.toLowerCase() === "substitution") {
+                                  if (EGG_STYLES.has(lc)) key = "Egg Style";
+                                  else if (MILK_LABELS.has(lc)) key = "Milk";
+                                  else if (BASE_LABELS.has(lc)) key = "Base";
+                                  else key = "Option";
+                                } else if (rawType.toLowerCase() === "addon") {
+                                  key = "Add-On";
+                                } else if (rawType.toLowerCase() === "sauce") {
+                                  key = "Sauce";
+                                }
+                                if (!groups[key]) groups[key] = [];
+                                groups[key]!.push(c);
+                                return groups;
+                              },
+                              {},
+                            ),
+                          ).map(([groupType, choices]) => (
+                            <div
+                              key={groupType}
+                              style={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: 6,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: T.gold,
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  letterSpacing: ".08em",
+                                  textTransform: "uppercase",
+                                  background: "rgba(212,168,67,0.12)",
+                                  border: `1px solid ${T.gold}44`,
+                                  borderRadius: 4,
+                                  padding: "2px 6px",
+                                  flexShrink: 0,
+                                  marginTop: 1,
+                                }}
+                              >
+                                {groupType}
+                              </span>
+                              <span
+                                style={{
+                                  color: T.cream,
+                                  fontSize: 11,
+                                  opacity: 0.85,
+                                }}
+                              >
+                                {choices!
+                                  .map(
+                                    (c) =>
+                                      c.label +
+                                      (c.price > 0 ? ` (+₱${c.price})` : ""),
+                                  )
+                                  .join(", ")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {it.customizations && it.customizations.length > 0 && (
-                      <div
-                        style={{
-                          paddingLeft: 14,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 4,
-                          marginTop: 2,
-                        }}
-                      >
-                        {Object.entries(
-                          it.customizations.reduce(
-                            (
-                              groups: Record<string, typeof it.customizations>,
-                              c,
-                            ) => {
-                              // Resolve legacy type values to friendly display labels
-                              const EGG_STYLES = new Set([
-                                "sunny side up",
-                                "over easy",
-                                "over hard",
-                                "soft scramble",
-                                "hard scramble",
-                                "soft boiled",
-                                "hard boiled",
-                                "soft boil",
-                                "hard boil",
-                              ]);
-                              const MILK_LABELS = new Set([
-                                "regular milk",
-                                "oat milk",
-                              ]);
-                              const BASE_LABELS = new Set(["coffee", "matcha"]);
-                              const rawType = c.type?.trim() || "Option";
-                              let key = rawType;
-                              const lc = (c.label || "").toLowerCase();
-                              if (rawType.toLowerCase() === "substitution") {
-                                if (EGG_STYLES.has(lc)) key = "Egg Style";
-                                else if (MILK_LABELS.has(lc)) key = "Milk";
-                                else if (BASE_LABELS.has(lc)) key = "Base";
-                                else key = "Option";
-                              } else if (rawType.toLowerCase() === "addon") {
-                                key = "Add-On";
-                              } else if (rawType.toLowerCase() === "sauce") {
-                                key = "Sauce";
-                              }
-                              if (!groups[key]) groups[key] = [];
-                              groups[key]!.push(c);
-                              return groups;
-                            },
-                            {},
-                          ),
-                        ).map(([groupType, choices]) => (
-                          <div
-                            key={groupType}
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: 6,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: T.gold,
-                                fontSize: 9,
-                                fontWeight: 700,
-                                letterSpacing: ".08em",
-                                textTransform: "uppercase",
-                                background: "rgba(212,168,67,0.12)",
-                                border: `1px solid ${T.gold}44`,
-                                borderRadius: 4,
-                                padding: "2px 6px",
-                                flexShrink: 0,
-                                marginTop: 1,
-                              }}
-                            >
-                              {groupType}
-                            </span>
-                            <span
-                              style={{
-                                color: T.cream,
-                                fontSize: 11,
-                                opacity: 0.85,
-                              }}
-                            >
-                              {choices!
-                                .map(
-                                  (c) =>
-                                    c.label +
-                                    (c.price > 0 ? ` (+₱${c.price})` : ""),
-                                )
-                                .join(", ")}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 <div
                   style={{
                     borderTop: `1px solid ${T.border}`,
@@ -7477,18 +7549,51 @@ function TodayReport({
               ──Cash Reconciliation
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {[
-                ["Starting cash", fmt(closedReport.startingCash || 0), T.cream],
-                ["Cash sales", fmt(closedReport.cashRev), T.green],
-                ["Expected cash", fmt(closedReport.expectedCash || 0), T.gold],
+              {(
                 [
-                  "Counted cash",
-                  closedReport.countedCash != null
-                    ? fmt(closedReport.countedCash)
-                    : "—",
-                  T.cream,
-                ],
-              ].map(([label, val, color]) => (
+                  {
+                    label: "Starting cash",
+                    val: fmt(closedReport.startingCash || 0),
+                    color: T.cream,
+                  },
+                  {
+                    label: "Cash sales",
+                    val: fmt(closedReport.cashRev),
+                    color: T.green,
+                  },
+                  ...(closedReport.paidInTotal
+                    ? [
+                        {
+                          label: "Paid in",
+                          val: `+${fmt(closedReport.paidInTotal)}`,
+                          color: T.green,
+                        },
+                      ]
+                    : []),
+                  ...(closedReport.paidOutTotal
+                    ? [
+                        {
+                          label: "Paid out",
+                          val: `-${fmt(closedReport.paidOutTotal)}`,
+                          color: T.red,
+                        },
+                      ]
+                    : []),
+                  {
+                    label: "Expected cash",
+                    val: fmt(closedReport.expectedCash || 0),
+                    color: T.gold,
+                  },
+                  {
+                    label: "Counted cash",
+                    val:
+                      closedReport.countedCash != null
+                        ? fmt(closedReport.countedCash)
+                        : "—",
+                    color: T.cream,
+                  },
+                ] as { label: string; val: string; color: string }[]
+              ).map(({ label, val, color }) => (
                 <div
                   key={label}
                   style={{ display: "flex", justifyContent: "space-between" }}
@@ -8539,6 +8644,44 @@ function AnalyticsTab({
                       {fmt(sr.gcashRev)}
                     </span>
                   </div>
+                  {!!sr.paidInTotal && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 11 }}>
+                        Paid In
+                      </span>
+                      <span
+                        style={{
+                          color: T.green,
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                      >
+                        +{fmt(sr.paidInTotal)}
+                      </span>
+                    </div>
+                  )}
+                  {!!sr.paidOutTotal && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 11 }}>
+                        Paid Out
+                      </span>
+                      <span
+                        style={{ color: T.red, fontSize: 11, fontWeight: 600 }}
+                      >
+                        -{fmt(sr.paidOutTotal)}
+                      </span>
+                    </div>
+                  )}
                   {sr.cashDiff !== null && (
                     <div
                       style={{
@@ -13002,7 +13145,13 @@ function OpenShiftModal({
 }
 
 // ── CASH LOG MODAL (Paid In / Paid Out) ──────────────────────────────────────
-function CashLogModal({ onClose }: { onClose: () => void }) {
+function CashLogModal({
+  onClose,
+  staffName,
+}: {
+  onClose: () => void;
+  staffName: string;
+}) {
   const [paidIn, setPaidIn] = useState<
     { amount: number; note: string; at: string }[]
   >([]);
@@ -13040,7 +13189,7 @@ function CashLogModal({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/shop-status/cash-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, amount: amt, note }),
+        body: JSON.stringify({ type, amount: amt, note, loggedBy: staffName }),
       });
       if (res.ok) {
         const d = await res.json();
@@ -13309,6 +13458,11 @@ function CashLogModal({ onClose }: { onClose: () => void }) {
                   }}
                 >
                   {e.note || (e.type === "out" ? "Paid out" : "Paid in")}
+                  {(e as any).loggedBy && (
+                    <span style={{ color: T.faint, marginLeft: 6 }}>
+                      — {(e as any).loggedBy}
+                    </span>
+                  )}
                 </span>
                 <span
                   style={{
@@ -15674,7 +15828,12 @@ export default function AdminDashboard() {
           onCancel={() => setShowHandoverFlow(false)}
         />
       )}
-      {showCashLog && <CashLogModal onClose={() => setShowCashLog(false)} />}
+      {showCashLog && (
+        <CashLogModal
+          onClose={() => setShowCashLog(false)}
+          staffName={staffName}
+        />
+      )}
       {showOpenShiftModal && (
         <OpenShiftModal
           defaultLabel={shiftLabel}
@@ -15689,7 +15848,11 @@ export default function AdminDashboard() {
         <CloseShiftModal
           cashRevToday={orders
             .filter(
-              (o) => o.status === "completed" && o.paymentMethod === "cash",
+              (o) =>
+                o.status === "completed" &&
+                o.paymentMethod === "cash" &&
+                shopOpenedAt &&
+                new Date(o.createdAt) >= new Date(shopOpenedAt),
             )
             .reduce((s, o) => s + o.total, 0)}
           onConfirm={(countedCash) => {

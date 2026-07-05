@@ -105,6 +105,11 @@ const OrderSchema = new Schema(
     discountPct: { type: Number },
     discountAmount: { type: Number },
     originalTotal: { type: Number },
+
+    // voucher (customer-applied, separate from admin discountName/Pct/Amount above)
+    voucherCode: { type: String },
+    voucherDiscount: { type: Number },
+    voucherItemName: { type: String },
   },
   { timestamps: true },
 );

@@ -3784,6 +3784,8 @@ function CheckoutScreen({
   setVoucherDiscount,
   voucherType,
   setVoucherType,
+  voucherItemName,
+  setVoucherItemName,
 }: {
   cart: CartItem[];
   orderType: OrderType;
@@ -3797,6 +3799,8 @@ function CheckoutScreen({
   setVoucherDiscount: (v: number) => void;
   voucherType: "drink" | "food" | null;
   setVoucherType: (v: "drink" | "food" | null) => void;
+  voucherItemName: string;
+  setVoucherItemName: (v: string) => void;
 }) {
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [voucherInput, setVoucherInput] = useState(voucherCode);
@@ -3805,6 +3809,9 @@ function CheckoutScreen({
     ok: boolean;
     msg: string;
   } | null>(voucherCode ? { ok: true, msg: `✓ Voucher applied` } : null);
+  // Tracks which single cart item the voucher discount lands on, so we can
+  // tag it visibly in the order summary — not just say "1 food item".
+  const [voucherItemKey, setVoucherItemKey] = useState<string>("");
 
   const DRINK_CATEGORY_KEYWORDS = [
     "3rd space",
@@ -3822,18 +3829,17 @@ function CheckoutScreen({
   }
 
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const drinkSubtotal = cart
-    .filter((i) => isDrinkItem(i))
-    .reduce((s, i) => s + i.price * i.quantity, 0);
-  const foodSubtotal = cart
-    .filter((i) => !isDrinkItem(i))
-    .reduce((s, i) => s + i.price * i.quantity, 0);
-  const voucherEligibleSubtotal =
-    voucherType === "drink"
-      ? drinkSubtotal
-      : voucherType === "food"
-        ? foodSubtotal
-        : 0;
+  const drinkItems = cart.filter((i) => isDrinkItem(i));
+  const foodItems = cart.filter((i) => !isDrinkItem(i));
+  // Voucher applies to a SINGLE unit of ONE eligible item — the cheapest
+  // eligible one in the cart — not the whole category. A drink voucher
+  // discounts 1 drink, not every drink in the order.
+  const cheapestDrinkItem = drinkItems.length
+    ? drinkItems.reduce((min, i) => (i.price < min.price ? i : min))
+    : null;
+  const cheapestFoodItem = foodItems.length
+    ? foodItems.reduce((min, i) => (i.price < min.price ? i : min))
+    : null;
   const deliveryFee =
     orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
   const discountedTotal = Math.max(0, rawTotal - voucherDiscount);
@@ -3854,12 +3860,13 @@ function CheckoutScreen({
       });
       const data = await res.json();
       if (res.ok) {
-        const eligibleBase =
-          data.type === "drink" ? drinkSubtotal : foodSubtotal;
-        if (eligibleBase <= 0) {
+        const eligibleItem =
+          data.type === "drink" ? cheapestDrinkItem : cheapestFoodItem;
+        if (!eligibleItem) {
           setVoucherCode("");
           setVoucherDiscount(0);
           setVoucherType(null);
+          setVoucherItemKey("");
           setVoucherResult({
             ok: false,
             msg: `This is a ${data.type} voucher — add a ${data.type} item to your cart to use it.`,
@@ -3868,13 +3875,15 @@ function CheckoutScreen({
           return;
         }
         const pct = data.type === "drink" ? 0.1 : 0.05;
-        const disc = parseFloat((eligibleBase * pct).toFixed(2));
+        const disc = parseFloat((eligibleItem.price * pct).toFixed(2));
         setVoucherCode(voucherInput.trim().toUpperCase());
         setVoucherDiscount(disc);
         setVoucherType(data.type);
+        setVoucherItemKey(eligibleItem.cartKey);
+        setVoucherItemName(eligibleItem.name);
         setVoucherResult({
           ok: true,
-          msg: `✓ ${data.type === "drink" ? "10% drink" : "5% food"} voucher — saves ₱${disc.toFixed(2)} (on ${data.type} items only)`,
+          msg: `✓ ${data.type === "drink" ? "10% drink" : "5% food"} voucher — saves ₱${disc.toFixed(2)} on ${eligibleItem.name}`,
         });
       } else {
         setVoucherCode("");
@@ -3893,6 +3902,8 @@ function CheckoutScreen({
     setVoucherCode("");
     setVoucherDiscount(0);
     setVoucherType(null);
+    setVoucherItemKey("");
+    setVoucherItemName("");
     setVoucherResult(null);
   }
 
@@ -3958,51 +3969,75 @@ function CheckoutScreen({
               marginBottom: 16,
             }}
           >
-            {cart.map((item) => (
-              <div
-                key={item.cartKey}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 8,
-                  gap: 12,
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span
-                    style={{
-                      color: CM,
-                      fontSize: 13,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      display: "block",
-                    }}
-                  >
-                    {item.name}{" "}
-                    <span style={{ color: CF, fontSize: 12 }}>
-                      ×{item.quantity}
-                    </span>
-                  </span>
-                  {item.customizations && item.customizations.length > 0 && (
-                    <span style={{ color: CF, fontSize: 10, lineHeight: 1.4 }}>
-                      {item.customizations.map((c) => c.label).join(" · ")}
-                    </span>
-                  )}
-                </div>
-                <span
+            {cart.map((item) => {
+              const hasVoucher = item.cartKey === voucherItemKey;
+              return (
+                <div
+                  key={item.cartKey}
                   style={{
-                    color: C,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    flexShrink: 0,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 8,
+                    gap: 12,
                   }}
                 >
-                  ₱{(item.price * item.quantity).toFixed(2)}
-                </span>
-              </div>
-            ))}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        color: CM,
+                        fontSize: 13,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {item.name}{" "}
+                      <span style={{ color: CF, fontSize: 12 }}>
+                        ×{item.quantity}
+                      </span>
+                      {hasVoucher && (
+                        <span
+                          style={{
+                            color: "#4ade80",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: ".04em",
+                            background: "rgba(74,222,128,.1)",
+                            border: "1px solid rgba(74,222,128,.3)",
+                            borderRadius: 5,
+                            padding: "2px 6px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          VOUCHER
+                        </span>
+                      )}
+                    </span>
+                    {item.customizations && item.customizations.length > 0 && (
+                      <span
+                        style={{ color: CF, fontSize: 10, lineHeight: 1.4 }}
+                      >
+                        {item.customizations.map((c) => c.label).join(" · ")}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      color: hasVoucher ? "#4ade80" : C,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    ₱{(item.price * item.quantity).toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
             <div style={{ height: 1, background: BR, margin: "10px 0" }} />
             <>
               {voucherDiscount > 0 && (
@@ -4415,6 +4450,7 @@ function PaymentScreen({
   form,
   voucherDiscount,
   voucherCode,
+  voucherItemName,
 }: {
   cart: CartItem[];
   orderType: OrderType;
@@ -4427,6 +4463,7 @@ function PaymentScreen({
   form: any;
   voucherDiscount?: number;
   voucherCode?: string;
+  voucherItemName?: string;
 }) {
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const deliveryFee =
@@ -4863,31 +4900,78 @@ function PaymentScreen({
                   <div
                     style={{ height: 1, background: BR, margin: "10px 0" }}
                   />
-                  {cart.map((item) => (
+                  {cart.map((item) => {
+                    const hasVoucher =
+                      !!voucherItemName &&
+                      item.name.startsWith(voucherItemName);
+                    return (
+                      <div
+                        key={item.cartKey}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: 7,
+                          gap: 10,
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: hasVoucher ? "#4ade80" : CM,
+                            fontSize: 13,
+                            flex: 1,
+                            minWidth: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {item.name} ×{item.quantity}
+                          {hasVoucher && (
+                            <span
+                              style={{
+                                color: "#4ade80",
+                                fontSize: 9,
+                                fontWeight: 700,
+                                letterSpacing: ".04em",
+                                background: "rgba(74,222,128,.1)",
+                                border: "1px solid rgba(74,222,128,.3)",
+                                borderRadius: 5,
+                                padding: "1px 5px",
+                                flexShrink: 0,
+                              }}
+                            >
+                              VOUCHER
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          style={{
+                            color: hasVoucher ? "#4ade80" : C,
+                            fontSize: 13,
+                            flexShrink: 0,
+                          }}
+                        >
+                          ₱{(item.price * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {(voucherDiscount || 0) > 0 && (
                     <div
-                      key={item.cartKey}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         marginBottom: 7,
-                        gap: 10,
                       }}
                     >
-                      <span
-                        style={{
-                          color: CM,
-                          fontSize: 13,
-                          flex: 1,
-                          minWidth: 0,
-                        }}
-                      >
-                        {item.name} ×{item.quantity}
+                      <span style={{ color: "#4ade80", fontSize: 12 }}>
+                        Voucher discount
                       </span>
-                      <span style={{ color: C, fontSize: 13, flexShrink: 0 }}>
-                        ₱{(item.price * item.quantity).toFixed(2)}
+                      <span style={{ color: "#4ade80", fontSize: 12 }}>
+                        −₱{(voucherDiscount || 0).toFixed(2)}
                       </span>
                     </div>
-                  ))}
+                  )}
                   <div
                     style={{ height: 1, background: BR, margin: "10px 0" }}
                   />
@@ -6170,6 +6254,7 @@ export default function OrderPage() {
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [voucherType, setVoucherType] = useState<"drink" | "food" | null>(null);
+  const [voucherItemName, setVoucherItemName] = useState("");
   const [shopOpen, setShopOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
@@ -6517,6 +6602,8 @@ export default function OrderPage() {
           setVoucherDiscount={setVoucherDiscount}
           voucherType={voucherType}
           setVoucherType={setVoucherType}
+          voucherItemName={voucherItemName}
+          setVoucherItemName={setVoucherItemName}
         />
       )}
       {step === "payment" && (
@@ -6535,6 +6622,7 @@ export default function OrderPage() {
           form={form}
           voucherDiscount={voucherDiscount}
           voucherCode={voucherCode}
+          voucherItemName={voucherItemName}
         />
       )}
       {step === "confirmed" && confirmed && (

@@ -82,7 +82,7 @@ const VOUCHERS = [
     title: "DRINK VOUCHER",
     discount: "10% OFF",
     description:
-      "Valid on all drinks. Dine-in only. Present at counter before ordering.",
+      "Valid on 1 drink item only. Dine-in only. Present at counter before ordering.",
     validUntil: "Dec 31, 2025",
   },
   {
@@ -92,7 +92,7 @@ const VOUCHERS = [
     title: "FOOD VOUCHER",
     discount: "5% OFF",
     description:
-      "Valid on all food items. Dine-in only. Cannot be combined with other vouchers.",
+      "Valid on 1 food item only. Dine-in only. Cannot be combined with other vouchers.",
     validUntil: "Dec 31, 2025",
   },
 ];

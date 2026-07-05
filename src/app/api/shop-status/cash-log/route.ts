@@ -9,7 +9,7 @@ const Setting =
 export async function POST(req: Request) {
   try {
     await connectDB();
-    const { type, amount, note } = await req.json();
+    const { type, amount, note, loggedBy } = await req.json();
 
     if ((type !== "in" && type !== "out") || !amount || amount <= 0) {
       return NextResponse.json({ error: "Invalid entry" }, { status: 400 });
@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     const entry = {
       amount: Number(amount),
       note: note?.trim() || "",
+      loggedBy: loggedBy?.trim() || "Unknown",
       at: new Date().toISOString(),
     };
 

@@ -8,6 +8,10 @@ const ShiftReport =
   mongoose.models.ShiftReport ||
   mongoose.model("ShiftReport", ShiftReportSchema);
 
+const SettingSchema = new mongoose.Schema({}, { strict: false });
+const Setting =
+  mongoose.models.Setting || mongoose.model("Setting", SettingSchema);
+
 export async function GET() {
   await connectDB();
   const today = new Date();
@@ -47,8 +51,21 @@ export async function POST(req: NextRequest) {
     (o: any) => o.status === "cancelled",
   ).length;
 
+  // Pull this shift's cash-in/cash-out log before we reset it
+  const settingDoc = await Setting.findOne({ key: "shopStatus" }).lean();
+  const paidInEntries = (settingDoc as any)?.paidIn ?? [];
+  const paidOutEntries = (settingDoc as any)?.paidOut ?? [];
+  const paidInTotal = paidInEntries.reduce(
+    (s: number, e: any) => s + (e.amount || 0),
+    0,
+  );
+  const paidOutTotal = paidOutEntries.reduce(
+    (s: number, e: any) => s + (e.amount || 0),
+    0,
+  );
+
   const startingCash = bodyStartingCash || 0;
-  const expectedCash = startingCash + cashRev;
+  const expectedCash = startingCash + cashRev + paidInTotal - paidOutTotal;
   const cashDiff =
     typeof countedCash === "number" ? countedCash - expectedCash : null;
 
@@ -77,7 +94,19 @@ export async function POST(req: NextRequest) {
     expectedCash,
     cashDiff,
     items,
+    paidIn: paidInEntries,
+    paidOut: paidOutEntries,
+    paidInTotal,
+    paidOutTotal,
   });
+
+  // Reset the cash log now that it's been captured on this shift's report —
+  // the next shift should start with an empty log.
+  await Setting.findOneAndUpdate(
+    { key: "shopStatus" },
+    { $set: { paidIn: [], paidOut: [] } },
+    { upsert: true },
+  );
 
   return NextResponse.json(report);
 }

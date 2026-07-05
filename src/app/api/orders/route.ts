@@ -109,6 +109,50 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ── Server-side availability check ──────────────────────────────────
+  // The customer's cart is built from a menu snapshot fetched on page
+  // load. If an admin hides an item while they're mid-checkout, nothing
+  // on the client re-validates that before hitting this endpoint — so
+  // check current availability here, server-side, right before we'd
+  // otherwise create the order.
+  {
+    const cartItemIds = items
+      .map((i: any) => i.id || i.menuItemId)
+      .filter((id: any) => id && !String(id).startsWith("hardcoded-"));
+
+    if (cartItemIds.length > 0) {
+      const currentMenuDocs = await MenuItem.find({
+        _id: { $in: cartItemIds },
+      }).lean();
+      const availabilityById: Record<string, boolean> = Object.fromEntries(
+        currentMenuDocs.map((m: any) => [String(m._id), m.available !== false]),
+      );
+
+      const unavailableNames: string[] = [];
+      for (const it of items) {
+        const itemId = it.id || it.menuItemId;
+        if (!itemId || String(itemId).startsWith("hardcoded-")) continue;
+        // Missing from availabilityById means the item was deleted entirely.
+        const stillAvailable = availabilityById[String(itemId)];
+        if (stillAvailable === false || stillAvailable === undefined) {
+          unavailableNames.push(it.name);
+        }
+      }
+
+      if (unavailableNames.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              unavailableNames.length === 1
+                ? `"${unavailableNames[0]}" just went unavailable — please remove it from your cart and try again.`
+                : `These items just went unavailable: ${unavailableNames.join(", ")}. Please remove them from your cart and try again.`,
+          },
+          { status: 409 },
+        );
+      }
+    }
+  }
+
   // ── Server-side voucher validation ──────────────────────────────────
   // Never trust the client-computed total when a voucher is present.
   // Re-derive category info per item and recompute the discount ourselves.
@@ -145,16 +189,20 @@ export async function POST(req: NextRequest) {
     const isDrink = (cat: string) =>
       DRINK_CATEGORY_KEYWORDS.some((k) => cat.toLowerCase().includes(k));
 
-    let eligibleSubtotal = 0;
+    // Voucher applies to ONE unit of the cheapest eligible item only —
+    // not the whole drink/food category. Find that single item here.
+    let cheapestEligibleItem: any = null;
     for (const it of items) {
       const cat = categoryByMenuItemId[String(it.id || it.menuItemId)] || "";
-      const lineTotal = it.price * it.quantity;
       const matches =
         serverVoucherType === "drink" ? isDrink(cat) : !isDrink(cat);
-      if (matches) eligibleSubtotal += lineTotal;
+      if (!matches) continue;
+      if (!cheapestEligibleItem || it.price < cheapestEligibleItem.price) {
+        cheapestEligibleItem = it;
+      }
     }
 
-    if (eligibleSubtotal <= 0) {
+    if (!cheapestEligibleItem) {
       return NextResponse.json(
         {
           error: `This is a ${serverVoucherType} voucher — your cart has no ${serverVoucherType} items.`,
@@ -164,7 +212,8 @@ export async function POST(req: NextRequest) {
     }
 
     const pct = serverVoucherType === "drink" ? 0.1 : 0.05;
-    const expectedDiscount = Math.round(eligibleSubtotal * pct * 100) / 100;
+    const expectedDiscount =
+      Math.round(cheapestEligibleItem.price * pct * 100) / 100;
     const rawSubtotal = items.reduce(
       (s: number, i: any) => s + i.price * i.quantity,
       0,
@@ -174,6 +223,8 @@ export async function POST(req: NextRequest) {
 
     // Overwrite whatever the client sent with the server-computed total.
     body.total = expectedTotal;
+    body.voucherDiscount = expectedDiscount;
+    body.voucherItemName = cheapestEligibleItem.name;
   }
 
   if (type === "delivery") {
@@ -252,6 +303,8 @@ export async function POST(req: NextRequest) {
     source,
     deliveryFee,
     voucherCode: voucherCode?.trim().toUpperCase() || undefined,
+    voucherDiscount: body.voucherDiscount || undefined,
+    voucherItemName: body.voucherItemName || undefined,
     isTab: isTab === true,
     shiftLabel: body.shiftLabel || null,
   });
