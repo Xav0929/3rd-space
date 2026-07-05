@@ -144,8 +144,9 @@ export async function POST(req: NextRequest) {
           {
             error:
               unavailableNames.length === 1
-                ? `"${unavailableNames[0]}" just went unavailable — please remove it from your cart and try again.`
-                : `These items just went unavailable: ${unavailableNames.join(", ")}. Please remove them from your cart and try again.`,
+                ? `"${unavailableNames[0]}" just sold out — remove it from your cart to continue.`
+                : `These items just sold out: ${unavailableNames.join(", ")}. Remove them from your cart to continue.`,
+            unavailableNames,
           },
           { status: 409 },
         );

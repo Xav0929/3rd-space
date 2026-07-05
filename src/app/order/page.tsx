@@ -6422,7 +6422,13 @@ export default function OrderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Order failed");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const err: any = new Error(errBody.error || "Order failed");
+        err.status = res.status;
+        err.unavailableNames = errBody.unavailableNames || [];
+        throw err;
+      }
       const data = await res.json();
       setForm((p: any) => ({
         ...p,
@@ -6440,11 +6446,26 @@ export default function OrderPage() {
       const isClosedError =
         msg.toLowerCase().includes("closed") ||
         msg.toLowerCase().includes("paused");
-      setOrderError(
-        isClosedError
-          ? "Store is currently closed — please contact us directly to process your order."
-          : msg,
-      );
+
+      if (e.status === 409 && e.unavailableNames?.length > 0) {
+        // Auto-remove the sold-out item(s) from the cart so the customer
+        // doesn't have to go hunt for it themselves, then send them back
+        // to the menu to see the change and continue.
+        setCart((prev) =>
+          prev.filter(
+            (c) =>
+              !e.unavailableNames.some((n: string) => c.name.startsWith(n)),
+          ),
+        );
+        setOrderError(msg);
+        setStep("menu");
+      } else {
+        setOrderError(
+          isClosedError
+            ? "Store is currently closed — please contact us directly to process your order."
+            : msg,
+        );
+      }
       setTimeout(() => setOrderError(""), 6000);
     } finally {
       setSubmitting(false);
