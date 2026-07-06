@@ -200,6 +200,7 @@ type DailyReport = {
   dineInRev: number;
   deliveryRev: number;
   takeoutRev: number;
+  discountTotal?: number;
   items: Record<string, { qty: number; revenue: number }>;
   orders: Order[];
   startingCash?: number;
@@ -5268,6 +5269,12 @@ function MenuTab({
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const busyIdsRef = useRef<Set<string>>(new Set());
+  // Tracks cost edits that are in-flight or have been saved but not yet
+  // confirmed by a fresh GET. Maps id -> the cost value we expect the
+  // server to eventually echo back. Until it does, we keep showing our
+  // own optimistic value instead of letting a stale background refetch
+  // clobber it.
+  const pendingCostRef = useRef<Map<string, number>>(new Map());
   const [menuView, setMenuView] = useState<"cards" | "costs">("cards");
   const [editingCost, setEditingCost] = useState<{
     id: string;
@@ -5277,6 +5284,7 @@ function MenuTab({
 
   async function saveCost(item: MenuItem, cost: number) {
     setSavingCostId(item._id);
+    pendingCostRef.current.set(item._id, cost);
     try {
       const res = await fetch(`/api/menu/${item._id}`, {
         method: "PATCH",
@@ -5287,8 +5295,13 @@ function MenuTab({
         setLocalItems((prev) =>
           prev.map((i) => (i._id === item._id ? { ...i, cost } : i)),
         );
+      } else {
+        // Save failed — stop guarding this id, let the next refetch win.
+        pendingCostRef.current.delete(item._id);
       }
-    } catch {}
+    } catch {
+      pendingCostRef.current.delete(item._id);
+    }
     setSavingCostId(null);
     setEditingCost(null);
   }
@@ -5296,6 +5309,18 @@ function MenuTab({
   useEffect(() => {
     setLocalItems((prev) =>
       items.map((incoming) => {
+        const pendingCost = pendingCostRef.current.get(incoming._id);
+        if (pendingCost !== undefined) {
+          if (incoming.cost === pendingCost) {
+            // Server has caught up — safe to stop guarding this id.
+            pendingCostRef.current.delete(incoming._id);
+            return incoming;
+          }
+          // Server data is still stale relative to what we saved —
+          // keep our optimistic local value instead of overwriting it.
+          const local = prev.find((p) => p._id === incoming._id);
+          return local ? { ...incoming, cost: local.cost } : incoming;
+        }
         if (busyIdsRef.current.has(incoming._id)) {
           return prev.find((p) => p._id === incoming._id) ?? incoming;
         }
@@ -7445,7 +7470,7 @@ function TodayReport({
           <table>
             <tr class="section"><td colspan="2">SALES SUMMARY</td></tr>
             ${row("Gross sales", `₱${closedReport.revenue.toFixed(2)}`)}
-            ${row("Discounts", "₱0.00")}
+            ${row("Discounts", `₱${(closedReport.discountTotal || 0).toFixed(2)}`)}
             ${row("Refunds", "₱0.00")}
             ${row("Net sales", `₱${(closedReport.netRevenue || closedReport.revenue).toFixed(2)}`)}
             <tr class="section"><td colspan="2">PAYMENT BREAKDOWN</td></tr>
@@ -7742,6 +7767,15 @@ function TodayReport({
                     label: "Takeout",
                     value: fmt(closedReport.takeoutRev),
                     color: T.blue,
+                  },
+                ]
+              : []),
+            ...(closedReport.discountTotal
+              ? [
+                  {
+                    label: "Discounts Given",
+                    value: fmt(closedReport.discountTotal),
+                    color: T.red,
                   },
                 ]
               : []),
@@ -8824,6 +8858,23 @@ function AnalyticsTab({
                         style={{ color: T.red, fontSize: 11, fontWeight: 600 }}
                       >
                         -{fmt(sr.paidOutTotal)}
+                      </span>
+                    </div>
+                  )}
+                  {!!sr.discountTotal && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span style={{ color: T.muted, fontSize: 11 }}>
+                        Discounts Given
+                      </span>
+                      <span
+                        style={{ color: T.red, fontSize: 11, fontWeight: 600 }}
+                      >
+                        -{fmt(sr.discountTotal)}
                       </span>
                     </div>
                   )}

@@ -20,6 +20,7 @@ export async function PATCH(
       "name",
       "description",
       "price",
+      "cost",
       "category",
       "image",
       "available",

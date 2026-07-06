@@ -69,6 +69,19 @@ export async function POST(req: Request) {
       .filter((o: any) => o.type === "delivery")
       .reduce((s: number, o: any) => s + (o.deliveryFee || 0), 0);
 
+    // Total discounts given away this shift/day — item-level discounts,
+    // order-level discounts, and voucher discounts all count, same as
+    // the shift-report route.
+    const discountTotal = completed.reduce((s: number, o: any) => {
+      const itemDiscounts = (o.items || []).reduce(
+        (is: number, it: any) => is + (it.discountAmount || 0),
+        0,
+      );
+      const orderDiscount = o.discountAmount || 0;
+      const voucherDiscount = o.voucherDiscount || 0;
+      return s + itemDiscounts + orderDiscount + voucherDiscount;
+    }, 0);
+
     const items: Record<string, { qty: number; revenue: number }> = {};
     completed.forEach((o: any) => {
       o.items?.forEach((it: any) => {
@@ -111,6 +124,7 @@ export async function POST(req: Request) {
       dineInRev,
       deliveryRev,
       takeoutRev,
+      discountTotal,
       items,
       orders: JSON.parse(JSON.stringify(allOrders)),
       startingCash,
