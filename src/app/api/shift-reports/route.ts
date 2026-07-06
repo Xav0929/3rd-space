@@ -51,6 +51,18 @@ export async function POST(req: NextRequest) {
     (o: any) => o.status === "cancelled",
   ).length;
 
+  // Total discounts given away this shift — item-level discounts,
+  // order-level discounts, and voucher discounts all count.
+  const discountTotal = completed.reduce((s: number, o: any) => {
+    const itemDiscounts = (o.items || []).reduce(
+      (is: number, it: any) => is + (it.discountAmount || 0),
+      0,
+    );
+    const orderDiscount = o.discountAmount || 0;
+    const voucherDiscount = o.voucherDiscount || 0;
+    return s + itemDiscounts + orderDiscount + voucherDiscount;
+  }, 0);
+
   // Pull this shift's cash-in/cash-out log before we reset it
   const settingDoc = await Setting.findOne({ key: "shopStatus" }).lean();
   const paidInEntries = (settingDoc as any)?.paidIn ?? [];
@@ -98,6 +110,7 @@ export async function POST(req: NextRequest) {
     paidOut: paidOutEntries,
     paidInTotal,
     paidOutTotal,
+    discountTotal,
   });
 
   // Reset the cash log now that it's been captured on this shift's report —

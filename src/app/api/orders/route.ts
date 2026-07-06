@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
     source,
     deliveryFee,
     voucherCode,
+    voucherCodes,
     isTab,
   } = body;
   const total = body.total;
@@ -154,23 +155,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Server-side voucher validation ──────────────────────────────────
-  // Never trust the client-computed total when a voucher is present.
-  // Re-derive category info per item and recompute the discount ourselves.
-  let serverVoucherType: "drink" | "food" | null = null;
-  if (voucherCode?.trim()) {
-    const redemption = await Redemption.findOne({
-      code: voucherCode.trim().toUpperCase(),
-      used: false,
-    });
-    if (!redemption) {
-      return NextResponse.json(
-        { error: "Voucher is invalid, already used, or not found." },
-        { status: 400 },
-      );
-    }
-    serverVoucherType = redemption.type;
+  // ── Server-side voucher validation (supports multiple codes) ────────
+  // Never trust the client-computed total when vouchers are present.
+  // Each voucher code discounts ONE unit of ONE distinct eligible item —
+  // codes can't stack on the same line, so a table of 4 redeeming 4
+  // separate review vouchers gets 4 separate discounts on 4 separate items.
+  const rawVoucherCodes: string[] = Array.isArray(voucherCodes)
+    ? voucherCodes.filter((c: string) => c?.trim())
+    : voucherCode?.trim()
+      ? [voucherCode]
+      : [];
 
+  const appliedVouchers: {
+    code: string;
+    type: "drink" | "food";
+    discount: number;
+    itemName: string;
+  }[] = [];
+
+  if (rawVoucherCodes.length > 0) {
     const DRINK_CATEGORY_KEYWORDS = [
       "3rd space",
       "coffee",
@@ -186,46 +189,78 @@ export async function POST(req: NextRequest) {
     const categoryByMenuItemId: Record<string, string> = Object.fromEntries(
       menuDocs.map((m: any) => [String(m._id), m.category || ""]),
     );
-
     const isDrink = (cat: string) =>
       DRINK_CATEGORY_KEYWORDS.some((k) => cat.toLowerCase().includes(k));
 
-    // Voucher applies to ONE unit of the cheapest eligible item only —
-    // not the whole drink/food category. Find that single item here.
-    let cheapestEligibleItem: any = null;
-    for (const it of items) {
-      const cat = categoryByMenuItemId[String(it.id || it.menuItemId)] || "";
-      const matches =
-        serverVoucherType === "drink" ? isDrink(cat) : !isDrink(cat);
-      if (!matches) continue;
-      if (!cheapestEligibleItem || it.price < cheapestEligibleItem.price) {
-        cheapestEligibleItem = it;
+    // Which cart lines (by index) are already claimed by a voucher this
+    // order, so two codes can never discount the same line.
+    const claimedIndexes = new Set<number>();
+
+    for (const rawCode of rawVoucherCodes) {
+      const codeUpper = rawCode.trim().toUpperCase();
+
+      const redemption = await Redemption.findOne({
+        code: codeUpper,
+        used: false,
+      });
+      if (!redemption) {
+        return NextResponse.json(
+          {
+            error: `Voucher "${codeUpper}" is invalid, already used, or not found.`,
+          },
+          { status: 400 },
+        );
       }
+      const vType: "drink" | "food" = redemption.type;
+
+      let bestIdx = -1;
+      let bestItem: any = null;
+      items.forEach((it: any, idx: number) => {
+        if (claimedIndexes.has(idx)) return;
+        const cat = categoryByMenuItemId[String(it.id || it.menuItemId)] || "";
+        const matches = vType === "drink" ? isDrink(cat) : !isDrink(cat);
+        if (!matches) return;
+        if (!bestItem || it.price < bestItem.price) {
+          bestItem = it;
+          bestIdx = idx;
+        }
+      });
+
+      if (!bestItem) {
+        return NextResponse.json(
+          {
+            error: `Voucher "${codeUpper}" is a ${vType} voucher, but there's no eligible ${vType} item left in the cart to apply it to.`,
+          },
+          { status: 400 },
+        );
+      }
+
+      claimedIndexes.add(bestIdx);
+      const pct = vType === "drink" ? 0.1 : 0.05;
+      const discount = Math.round(bestItem.price * pct * 100) / 100;
+      appliedVouchers.push({
+        code: codeUpper,
+        type: vType,
+        discount,
+        itemName: bestItem.name,
+      });
     }
 
-    if (!cheapestEligibleItem) {
-      return NextResponse.json(
-        {
-          error: `This is a ${serverVoucherType} voucher — your cart has no ${serverVoucherType} items.`,
-        },
-        { status: 400 },
-      );
-    }
-
-    const pct = serverVoucherType === "drink" ? 0.1 : 0.05;
-    const expectedDiscount =
-      Math.round(cheapestEligibleItem.price * pct * 100) / 100;
+    const totalVoucherDiscount = appliedVouchers.reduce(
+      (s, v) => s + v.discount,
+      0,
+    );
     const rawSubtotal = items.reduce(
       (s: number, i: any) => s + i.price * i.quantity,
       0,
     );
     const expectedTotal =
-      Math.max(0, rawSubtotal - expectedDiscount) + (deliveryFee || 0);
+      Math.max(0, rawSubtotal - totalVoucherDiscount) + (deliveryFee || 0);
 
     // Overwrite whatever the client sent with the server-computed total.
     body.total = expectedTotal;
-    body.voucherDiscount = expectedDiscount;
-    body.voucherItemName = cheapestEligibleItem.name;
+    body.voucherDiscount = totalVoucherDiscount;
+    body.voucherItemName = appliedVouchers.map((v) => v.itemName).join(", ");
   }
 
   if (type === "delivery") {
@@ -303,17 +338,20 @@ export async function POST(req: NextRequest) {
     waiterName,
     source,
     deliveryFee,
-    voucherCode: voucherCode?.trim().toUpperCase() || undefined,
+    voucherCode: appliedVouchers[0]?.code || undefined,
+    voucherCodes: appliedVouchers.length
+      ? appliedVouchers.map((v) => v.code)
+      : undefined,
     voucherDiscount: body.voucherDiscount || undefined,
     voucherItemName: body.voucherItemName || undefined,
     isTab: isTab === true,
     shiftLabel: body.shiftLabel || null,
   });
 
-  // Burn the voucher only now that the order is confirmed
-  if (voucherCode?.trim()) {
-    await Redemption.updateOne(
-      { code: voucherCode.trim().toUpperCase(), used: false },
+  // Burn every applied voucher only now that the order is confirmed
+  if (appliedVouchers.length > 0) {
+    await Redemption.updateMany(
+      { code: { $in: appliedVouchers.map((v) => v.code) }, used: false },
       { $set: { used: true, usedAt: new Date(), orderId: order._id } },
     );
   }

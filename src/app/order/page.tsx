@@ -3778,14 +3778,8 @@ function CheckoutScreen({
   onFormChange,
   onNext,
   onBack,
-  voucherCode,
-  setVoucherCode,
-  voucherDiscount,
-  setVoucherDiscount,
-  voucherType,
-  setVoucherType,
-  voucherItemName,
-  setVoucherItemName,
+  vouchers,
+  setVouchers,
 }: {
   cart: CartItem[];
   orderType: OrderType;
@@ -3793,25 +3787,32 @@ function CheckoutScreen({
   onFormChange: (f: string, v: any) => void;
   onNext: () => void;
   onBack: () => void;
-  voucherCode: string;
-  setVoucherCode: (v: string) => void;
-  voucherDiscount: number;
-  setVoucherDiscount: (v: number) => void;
-  voucherType: "drink" | "food" | null;
-  setVoucherType: (v: "drink" | "food" | null) => void;
-  voucherItemName: string;
-  setVoucherItemName: (v: string) => void;
+  vouchers: {
+    code: string;
+    type: "drink" | "food";
+    discount: number;
+    itemName: string;
+    cartKey: string;
+  }[];
+  setVouchers: React.Dispatch<
+    React.SetStateAction<
+      {
+        code: string;
+        type: "drink" | "food";
+        discount: number;
+        itemName: string;
+        cartKey: string;
+      }[]
+    >
+  >;
 }) {
   const [phoneTouched, setPhoneTouched] = useState(false);
-  const [voucherInput, setVoucherInput] = useState(voucherCode);
+  const [voucherInput, setVoucherInput] = useState("");
   const [voucherChecking, setVoucherChecking] = useState(false);
   const [voucherResult, setVoucherResult] = useState<{
     ok: boolean;
     msg: string;
-  } | null>(voucherCode ? { ok: true, msg: `✓ Voucher applied` } : null);
-  // Tracks which single cart item the voucher discount lands on, so we can
-  // tag it visibly in the order summary — not just say "1 food item".
-  const [voucherItemKey, setVoucherItemKey] = useState<string>("");
+  } | null>(null);
 
   const DRINK_CATEGORY_KEYWORDS = [
     "3rd space",
@@ -3831,80 +3832,78 @@ function CheckoutScreen({
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const drinkItems = cart.filter((i) => isDrinkItem(i));
   const foodItems = cart.filter((i) => !isDrinkItem(i));
-  // Voucher applies to a SINGLE unit of ONE eligible item — the cheapest
-  // eligible one in the cart — not the whole category. A drink voucher
-  // discounts 1 drink, not every drink in the order.
-  const cheapestDrinkItem = drinkItems.length
-    ? drinkItems.reduce((min, i) => (i.price < min.price ? i : min))
-    : null;
-  const cheapestFoodItem = foodItems.length
-    ? foodItems.reduce((min, i) => (i.price < min.price ? i : min))
-    : null;
   const deliveryFee =
     orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
-  const discountedTotal = Math.max(0, rawTotal - voucherDiscount);
+  const totalVoucherDiscount = vouchers.reduce((s, v) => s + v.discount, 0);
+  const discountedTotal = Math.max(0, rawTotal - totalVoucherDiscount);
   const total = discountedTotal + deliveryFee;
 
+  // Each new code claims the cheapest eligible item that isn't already
+  // claimed by another applied voucher — so a table of 4 review vouchers
+  // lands on 4 different cart lines, not the same one four times.
   async function applyVoucher() {
     if (!voucherInput.trim()) return;
     setVoucherChecking(true);
     setVoucherResult(null);
+    const codeUpper = voucherInput.trim().toUpperCase();
+    if (vouchers.some((v) => v.code === codeUpper)) {
+      setVoucherResult({ ok: false, msg: "That code is already applied." });
+      setVoucherChecking(false);
+      return;
+    }
     try {
       const res = await fetch("/api/vouchers/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: voucherInput.trim().toUpperCase(),
-          dryRun: true,
-        }),
+        body: JSON.stringify({ code: codeUpper }),
       });
       const data = await res.json();
-      if (res.ok) {
-        const eligibleItem =
-          data.type === "drink" ? cheapestDrinkItem : cheapestFoodItem;
-        if (!eligibleItem) {
-          setVoucherCode("");
-          setVoucherDiscount(0);
-          setVoucherType(null);
-          setVoucherItemKey("");
-          setVoucherResult({
-            ok: false,
-            msg: `This is a ${data.type} voucher — add a ${data.type} item to your cart to use it.`,
-          });
-          setVoucherChecking(false);
-          return;
-        }
-        const pct = data.type === "drink" ? 0.1 : 0.05;
-        const disc = parseFloat((eligibleItem.price * pct).toFixed(2));
-        setVoucherCode(voucherInput.trim().toUpperCase());
-        setVoucherDiscount(disc);
-        setVoucherType(data.type);
-        setVoucherItemKey(eligibleItem.cartKey);
-        setVoucherItemName(eligibleItem.name);
-        setVoucherResult({
-          ok: true,
-          msg: `✓ ${data.type === "drink" ? "10% drink" : "5% food"} voucher — saves ₱${disc.toFixed(2)} on ${eligibleItem.name}`,
-        });
-      } else {
-        setVoucherCode("");
-        setVoucherDiscount(0);
-        setVoucherType(null);
+      if (!res.ok) {
         setVoucherResult({ ok: false, msg: data.error });
+        setVoucherChecking(false);
+        return;
       }
+      const claimedKeys = new Set(vouchers.map((v) => v.cartKey));
+      const pool = data.type === "drink" ? drinkItems : foodItems;
+      const eligibleItem = pool
+        .filter((i) => !claimedKeys.has(i.cartKey))
+        .reduce(
+          (min: CartItem | null, i) => (!min || i.price < min.price ? i : min),
+          null as CartItem | null,
+        );
+      if (!eligibleItem) {
+        setVoucherResult({
+          ok: false,
+          msg: `This is a ${data.type} voucher — no eligible ${data.type} item left in your cart to apply it to.`,
+        });
+        setVoucherChecking(false);
+        return;
+      }
+      const pct = data.type === "drink" ? 0.1 : 0.05;
+      const disc = parseFloat((eligibleItem.price * pct).toFixed(2));
+      setVouchers((prev) => [
+        ...prev,
+        {
+          code: data.code,
+          type: data.type,
+          discount: disc,
+          itemName: eligibleItem.name,
+          cartKey: eligibleItem.cartKey,
+        },
+      ]);
+      setVoucherInput("");
+      setVoucherResult({
+        ok: true,
+        msg: `✓ ${data.type === "drink" ? "10% drink" : "5% food"} voucher — saves ₱${disc.toFixed(2)} on ${eligibleItem.name}`,
+      });
     } catch {
       setVoucherResult({ ok: false, msg: "Network error." });
     }
     setVoucherChecking(false);
   }
 
-  function removeVoucher() {
-    setVoucherInput("");
-    setVoucherCode("");
-    setVoucherDiscount(0);
-    setVoucherType(null);
-    setVoucherItemKey("");
-    setVoucherItemName("");
-    setVoucherResult(null);
+  function removeVoucher(code: string) {
+    setVouchers((prev) => prev.filter((v) => v.code !== code));
   }
 
   const handlePhone = (raw: string) => {
@@ -3970,7 +3969,9 @@ function CheckoutScreen({
             }}
           >
             {cart.map((item) => {
-              const hasVoucher = item.cartKey === voucherItemKey;
+              const hasVoucher = vouchers.some(
+                (v) => v.cartKey === item.cartKey,
+              );
               return (
                 <div
                   key={item.cartKey}
@@ -4040,7 +4041,7 @@ function CheckoutScreen({
             })}
             <div style={{ height: 1, background: BR, margin: "10px 0" }} />
             <>
-              {voucherDiscount > 0 && (
+              {totalVoucherDiscount > 0 && (
                 <div
                   style={{
                     display: "flex",
@@ -4054,8 +4055,9 @@ function CheckoutScreen({
                   </span>
                 </div>
               )}
-              {voucherDiscount > 0 && (
+              {vouchers.map((v) => (
                 <div
+                  key={v.code}
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -4063,13 +4065,13 @@ function CheckoutScreen({
                   }}
                 >
                   <span style={{ color: "#4ade80", fontSize: 12 }}>
-                    Voucher
+                    Voucher {v.code}
                   </span>
                   <span style={{ color: "#4ade80", fontSize: 12 }}>
-                    −₱{voucherDiscount.toFixed(2)}
+                    −₱{v.discount.toFixed(2)}
                   </span>
                 </div>
-              )}
+              ))}
               {deliveryFee > 0 && (
                 <div
                   style={{
@@ -4294,109 +4296,141 @@ function CheckoutScreen({
                     fontFamily: "'Cinzel',serif",
                   }}
                 >
-                  VOUCHER CODE (OPTIONAL)
+                  VOUCHER CODE{vouchers.length > 0 ? "S" : ""} (OPTIONAL)
+                  {vouchers.length > 0 && (
+                    <span style={{ color: CF, fontWeight: 400 }}>
+                      {" "}
+                      — {vouchers.length} applied
+                    </span>
+                  )}
                 </label>
-                {voucherDiscount > 0 ? (
+
+                {vouchers.length > 0 && (
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "10px 14px",
-                      background: "rgba(74,222,128,.08)",
-                      border: "1px solid rgba(74,222,128,.3)",
-                      borderRadius: 8,
+                      flexDirection: "column",
+                      gap: 6,
+                      marginBottom: 10,
                     }}
                   >
-                    <span
-                      style={{
-                        flex: 1,
-                        color: "#4ade80",
-                        fontSize: 13,
-                        fontFamily: "'Cinzel',serif",
-                        letterSpacing: ".08em",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {voucherCode}
-                    </span>
-                    <span style={{ color: "#4ade80", fontSize: 12 }}>
-                      {voucherResult?.msg}
-                    </span>
-                    <button
-                      onClick={removeVoucher}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: CM,
-                        display: "flex",
-                        padding: 4,
-                      }}
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      width: "100%",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    <input
-                      value={voucherInput}
-                      onChange={(e) =>
-                        setVoucherInput(e.target.value.toUpperCase())
-                      }
-                      onKeyDown={(e) => e.key === "Enter" && applyVoucher()}
-                      placeholder="e.g. DRK-4X9K"
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        background: "rgba(255,255,255,.03)",
-                        border: `1px solid ${BR}`,
-                        borderRadius: 8,
-                        padding: "12px 12px",
-                        color: C,
-                        fontSize: 16,
-                        outline: "none",
-                        fontFamily: "'Cinzel',serif",
-                        letterSpacing: ".08em",
-                        boxSizing: "border-box" as const,
-                      }}
-                    />
-                    <button
-                      onClick={applyVoucher}
-                      disabled={voucherChecking || !voucherInput.trim()}
-                      style={{
-                        flexShrink: 0,
-                        padding: "10px 14px",
-                        background: voucherInput.trim()
-                          ? G
-                          : "rgba(212,168,67,.2)",
-                        border: "none",
-                        borderRadius: 8,
-                        color: voucherInput.trim() ? BG : CM,
-                        fontFamily: "'Cinzel',serif",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".08em",
-                        cursor: voucherInput.trim() ? "pointer" : "not-allowed",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {voucherChecking ? "…" : "APPLY"}
-                    </button>
+                    {vouchers.map((v) => (
+                      <div
+                        key={v.code}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "9px 14px",
+                          background: "rgba(74,222,128,.08)",
+                          border: "1px solid rgba(74,222,128,.3)",
+                          borderRadius: 8,
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "#4ade80",
+                            fontSize: 12,
+                            fontFamily: "'Cinzel',serif",
+                            letterSpacing: ".06em",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {v.code}
+                        </span>
+                        <span
+                          style={{
+                            flex: 1,
+                            color: CM,
+                            fontSize: 11,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          −₱{v.discount.toFixed(2)} on {v.itemName}
+                        </span>
+                        <button
+                          onClick={() => removeVoucher(v.code)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: CM,
+                            display: "flex",
+                            padding: 4,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <input
+                    value={voucherInput}
+                    onChange={(e) =>
+                      setVoucherInput(e.target.value.toUpperCase())
+                    }
+                    onKeyDown={(e) => e.key === "Enter" && applyVoucher()}
+                    placeholder="e.g. DRK-4X9K"
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      background: "rgba(255,255,255,.03)",
+                      border: `1px solid ${BR}`,
+                      borderRadius: 8,
+                      padding: "12px 12px",
+                      color: C,
+                      fontSize: 16,
+                      outline: "none",
+                      fontFamily: "'Cinzel',serif",
+                      letterSpacing: ".08em",
+                      boxSizing: "border-box" as const,
+                    }}
+                  />
+                  <button
+                    onClick={applyVoucher}
+                    disabled={voucherChecking || !voucherInput.trim()}
+                    style={{
+                      flexShrink: 0,
+                      padding: "10px 14px",
+                      background: voucherInput.trim()
+                        ? G
+                        : "rgba(212,168,67,.2)",
+                      border: "none",
+                      borderRadius: 8,
+                      color: voucherInput.trim() ? BG : CM,
+                      fontFamily: "'Cinzel',serif",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".08em",
+                      cursor: voucherInput.trim() ? "pointer" : "not-allowed",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {voucherChecking ? "…" : "APPLY"}
+                  </button>
+                </div>
                 {voucherResult && !voucherResult.ok && (
                   <p style={{ color: ERR, fontSize: 12, marginTop: 6 }}>
                     {voucherResult.msg}
                   </p>
                 )}
+                <p style={{ color: CF, fontSize: 11, marginTop: 6 }}>
+                  Each table member with their own review code can add it here —
+                  one code per person, applied to one item each.
+                </p>
               </div>
             )}
 
@@ -4448,9 +4482,7 @@ function PaymentScreen({
   submitting,
   onBack,
   form,
-  voucherDiscount,
-  voucherCode,
-  voucherItemName,
+  vouchers = [],
 }: {
   cart: CartItem[];
   orderType: OrderType;
@@ -4461,14 +4493,19 @@ function PaymentScreen({
   submitting: boolean;
   onBack: () => void;
   form: any;
-  voucherDiscount?: number;
-  voucherCode?: string;
-  voucherItemName?: string;
+  vouchers?: {
+    code: string;
+    type: "drink" | "food";
+    discount: number;
+    itemName: string;
+    cartKey: string;
+  }[];
 }) {
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const deliveryFee =
     orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
-  const total = Math.max(0, rawTotal - (voucherDiscount || 0)) + deliveryFee;
+  const totalVoucherDiscount = vouchers.reduce((s, v) => s + v.discount, 0);
+  const total = Math.max(0, rawTotal - totalVoucherDiscount) + deliveryFee;
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
@@ -4901,9 +4938,9 @@ function PaymentScreen({
                     style={{ height: 1, background: BR, margin: "10px 0" }}
                   />
                   {cart.map((item) => {
-                    const hasVoucher =
-                      !!voucherItemName &&
-                      item.name.startsWith(voucherItemName);
+                    const hasVoucher = vouchers.some(
+                      (v) => v.cartKey === item.cartKey,
+                    );
                     return (
                       <div
                         key={item.cartKey}
@@ -4956,8 +4993,9 @@ function PaymentScreen({
                       </div>
                     );
                   })}
-                  {(voucherDiscount || 0) > 0 && (
+                  {vouchers.map((v) => (
                     <div
+                      key={v.code}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -4965,13 +5003,13 @@ function PaymentScreen({
                       }}
                     >
                       <span style={{ color: "#4ade80", fontSize: 12 }}>
-                        Voucher discount
+                        Voucher {v.code}
                       </span>
                       <span style={{ color: "#4ade80", fontSize: 12 }}>
-                        −₱{(voucherDiscount || 0).toFixed(2)}
+                        −₱{v.discount.toFixed(2)}
                       </span>
                     </div>
-                  )}
+                  ))}
                   <div
                     style={{ height: 1, background: BR, margin: "10px 0" }}
                   />
@@ -6251,10 +6289,15 @@ export default function OrderPage() {
   const [paymentMethod, setPaymentMethod] = useState<PayMethod>("cash");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [receiptKey, setReceiptKey] = useState("");
-  const [voucherCode, setVoucherCode] = useState("");
-  const [voucherDiscount, setVoucherDiscount] = useState(0);
-  const [voucherType, setVoucherType] = useState<"drink" | "food" | null>(null);
-  const [voucherItemName, setVoucherItemName] = useState("");
+  const [vouchers, setVouchers] = useState<
+    {
+      code: string;
+      type: "drink" | "food";
+      discount: number;
+      itemName: string;
+      cartKey: string;
+    }[]
+  >([]);
   const [shopOpen, setShopOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
@@ -6350,7 +6393,8 @@ export default function OrderPage() {
       const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
       const deliveryFee =
         orderType === "delivery" ? (form.deliveryAddress?.deliveryFee ?? 0) : 0;
-      const total = Math.max(0, rawTotal - voucherDiscount) + deliveryFee;
+      const totalVoucherDiscount = vouchers.reduce((s, v) => s + v.discount, 0);
+      const total = Math.max(0, rawTotal - totalVoucherDiscount) + deliveryFee;
       const eff: PayMethod = orderType === "delivery" ? "gcash" : paymentMethod;
       const splitAmounts =
         eff === "split"
@@ -6416,7 +6460,9 @@ export default function OrderPage() {
           payload.receiptKey = receiptKey;
         }
       }
-      if (voucherCode) payload.voucherCode = voucherCode;
+      if (vouchers.length > 0) {
+        payload.voucherCodes = vouchers.map((v) => v.code);
+      }
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6434,7 +6480,7 @@ export default function OrderPage() {
         ...p,
         _total: total.toFixed(2),
         _rawTotal: rawTotal.toFixed(2),
-        _voucherDiscount: voucherDiscount,
+        _voucherDiscount: totalVoucherDiscount,
       }));
       setConfirmed({ orderNumber: data.orderNumber, type: orderType });
       setStep("confirmed");
@@ -6502,9 +6548,7 @@ export default function OrderPage() {
       pickupTime: "",
     });
     setConfirmed(null);
-    setVoucherCode("");
-    setVoucherDiscount(0);
-    setVoucherType(null);
+    setVouchers([]);
   }
 
   return (
@@ -6617,14 +6661,8 @@ export default function OrderPage() {
             setStep("payment");
           }}
           onBack={back}
-          voucherCode={voucherCode}
-          setVoucherCode={setVoucherCode}
-          voucherDiscount={voucherDiscount}
-          setVoucherDiscount={setVoucherDiscount}
-          voucherType={voucherType}
-          setVoucherType={setVoucherType}
-          voucherItemName={voucherItemName}
-          setVoucherItemName={setVoucherItemName}
+          vouchers={vouchers}
+          setVouchers={setVouchers}
         />
       )}
       {step === "payment" && (
@@ -6641,9 +6679,7 @@ export default function OrderPage() {
           submitting={submitting}
           onBack={back}
           form={form}
-          voucherDiscount={voucherDiscount}
-          voucherCode={voucherCode}
-          voucherItemName={voucherItemName}
+          vouchers={vouchers}
         />
       )}
       {step === "confirmed" && confirmed && (

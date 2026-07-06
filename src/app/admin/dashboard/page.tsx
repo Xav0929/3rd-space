@@ -228,6 +228,7 @@ type ShiftReport = {
   items: Record<string, { qty: number; revenue: number }>;
   paidInTotal?: number;
   paidOutTotal?: number;
+  discountTotal?: number;
 };
 
 type Tab =
@@ -8001,7 +8002,7 @@ function TodayReport({
                 marginBottom: 4,
               }}
             >
-              ──Today's Report
+              ──Today's Report (All Shifts Combined)
             </p>
             <p style={{ color: T.muted, fontSize: 12, marginBottom: 14 }}>
               {dateStr}
@@ -8463,6 +8464,8 @@ function AnalyticsTab({
   shiftReports = [],
   currentShiftLabel = "Shift 1",
   activeShiftOpenedAt,
+  shiftStartingCash = 0,
+  liveCashLog = { paidInTotal: 0, paidOutTotal: 0 },
 }: {
   orders: Order[];
   dailyReports: DailyReport[];
@@ -8471,6 +8474,8 @@ function AnalyticsTab({
   shiftReports?: ShiftReport[];
   currentShiftLabel?: string;
   activeShiftOpenedAt?: string | null;
+  shiftStartingCash?: number;
+  liveCashLog?: { paidInTotal: number; paidOutTotal: number };
 }) {
   const w = useWindowWidth();
   const isMobile = w < 640;
@@ -8490,6 +8495,89 @@ function AnalyticsTab({
   const allTimeCompleted = dailyReports.reduce((s, r) => s + r.orderCount, 0);
   const daysOperated = dailyReports.length;
   const avgDailyRevenue = daysOperated > 0 ? allTimeRevenue / daysOperated : 0;
+
+  function printShiftHandover(sr: ShiftReport) {
+    const win = window.open("", "_blank", "width=380,height=600");
+    if (!win) return;
+    const dateStr = new Date(sr.closedAt).toLocaleDateString("en-PH", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+    const openedStr = new Date(sr.openedAt).toLocaleTimeString("en-PH", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    const closedStr = new Date(sr.closedAt).toLocaleTimeString("en-PH", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    const row = (label: string, value: string) =>
+      `<tr><td>${label}</td><td style="text-align:right;font-weight:700;">${value}</td></tr>`;
+    const topItems = Object.entries(sr.items || {})
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 8);
+    const itemRows = topItems
+      .map(([name, s]) => row(`${name} ×${s.qty}`, fmt(s.revenue)))
+      .join("");
+    win.document.write(`
+      <html>
+      <head>
+        <title>Shift Handover — ${sr.shiftLabel}</title>
+        <style>
+          body { font-family: 'Courier New', monospace; padding: 16px; color: #000; }
+          h1 { font-size: 16px; text-align: center; margin-bottom: 2px; }
+          p.sub { text-align: center; font-size: 11px; margin-bottom: 14px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          td { padding: 4px 0; border-bottom: 1px dashed #999; }
+          tr.total td { border-top: 2px solid #000; border-bottom: none; font-size: 15px; padding-top: 8px; }
+          tr.section td { padding-top: 12px; font-weight: 700; border-bottom: 1px solid #000; }
+        </style>
+      </head>
+      <body>
+        <h1>3RD SPACE — SHIFT HANDOVER</h1>
+        <p class="sub">${sr.shiftLabel}${sr.openedBy ? ` · ${sr.openedBy}` : ""}<br/>${dateStr}<br/>Opened ${openedStr} · Closed ${closedStr}</p>
+        <table>
+          <tr class="section"><td colspan="2">SALES</td></tr>
+          ${row("Gross revenue", fmt(sr.revenue))}
+          ${row("Cash", fmt(sr.cashRev))}
+          ${row("GCash", fmt(sr.gcashRev))}
+          ${row("Orders completed", String(sr.orderCount))}
+          ${row("Cancelled", String(sr.cancelledCount || 0))}
+          ${sr.discountTotal ? row("Total discounts given", fmt(sr.discountTotal)) : ""}
+          <tr class="section"><td colspan="2">CASH DRAWER</td></tr>
+          ${row("Starting cash", fmt(sr.startingCash || 0))}
+          ${sr.paidInTotal ? row("Paid in", `+${fmt(sr.paidInTotal)}`) : ""}
+          ${sr.paidOutTotal ? row("Paid out", `-${fmt(sr.paidOutTotal)}`) : ""}
+          ${row("Expected cash", fmt((sr.startingCash || 0) + sr.cashRev + (sr.paidInTotal || 0) - (sr.paidOutTotal || 0)))}
+          ${row("Counted cash", sr.countedCash != null ? fmt(sr.countedCash) : "—")}
+          ${
+            sr.cashDiff != null
+              ? row(
+                  sr.cashDiff === 0
+                    ? "Balanced"
+                    : sr.cashDiff > 0
+                      ? "Over by"
+                      : "Short by",
+                  fmt(Math.abs(sr.cashDiff)),
+                )
+              : ""
+          }
+          ${
+            itemRows
+              ? `<tr class="section"><td colspan="2">TOP ITEMS</td></tr>${itemRows}`
+              : ""
+          }
+        </table>
+      </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -8588,18 +8676,38 @@ function AnalyticsTab({
                       </p>
                     )}
                   </div>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: T.muted,
-                      background: "rgba(239,68,68,0.1)",
-                      border: "1px solid rgba(239,68,68,0.2)",
-                      padding: "2px 8px",
-                      borderRadius: 4,
-                    }}
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
                   >
-                    Closed
-                  </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        color: T.muted,
+                        background: "rgba(239,68,68,0.1)",
+                        border: "1px solid rgba(239,68,68,0.2)",
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      Closed
+                    </span>
+                    <button
+                      onClick={() => printShiftHandover(sr)}
+                      title="Print shift handover report"
+                      style={{
+                        background: "rgba(212,168,67,0.08)",
+                        border: `1px solid ${T.borderH}`,
+                        borderRadius: 6,
+                        color: T.gold,
+                        padding: "3px 6px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Printer size={11} />
+                    </button>
+                  </div>
                 </div>
                 <p
                   style={{
@@ -8614,6 +8722,43 @@ function AnalyticsTab({
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 4 }}
                 >
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 11 }}>
+                      Starting Cash (float)
+                    </span>
+                    <span
+                      style={{ color: T.cream, fontSize: 11, fontWeight: 600 }}
+                    >
+                      {fmt(sr.startingCash || 0)}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      background: "rgba(212,168,67,0.06)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 6,
+                      padding: "5px 8px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 10 }}>
+                      Drawer should have
+                    </span>
+                    <span
+                      style={{ color: T.gold, fontSize: 11, fontWeight: 700 }}
+                    >
+                      {fmt(
+                        (sr.startingCash || 0) +
+                          sr.cashRev +
+                          (sr.paidInTotal || 0) -
+                          (sr.paidOutTotal || 0),
+                      )}
+                    </span>
+                  </div>
                   <div
                     style={{ display: "flex", justifyContent: "space-between" }}
                   >
@@ -8894,6 +9039,54 @@ function AnalyticsTab({
                           }}
                         >
                           <span style={{ color: T.muted, fontSize: 11 }}>
+                            Starting Cash (float)
+                          </span>
+                          <span
+                            style={{
+                              color: T.cream,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {fmt(shiftStartingCash || 0)}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            background: "rgba(212,168,67,0.06)",
+                            border: `1px solid ${T.border}`,
+                            borderRadius: 6,
+                            padding: "5px 8px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 10 }}>
+                            Drawer should have
+                          </span>
+                          <span
+                            style={{
+                              color: T.gold,
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {fmt(
+                              (shiftStartingCash || 0) +
+                                liveOrders
+                                  .filter((o) => o.paymentMethod === "cash")
+                                  .reduce((s, o) => s + o.total, 0),
+                            )}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 11 }}>
                             Orders
                           </span>
                           <span
@@ -8952,6 +9145,48 @@ function AnalyticsTab({
                             )}
                           </span>
                         </div>
+                        {liveCashLog.paidInTotal > 0 && (
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <span style={{ color: T.muted, fontSize: 11 }}>
+                              Paid In
+                            </span>
+                            <span
+                              style={{
+                                color: T.green,
+                                fontSize: 11,
+                                fontWeight: 600,
+                              }}
+                            >
+                              +{fmt(liveCashLog.paidInTotal)}
+                            </span>
+                          </div>
+                        )}
+                        {liveCashLog.paidOutTotal > 0 && (
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <span style={{ color: T.muted, fontSize: 11 }}>
+                              Paid Out
+                            </span>
+                            <span
+                              style={{
+                                color: T.red,
+                                fontSize: 11,
+                                fontWeight: 600,
+                              }}
+                            >
+                              -{fmt(liveCashLog.paidOutTotal)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </>
                   );
@@ -13148,9 +13383,11 @@ function OpenShiftModal({
 function CashLogModal({
   onClose,
   staffName,
+  onLogged,
 }: {
   onClose: () => void;
   staffName: string;
+  onLogged?: (type: "in" | "out", amount: number) => void;
 }) {
   const [paidIn, setPaidIn] = useState<
     { amount: number; note: string; at: string }[]
@@ -13195,6 +13432,7 @@ function CashLogModal({
         const d = await res.json();
         setPaidIn(d.paidIn || []);
         setPaidOut(d.paidOut || []);
+        onLogged?.(type, amt);
         setAmount("");
         setNote("");
       }
@@ -14172,6 +14410,10 @@ export default function AdminDashboard() {
   }, [shiftLabel]);
   const [shiftStartingCash, setShiftStartingCash] = useState(0);
   const [shiftReports, setShiftReports] = useState<ShiftReport[]>([]);
+  const [liveCashLog, setLiveCashLog] = useState<{
+    paidInTotal: number;
+    paidOutTotal: number;
+  }>({ paidInTotal: 0, paidOutTotal: 0 });
   const [showShiftOptions, setShowShiftOptions] = useState(false);
   const [showHandoverFlow, setShowHandoverFlow] = useState(false);
   const [showCashLog, setShowCashLog] = useState(false);
@@ -14400,6 +14642,12 @@ export default function AdminDashboard() {
   ) {
     setShopToggling(true);
     try {
+      console.log(
+        "[handoverShift] shopOpenedAt:",
+        shopOpenedAt,
+        "shiftLabel:",
+        shiftLabel,
+      );
       const reportRes = await fetch("/api/shift-reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -14412,9 +14660,15 @@ export default function AdminDashboard() {
           openedBy: staffName,
         }),
       });
+      console.log("[handoverShift] status:", reportRes.status);
       if (reportRes.ok) {
         const saved = await reportRes.json();
+        console.log("[handoverShift] saved:", saved);
         setShiftReports((p) => [...p, saved]);
+      } else {
+        const errText = await reportRes.text().catch(() => "");
+        console.error("[handoverShift] FAILED", reportRes.status, errText);
+        alert(`Shift report save FAILED (${reportRes.status}): ${errText}`);
       }
       const nextOpenedAt = new Date().toISOString();
       const res = await fetch("/api/shop-status", {
@@ -14443,6 +14697,23 @@ export default function AdminDashboard() {
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
+  }
+
+  function fetchLiveCashLog() {
+    fetch("/api/shop-status/cash-log")
+      .then((r) => r.json())
+      .then((d) => {
+        const paidInTotal = (d.paidIn || []).reduce(
+          (s: number, e: any) => s + (e.amount || 0),
+          0,
+        );
+        const paidOutTotal = (d.paidOut || []).reduce(
+          (s: number, e: any) => s + (e.amount || 0),
+          0,
+        );
+        setLiveCashLog({ paidInTotal, paidOutTotal });
+      })
+      .catch(() => {});
   }
 
   const isAdmin = role === "admin";
@@ -14476,6 +14747,7 @@ export default function AdminDashboard() {
         if (Array.isArray(data)) setDiscounts(data);
       })
       .catch(() => {});
+    fetchLiveCashLog();
     const savedRole = localStorage.getItem("3s_role") as Role;
     const savedName = localStorage.getItem("3s_name") || "";
     if (savedRole && savedName && !savedName.includes("@")) {
@@ -14519,7 +14791,10 @@ export default function AdminDashboard() {
     }
 
     connect();
-    const id = setInterval(() => fetchData(true), 15000);
+    const id = setInterval(() => {
+      fetchData(true);
+      fetchLiveCashLog();
+    }, 15000);
     return () => {
       clearInterval(id);
       es?.close();
@@ -14990,23 +15265,23 @@ export default function AdminDashboard() {
     ? dailyReports.find((r) => r.dayKey === todayCalKey)
     : null;
 
-  const liveRevenue = !shiftDate
-    ? 0
-    : orders
-        .filter(
-          (o) =>
-            o.status === "completed" &&
-            ((o as any).shiftDate
-              ? (o as any).shiftDate === shiftDate
-              : new Date(o.createdAt) >= new Date(shopOpenedAt || 0)),
-        )
-        .reduce((s, o) => s + o.total, 0);
+  const liveRevenue =
+    !shiftDate || !shopOpenedAt
+      ? 0
+      : orders
+          .filter(
+            (o) =>
+              o.status === "completed" &&
+              new Date(o.createdAt) >= new Date(shopOpenedAt),
+          )
+          .reduce((s, o) => s + o.total, 0);
   const revenue = todaysClosedReport ? todaysClosedReport.revenue : liveRevenue;
   const totalOrdersCount = todaysClosedReport
     ? todaysClosedReport.totalOrders
-    : !shiftDate
+    : !shiftDate || !shopOpenedAt
       ? 0
-      : orders.filter((o) => o.shiftDate === shiftDate).length;
+      : orders.filter((o) => new Date(o.createdAt) >= new Date(shopOpenedAt))
+          .length;
 
   const completedToday = orders.filter((o) => o.status === "completed");
   const todayCost = completedToday.reduce((s, o) => {
@@ -15373,9 +15648,11 @@ export default function AdminDashboard() {
                 await fetch("/api/debug/wipe-data", { method: "POST" });
                 setOrders([]);
                 setDailyReports([]);
+                setShiftReports([]);
                 setShiftDate(null);
                 setShopOpenedAt(null);
-                showToast("All data wiped ✓");
+                setShopOpen(false);
+                showToast("All data wiped ✓ — please reopen the store");
               }}
               style={{
                 padding: "7px 13px",
@@ -15685,6 +15962,8 @@ export default function AdminDashboard() {
             shiftReports={shiftReports}
             currentShiftLabel={shiftLabel}
             activeShiftOpenedAt={shopOpenedAt}
+            shiftStartingCash={shiftStartingCash}
+            liveCashLog={liveCashLog}
           />
         ) : tab === "board" ? (
           <BoardTab posts={posts} setPosts={setPosts} />
@@ -15843,6 +16122,14 @@ export default function AdminDashboard() {
         <CashLogModal
           onClose={() => setShowCashLog(false)}
           staffName={staffName}
+          onLogged={(type, amount) => {
+            showToast(
+              type === "in"
+                ? `✓ Paid In logged: ${fmt(amount)}`
+                : `✓ Paid Out logged: ${fmt(amount)}`,
+            );
+            fetchLiveCashLog();
+          }}
         />
       )}
       {showOpenShiftModal && (
