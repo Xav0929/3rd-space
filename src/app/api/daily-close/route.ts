@@ -12,8 +12,18 @@ const SettingSchema = new mongoose.Schema({}, { strict: false });
 const Setting =
   mongoose.models.Setting || mongoose.model("Setting", SettingSchema);
 
+const ShiftReportSchema = new mongoose.Schema({}, { strict: false });
+const ShiftReport =
+  mongoose.models.ShiftReport ||
+  mongoose.model("ShiftReport", ShiftReportSchema);
+
 function calendarKey(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 }
 
 export async function POST(req: Request) {
@@ -64,6 +74,21 @@ export async function POST(req: Request) {
     // ── Aggregate ───────────────────────────────────────────────────────────
     const completed = allOrders.filter((o: any) => o.status === "completed");
     const cancelled = allOrders.filter((o: any) => o.status === "cancelled");
+
+    // ── Orders belonging ONLY to the shift being closed right now ───────────
+    // allOrders/completed above are day-wide (correct for DailyReport), but
+    // the ShiftReport for this specific shift must not include orders from
+    // an earlier shift that already got its own ShiftReport today.
+    const thisShiftOpenedAt = openedAt ? new Date(openedAt) : null;
+    const thisShiftOrders = thisShiftOpenedAt
+      ? allOrders.filter((o: any) => new Date(o.createdAt) >= thisShiftOpenedAt)
+      : allOrders;
+    const thisShiftCompleted = thisShiftOrders.filter(
+      (o: any) => o.status === "completed",
+    );
+    const thisShiftCancelled = thisShiftOrders.filter(
+      (o: any) => o.status === "cancelled",
+    );
     const revenue = completed.reduce((s: number, o: any) => s + o.total, 0);
     const deliveryFees = completed
       .filter((o: any) => o.type === "delivery")
@@ -146,6 +171,67 @@ export async function POST(req: Request) {
       { upsert: true, new: true },
     );
 
+    // ── Also save a ShiftReport for whatever shift is being closed right now ──
+    // Without this, a shift that goes straight to "End of Day" (no handover)
+    // never shows up in the shift-comparison view — only handed-over shifts did.
+    const thisShiftRevenue = thisShiftCompleted.reduce(
+      (s: number, o: any) => s + o.total,
+      0,
+    );
+    const thisShiftCashRev = thisShiftCompleted
+      .filter((o: any) => o.paymentMethod === "cash")
+      .reduce((s: number, o: any) => s + o.total, 0);
+    const thisShiftGcashRev = thisShiftCompleted
+      .filter((o: any) => o.paymentMethod === "gcash")
+      .reduce((s: number, o: any) => s + o.total, 0);
+    const thisShiftItems: Record<string, { qty: number; revenue: number }> = {};
+    thisShiftCompleted.forEach((o: any) => {
+      o.items?.forEach((it: any) => {
+        if (!thisShiftItems[it.name])
+          thisShiftItems[it.name] = { qty: 0, revenue: 0 };
+        thisShiftItems[it.name].qty += it.quantity;
+        thisShiftItems[it.name].revenue += it.price * it.quantity;
+      });
+    });
+    const thisShiftDiscountTotal = thisShiftCompleted.reduce(
+      (s: number, o: any) => {
+        const itemDiscounts = (o.items || []).reduce(
+          (is: number, it: any) => is + (it.discountAmount || 0),
+          0,
+        );
+        return (
+          s + itemDiscounts + (o.discountAmount || 0) + (o.voucherDiscount || 0)
+        );
+      },
+      0,
+    );
+
+    const expectedCash =
+      startingCash + thisShiftCashRev + paidInTotal - paidOutTotal;
+    const finalShiftReport = await ShiftReport.create({
+      dayKey,
+      shiftLabel: (shopDoc as any)?.shiftLabel || "Shift 1",
+      openedBy: (shopDoc as any)?.openedBy || null,
+      openedAt: openedAt || null,
+      closedAt: now.toISOString(),
+      revenue: thisShiftRevenue,
+      orderCount: thisShiftCompleted.length,
+      cancelledCount: thisShiftCancelled.length,
+      cashRev: thisShiftCashRev,
+      gcashRev: thisShiftGcashRev,
+      startingCash,
+      countedCash: typeof countedCash === "number" ? countedCash : null,
+      expectedCash,
+      cashDiff:
+        typeof countedCash === "number" ? countedCash - expectedCash : null,
+      items: thisShiftItems,
+      paidIn,
+      paidOut,
+      paidInTotal,
+      paidOutTotal,
+      discountTotal: thisShiftDiscountTotal,
+    });
+
     // Archive every order that was part of this shift (skip unsettled tab orders)
     const idsToArchive = allOrders
       .filter(
@@ -180,7 +266,11 @@ export async function POST(req: Request) {
       { $unset: { shiftDate: "" } },
     );
 
-    return NextResponse.json({ ok: true, report });
+    return NextResponse.json({
+      ok: true,
+      report,
+      shiftReport: finalShiftReport,
+    });
   } catch (e) {
     console.error("[daily-close POST]", e);
     return NextResponse.json({ error: "Failed" }, { status: 500 });

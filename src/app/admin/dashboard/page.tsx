@@ -7396,11 +7396,13 @@ function ProductProfitTable({
 function TodayReport({
   orders,
   activeShiftDate,
+  activeShiftOpenedAt,
   closedReport,
   menuItems,
 }: {
   orders: Order[];
   activeShiftDate?: string | null;
+  activeShiftOpenedAt?: string | null;
   closedReport?: DailyReport | null;
   menuItems?: MenuItem[];
 }) {
@@ -7924,15 +7926,11 @@ function TodayReport({
   }
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const todayOrders = !activeShiftDate
+  const todayOrders = !activeShiftOpenedAt
     ? []
-    : orders.filter((o) => {
-        const orderShift = (o as any).shiftDate;
-        if (orderShift) return orderShift === activeShiftDate;
-        const d = new Date(o.createdAt);
-        const calKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        return calKey === activeShiftDate;
-      });
+    : orders.filter(
+        (o) => new Date(o.createdAt) >= new Date(activeShiftOpenedAt),
+      );
 
   const completed = todayOrders.filter((o) => o.status === "completed");
   const revenue = completed.reduce((s, o) => s + o.total, 0);
@@ -8036,7 +8034,7 @@ function TodayReport({
                 marginBottom: 4,
               }}
             >
-              ──Today's Report (All Shifts Combined)
+              ──Current Shift's Report
             </p>
             <p style={{ color: T.muted, fontSize: 12, marginBottom: 14 }}>
               {dateStr}
@@ -8525,6 +8523,43 @@ function AnalyticsTab({
     ? (dailyReports.find((r) => r.dayKey === todayCalKey) ?? null)
     : null;
 
+  // ── History day picker ──────────────────────────────────────────────────
+  function shiftDayKey(key: string, delta: number) {
+    const [y, m, d] = key.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + delta);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  }
+  const [historyDayKey, setHistoryDayKey] = useState(todayCalKey);
+  const isViewingToday = historyDayKey === todayCalKey;
+  const [pastReports, setPastReports] = useState<ShiftReport[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  useEffect(() => {
+    if (analyticsView !== "history" || isViewingToday) return;
+    setHistoryLoading(true);
+    fetch(`/api/shift-reports?dayKey=${historyDayKey}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setPastReports(Array.isArray(data) ? data : []))
+      .catch(() => setPastReports([]))
+      .finally(() => setHistoryLoading(false));
+  }, [analyticsView, historyDayKey, isViewingToday]);
+  const displayedReports = isViewingToday ? shiftReports : pastReports;
+  const historyDateLabel = (() => {
+    const [y, m, d] = historyDayKey.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-PH", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  })();
+  const dailyAggRevenue = displayedReports.reduce((s, r) => s + r.revenue, 0);
+  const dailyAggOrders = displayedReports.reduce((s, r) => s + r.orderCount, 0);
+  const dailyAggShorts = displayedReports.reduce(
+    (s, r) => s + (r.cashDiff && r.cashDiff < 0 ? r.cashDiff : 0),
+    0,
+  );
+
   const allTimeRevenue = dailyReports.reduce((s, r) => s + r.revenue, 0);
   const allTimeCompleted = dailyReports.reduce((s, r) => s + r.orderCount, 0);
   const daysOperated = dailyReports.length;
@@ -8650,439 +8685,334 @@ function AnalyticsTab({
         <TodayReport
           orders={orders}
           activeShiftDate={activeShiftDate}
+          activeShiftOpenedAt={activeShiftOpenedAt}
           closedReport={closedTodayReport}
           menuItems={menuItems}
         />
-      ) : analyticsView === "history" && (shiftReports?.length ?? 0) > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <p
-            style={{
-              color: T.gold,
-              fontSize: 11,
-              letterSpacing: ".15em",
-              textTransform: "uppercase" as const,
-              fontFamily: "'Cinzel',serif",
-            }}
-          >
-            ──Shift Comparison
-          </p>
+      ) : analyticsView === "history" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap" as const,
             }}
           >
-            {shiftReports.map((sr) => (
-              <div
-                key={sr._id}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() => setHistoryDayKey((k) => shiftDayKey(k, -1))}
                 style={{
-                  background: T.bgCard,
+                  background: "rgba(255,255,255,0.04)",
                   border: `1px solid ${T.border}`,
-                  borderRadius: 12,
-                  padding: "14px 16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
+                  borderRadius: 6,
+                  color: T.cream,
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                  fontSize: 13,
                 }}
               >
-                <div
+                ‹
+              </button>
+              <p
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  color: T.cream,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  minWidth: 200,
+                  textAlign: "center" as const,
+                }}
+              >
+                {historyDateLabel}
+              </p>
+              <button
+                onClick={() =>
+                  !isViewingToday && setHistoryDayKey((k) => shiftDayKey(k, 1))
+                }
+                disabled={isViewingToday}
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 6,
+                  color: isViewingToday ? T.faint : T.cream,
+                  padding: "4px 10px",
+                  cursor: isViewingToday ? "default" : "pointer",
+                  fontSize: 13,
+                  opacity: isViewingToday ? 0.4 : 1,
+                }}
+              >
+                ›
+              </button>
+              {!isViewingToday && (
+                <button
+                  onClick={() => setHistoryDayKey(todayCalKey)}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    background: "none",
+                    border: "none",
+                    color: T.gold,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    textDecoration: "underline",
                   }}
                 >
-                  <div>
-                    <p
-                      style={{
-                        fontFamily: "'Cinzel',serif",
-                        color: T.gold,
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {sr.shiftLabel}
-                    </p>
-                    {sr.openedBy && (
-                      <p style={{ color: T.faint, fontSize: 10, marginTop: 2 }}>
-                        by {sr.openedBy}
-                      </p>
-                    )}
-                  </div>
+                  Today
+                </button>
+              )}
+            </div>
+            {displayedReports.length > 0 && (
+              <div style={{ display: "flex", gap: 16 }}>
+                <span style={{ fontSize: 11, color: T.muted }}>
+                  {displayedReports.length} shift
+                  {displayedReports.length === 1 ? "" : "s"}
+                </span>
+                <span style={{ fontSize: 11, color: T.muted }}>
+                  Total <b style={{ color: T.gold }}>{fmt(dailyAggRevenue)}</b>
+                </span>
+                <span style={{ fontSize: 11, color: T.muted }}>
+                  Orders <b style={{ color: T.cream }}>{dailyAggOrders}</b>
+                </span>
+                {dailyAggShorts < 0 && (
+                  <span style={{ fontSize: 11, color: T.muted }}>
+                    Short{" "}
+                    <b style={{ color: T.red }}>
+                      {fmt(Math.abs(dailyAggShorts))}
+                    </b>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          {historyLoading ? (
+            <p style={{ color: T.faint, fontSize: 12 }}>Loading…</p>
+          ) : (displayedReports?.length ?? 0) === 0 ? (
+            <p style={{ color: T.faint, fontSize: 12 }}>
+              No shifts recorded for this day.
+            </p>
+          ) : (
+            <>
+              <p
+                style={{
+                  color: T.gold,
+                  fontSize: 11,
+                  letterSpacing: ".15em",
+                  textTransform: "uppercase" as const,
+                  fontFamily: "'Cinzel',serif",
+                }}
+              >
+                ──Shift Comparison
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {displayedReports.map((sr) => (
                   <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    key={sr._id}
+                    style={{
+                      background: T.bgCard,
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
                   >
-                    <span
+                    <div
                       style={{
-                        fontSize: 10,
-                        color: T.muted,
-                        background: "rgba(239,68,68,0.1)",
-                        border: "1px solid rgba(239,68,68,0.2)",
-                        padding: "2px 8px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      Closed
-                    </span>
-                    <button
-                      onClick={() => printShiftHandover(sr)}
-                      title="Print shift handover report"
-                      style={{
-                        background: "rgba(212,168,67,0.08)",
-                        border: `1px solid ${T.borderH}`,
-                        borderRadius: 6,
-                        color: T.gold,
-                        padding: "3px 6px",
-                        cursor: "pointer",
                         display: "flex",
+                        justifyContent: "space-between",
                         alignItems: "center",
                       }}
                     >
-                      <Printer size={11} />
-                    </button>
-                  </div>
-                </div>
-                <p
-                  style={{
-                    fontFamily: "'Cinzel',serif",
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: T.cream,
-                  }}
-                >
-                  {fmt(sr.revenue)}
-                </p>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                >
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <span style={{ color: T.muted, fontSize: 11 }}>
-                      Starting Cash (float)
-                    </span>
-                    <span
-                      style={{ color: T.cream, fontSize: 11, fontWeight: 600 }}
-                    >
-                      {fmt(sr.startingCash || 0)}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      background: "rgba(212,168,67,0.06)",
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 6,
-                      padding: "5px 8px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ color: T.muted, fontSize: 10 }}>
-                      Drawer should have
-                    </span>
-                    <span
-                      style={{ color: T.gold, fontSize: 11, fontWeight: 700 }}
-                    >
-                      {fmt(
-                        (sr.startingCash || 0) +
-                          sr.cashRev +
-                          (sr.paidInTotal || 0) -
-                          (sr.paidOutTotal || 0),
-                      )}
-                    </span>
-                  </div>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <span style={{ color: T.muted, fontSize: 11 }}>Orders</span>
-                    <span
-                      style={{ color: T.cream, fontSize: 11, fontWeight: 600 }}
-                    >
-                      {sr.orderCount}
-                    </span>
-                  </div>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <span style={{ color: T.muted, fontSize: 11 }}>Cash</span>
-                    <span
-                      style={{ color: T.green, fontSize: 11, fontWeight: 600 }}
-                    >
-                      {fmt(sr.cashRev)}
-                    </span>
-                  </div>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <span style={{ color: T.muted, fontSize: 11 }}>GCash</span>
-                    <span
-                      style={{ color: T.gold, fontSize: 11, fontWeight: 600 }}
-                    >
-                      {fmt(sr.gcashRev)}
-                    </span>
-                  </div>
-                  {!!sr.paidInTotal && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ color: T.muted, fontSize: 11 }}>
-                        Paid In
-                      </span>
-                      <span
-                        style={{
-                          color: T.green,
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                      >
-                        +{fmt(sr.paidInTotal)}
-                      </span>
-                    </div>
-                  )}
-                  {!!sr.paidOutTotal && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ color: T.muted, fontSize: 11 }}>
-                        Paid Out
-                      </span>
-                      <span
-                        style={{ color: T.red, fontSize: 11, fontWeight: 600 }}
-                      >
-                        -{fmt(sr.paidOutTotal)}
-                      </span>
-                    </div>
-                  )}
-                  {!!sr.discountTotal && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ color: T.muted, fontSize: 11 }}>
-                        Discounts Given
-                      </span>
-                      <span
-                        style={{ color: T.red, fontSize: 11, fontWeight: 600 }}
-                      >
-                        -{fmt(sr.discountTotal)}
-                      </span>
-                    </div>
-                  )}
-                  {sr.cashDiff !== null && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        borderTop: `1px solid ${T.border}`,
-                        paddingTop: 4,
-                        marginTop: 2,
-                      }}
-                    >
-                      <span style={{ color: T.muted, fontSize: 11 }}>
-                        {sr.cashDiff === 0
-                          ? "Balanced ✓"
-                          : sr.cashDiff > 0
-                            ? "Over"
-                            : "Short"}
-                      </span>
-                      <span
-                        style={{
-                          color: sr.cashDiff === 0 ? T.green : T.red,
-                          fontSize: 11,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {fmt(Math.abs(sr.cashDiff))}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <p style={{ color: T.faint, fontSize: 10 }}>
-                  {new Date(sr.openedAt).toLocaleTimeString("en-PH", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}{" "}
-                  –{" "}
-                  {new Date(sr.closedAt).toLocaleTimeString("en-PH", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-                </p>
-              </div>
-            ))}
-            {(() => {
-              const windows: { start: number; end: number }[] =
-                shiftReports.map((sr) => ({
-                  start: new Date(sr.openedAt).getTime(),
-                  end: new Date(sr.closedAt).getTime(),
-                }));
-              if (activeShiftOpenedAt) {
-                windows.push({
-                  start: new Date(activeShiftOpenedAt).getTime(),
-                  end: Date.now(),
-                });
-              }
-              const untrackedOrders = orders.filter((o) => {
-                if (o.status !== "completed") return false;
-                const t = new Date(o.createdAt).getTime();
-                const dKey = `${new Date(o.createdAt).getFullYear()}-${String(new Date(o.createdAt).getMonth() + 1).padStart(2, "0")}-${String(new Date(o.createdAt).getDate()).padStart(2, "0")}`;
-                if (dKey !== todayCalKey) return false;
-                return !windows.some((w) => t >= w.start && t <= w.end);
-              });
-              const untrackedRev = untrackedOrders.reduce(
-                (s, o) => s + o.total,
-                0,
-              );
-              if (untrackedRev <= 0) return null;
-              return (
-                <div
-                  style={{
-                    background: "rgba(239,68,68,0.06)",
-                    border: "1px solid rgba(239,68,68,0.3)",
-                    borderRadius: 12,
-                    padding: "14px 16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontFamily: "'Cinzel',serif",
-                        color: T.red,
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      Untracked
-                    </p>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: T.red,
-                        background: "rgba(239,68,68,0.1)",
-                        border: "1px solid rgba(239,68,68,0.2)",
-                        padding: "2px 8px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      No Shift
-                    </span>
-                  </div>
-                  <p
-                    style={{
-                      fontFamily: "'Cinzel',serif",
-                      fontSize: 22,
-                      fontWeight: 700,
-                      color: T.cream,
-                    }}
-                  >
-                    {fmt(untrackedRev)}
-                  </p>
-                  <div
-                    style={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <span style={{ color: T.muted, fontSize: 11 }}>Orders</span>
-                    <span
-                      style={{ color: T.cream, fontSize: 11, fontWeight: 600 }}
-                    >
-                      {untrackedOrders.length}
-                    </span>
-                  </div>
-                  <p style={{ color: T.faint, fontSize: 10 }}>
-                    Placed outside any tracked shift window
-                  </p>
-                </div>
-              );
-            })()}
-            {activeShiftDate && (
-              <div
-                style={{
-                  background: "rgba(34,197,94,0.06)",
-                  border: "1px solid rgba(34,197,94,0.3)",
-                  borderRadius: 12,
-                  padding: "14px 16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: "'Cinzel',serif",
-                      color: T.green,
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {currentShiftLabel}
-                  </p>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: T.green,
-                      background: "rgba(34,197,94,0.1)",
-                      border: "1px solid rgba(34,197,94,0.2)",
-                      padding: "2px 8px",
-                      borderRadius: 4,
-                    }}
-                  >
-                    Active
-                  </span>
-                </div>
-                {(() => {
-                  const liveOrders = orders.filter(
-                    (o) =>
-                      o.status === "completed" &&
-                      activeShiftOpenedAt &&
-                      new Date(o.createdAt) >= new Date(activeShiftOpenedAt),
-                  );
-                  const liveRev = liveOrders.reduce((s, o) => s + o.total, 0);
-                  return (
-                    <>
-                      <p
-                        style={{
-                          fontFamily: "'Cinzel',serif",
-                          fontSize: 22,
-                          fontWeight: 700,
-                          color: T.green,
-                        }}
-                      >
-                        {fmt(liveRev)}
-                      </p>
+                      <div>
+                        <p
+                          style={{
+                            fontFamily: "'Cinzel',serif",
+                            color: T.gold,
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {sr.shiftLabel}
+                        </p>
+                        {sr.openedBy && (
+                          <p
+                            style={{
+                              color: T.faint,
+                              fontSize: 10,
+                              marginTop: 2,
+                            }}
+                          >
+                            by {sr.openedBy}
+                          </p>
+                        )}
+                      </div>
                       <div
                         style={{
                           display: "flex",
-                          flexDirection: "column",
-                          gap: 4,
+                          alignItems: "center",
+                          gap: 6,
                         }}
                       >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: T.muted,
+                            background: "rgba(239,68,68,0.1)",
+                            border: "1px solid rgba(239,68,68,0.2)",
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          Closed
+                        </span>
+                        <button
+                          onClick={() => printShiftHandover(sr)}
+                          title="Print shift handover report"
+                          style={{
+                            background: "rgba(212,168,67,0.08)",
+                            border: `1px solid ${T.borderH}`,
+                            borderRadius: 6,
+                            color: T.gold,
+                            padding: "3px 6px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Printer size={11} />
+                        </button>
+                      </div>
+                    </div>
+                    <p
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        fontSize: 22,
+                        fontWeight: 700,
+                        color: T.cream,
+                      }}
+                    >
+                      {fmt(sr.revenue)}
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 4,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 11 }}>
+                          Starting Cash (float)
+                        </span>
+                        <span
+                          style={{
+                            color: T.cream,
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {fmt(sr.startingCash || 0)}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          background: "rgba(212,168,67,0.06)",
+                          border: `1px solid ${T.border}`,
+                          borderRadius: 6,
+                          padding: "5px 8px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 10 }}>
+                          Drawer should have
+                        </span>
+                        <span
+                          style={{
+                            color: T.gold,
+                            fontSize: 11,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {fmt(
+                            (sr.startingCash || 0) +
+                              sr.cashRev +
+                              (sr.paidInTotal || 0) -
+                              (sr.paidOutTotal || 0),
+                          )}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 11 }}>
+                          Orders
+                        </span>
+                        <span
+                          style={{
+                            color: T.cream,
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {sr.orderCount}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 11 }}>
+                          Cash
+                        </span>
+                        <span
+                          style={{
+                            color: T.green,
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {fmt(sr.cashRev)}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ color: T.muted, fontSize: 11 }}>
+                          GCash
+                        </span>
+                        <span
+                          style={{
+                            color: T.gold,
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {fmt(sr.gcashRev)}
+                        </span>
+                      </div>
+                      {!!sr.paidInTotal && (
                         <div
                           style={{
                             display: "flex",
@@ -9090,47 +9020,188 @@ function AnalyticsTab({
                           }}
                         >
                           <span style={{ color: T.muted, fontSize: 11 }}>
-                            Starting Cash (float)
+                            Paid In
                           </span>
                           <span
                             style={{
-                              color: T.cream,
+                              color: T.green,
                               fontSize: 11,
                               fontWeight: 600,
                             }}
                           >
-                            {fmt(shiftStartingCash || 0)}
+                            +{fmt(sr.paidInTotal)}
                           </span>
                         </div>
+                      )}
+                      {!!sr.paidOutTotal && (
                         <div
                           style={{
-                            background: "rgba(212,168,67,0.06)",
-                            border: `1px solid ${T.border}`,
-                            borderRadius: 6,
-                            padding: "5px 8px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 11 }}>
+                            Paid Out
+                          </span>
+                          <span
+                            style={{
+                              color: T.red,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            -{fmt(sr.paidOutTotal)}
+                          </span>
+                        </div>
+                      )}
+                      {!!sr.discountTotal && (
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 11 }}>
+                            Discounts Given
+                          </span>
+                          <span
+                            style={{
+                              color: T.red,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            -{fmt(sr.discountTotal)}
+                          </span>
+                        </div>
+                      )}
+                      {sr.cashDiff !== null && (
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            borderTop: `1px solid ${T.border}`,
+                            paddingTop: 4,
+                            marginTop: 2,
+                          }}
+                        >
+                          <span style={{ color: T.muted, fontSize: 11 }}>
+                            {sr.cashDiff === 0
+                              ? "Balanced ✓"
+                              : sr.cashDiff > 0
+                                ? "Over"
+                                : "Short"}
+                          </span>
+                          <span
+                            style={{
+                              color: sr.cashDiff === 0 ? T.green : T.red,
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {fmt(Math.abs(sr.cashDiff))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <p style={{ color: T.faint, fontSize: 10 }}>
+                      {sr.dayKey ??
+                        new Date(sr.openedAt).toLocaleDateString("en-PH", {
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                      ·{" "}
+                      {new Date(sr.openedAt).toLocaleTimeString("en-PH", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}{" "}
+                      –{" "}
+                      {new Date(sr.closedAt).toLocaleTimeString("en-PH", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </p>
+                  </div>
+                ))}
+                {isViewingToday &&
+                  (() => {
+                    const windows: { start: number; end: number }[] =
+                      displayedReports.map((sr) => ({
+                        start: new Date(sr.openedAt).getTime(),
+                        end: new Date(sr.closedAt).getTime(),
+                      }));
+                    if (activeShiftOpenedAt) {
+                      windows.push({
+                        start: new Date(activeShiftOpenedAt).getTime(),
+                        end: Date.now(),
+                      });
+                    }
+                    const untrackedOrders = orders.filter((o) => {
+                      if (o.status !== "completed") return false;
+                      const t = new Date(o.createdAt).getTime();
+                      const dKey = `${new Date(o.createdAt).getFullYear()}-${String(new Date(o.createdAt).getMonth() + 1).padStart(2, "0")}-${String(new Date(o.createdAt).getDate()).padStart(2, "0")}`;
+                      if (dKey !== todayCalKey) return false;
+                      return !windows.some((w) => t >= w.start && t <= w.end);
+                    });
+                    const untrackedRev = untrackedOrders.reduce(
+                      (s, o) => s + o.total,
+                      0,
+                    );
+                    if (untrackedRev <= 0) return null;
+                    return (
+                      <div
+                        style={{
+                          background: "rgba(239,68,68,0.06)",
+                          border: "1px solid rgba(239,68,68,0.3)",
+                          borderRadius: 12,
+                          padding: "14px 16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
                           }}
                         >
-                          <span style={{ color: T.muted, fontSize: 10 }}>
-                            Drawer should have
-                          </span>
-                          <span
+                          <p
                             style={{
-                              color: T.gold,
-                              fontSize: 11,
+                              fontFamily: "'Cinzel',serif",
+                              color: T.red,
+                              fontSize: 12,
                               fontWeight: 700,
                             }}
                           >
-                            {fmt(
-                              (shiftStartingCash || 0) +
-                                liveOrders
-                                  .filter((o) => o.paymentMethod === "cash")
-                                  .reduce((s, o) => s + o.total, 0),
-                            )}
+                            Untracked
+                          </p>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              color: T.red,
+                              background: "rgba(239,68,68,0.1)",
+                              border: "1px solid rgba(239,68,68,0.2)",
+                              padding: "2px 8px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            No Shift
                           </span>
                         </div>
+                        <p
+                          style={{
+                            fontFamily: "'Cinzel',serif",
+                            fontSize: 22,
+                            fontWeight: 700,
+                            color: T.cream,
+                          }}
+                        >
+                          {fmt(untrackedRev)}
+                        </p>
                         <div
                           style={{
                             display: "flex",
@@ -9147,176 +9218,326 @@ function AnalyticsTab({
                               fontWeight: 600,
                             }}
                           >
-                            {liveOrders.length}
+                            {untrackedOrders.length}
                           </span>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span style={{ color: T.muted, fontSize: 11 }}>
-                            Cash
-                          </span>
-                          <span
-                            style={{
-                              color: T.green,
-                              fontSize: 11,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {fmt(
-                              liveOrders
-                                .filter((o) => o.paymentMethod === "cash")
-                                .reduce((s, o) => s + o.total, 0),
-                            )}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span style={{ color: T.muted, fontSize: 11 }}>
-                            GCash
-                          </span>
-                          <span
-                            style={{
-                              color: T.gold,
-                              fontSize: 11,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {fmt(
-                              liveOrders
-                                .filter((o) => o.paymentMethod === "gcash")
-                                .reduce((s, o) => s + o.total, 0),
-                            )}
-                          </span>
-                        </div>
-                        {liveCashLog.paidInTotal > 0 && (
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span style={{ color: T.muted, fontSize: 11 }}>
-                              Paid In
-                            </span>
-                            <span
-                              style={{
-                                color: T.green,
-                                fontSize: 11,
-                                fontWeight: 600,
-                              }}
-                            >
-                              +{fmt(liveCashLog.paidInTotal)}
-                            </span>
-                          </div>
-                        )}
-                        {liveCashLog.paidOutTotal > 0 && (
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span style={{ color: T.muted, fontSize: 11 }}>
-                              Paid Out
-                            </span>
-                            <span
-                              style={{
-                                color: T.red,
-                                fontSize: 11,
-                                fontWeight: 600,
-                              }}
-                            >
-                              -{fmt(liveCashLog.paidOutTotal)}
-                            </span>
-                          </div>
-                        )}
+                        <p style={{ color: T.faint, fontSize: 10 }}>
+                          Placed outside any tracked shift window
+                        </p>
                       </div>
-                    </>
-                  );
-                })()}
+                    );
+                  })()}
+                {isViewingToday && activeShiftDate && (
+                  <div
+                    style={{
+                      background: "rgba(34,197,94,0.06)",
+                      border: "1px solid rgba(34,197,94,0.3)",
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontFamily: "'Cinzel',serif",
+                          color: T.green,
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {currentShiftLabel}
+                      </p>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: T.green,
+                          background: "rgba(34,197,94,0.1)",
+                          border: "1px solid rgba(34,197,94,0.2)",
+                          padding: "2px 8px",
+                          borderRadius: 4,
+                        }}
+                      >
+                        Active
+                      </span>
+                    </div>
+                    {(() => {
+                      const liveOrders = orders.filter(
+                        (o) =>
+                          o.status === "completed" &&
+                          activeShiftOpenedAt &&
+                          new Date(o.createdAt) >=
+                            new Date(activeShiftOpenedAt),
+                      );
+                      const liveRev = liveOrders.reduce(
+                        (s, o) => s + o.total,
+                        0,
+                      );
+                      return (
+                        <>
+                          <p
+                            style={{
+                              fontFamily: "'Cinzel',serif",
+                              fontSize: 22,
+                              fontWeight: 700,
+                              color: T.green,
+                            }}
+                          >
+                            {fmt(liveRev)}
+                          </p>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <span style={{ color: T.muted, fontSize: 11 }}>
+                                Starting Cash (float)
+                              </span>
+                              <span
+                                style={{
+                                  color: T.cream,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {fmt(shiftStartingCash || 0)}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                background: "rgba(212,168,67,0.06)",
+                                border: `1px solid ${T.border}`,
+                                borderRadius: 6,
+                                padding: "5px 8px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <span style={{ color: T.muted, fontSize: 10 }}>
+                                Drawer should have
+                              </span>
+                              <span
+                                style={{
+                                  color: T.gold,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {fmt(
+                                  (shiftStartingCash || 0) +
+                                    liveOrders
+                                      .filter((o) => o.paymentMethod === "cash")
+                                      .reduce((s, o) => s + o.total, 0),
+                                )}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <span style={{ color: T.muted, fontSize: 11 }}>
+                                Orders
+                              </span>
+                              <span
+                                style={{
+                                  color: T.cream,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {liveOrders.length}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <span style={{ color: T.muted, fontSize: 11 }}>
+                                Cash
+                              </span>
+                              <span
+                                style={{
+                                  color: T.green,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {fmt(
+                                  liveOrders
+                                    .filter((o) => o.paymentMethod === "cash")
+                                    .reduce((s, o) => s + o.total, 0),
+                                )}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <span style={{ color: T.muted, fontSize: 11 }}>
+                                GCash
+                              </span>
+                              <span
+                                style={{
+                                  color: T.gold,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {fmt(
+                                  liveOrders
+                                    .filter((o) => o.paymentMethod === "gcash")
+                                    .reduce((s, o) => s + o.total, 0),
+                                )}
+                              </span>
+                            </div>
+                            {liveCashLog.paidInTotal > 0 && (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <span style={{ color: T.muted, fontSize: 11 }}>
+                                  Paid In
+                                </span>
+                                <span
+                                  style={{
+                                    color: T.green,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  +{fmt(liveCashLog.paidInTotal)}
+                                </span>
+                              </div>
+                            )}
+                            {liveCashLog.paidOutTotal > 0 && (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <span style={{ color: T.muted, fontSize: 11 }}>
+                                  Paid Out
+                                </span>
+                                <span
+                                  style={{
+                                    color: T.red,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  -{fmt(liveCashLog.paidOutTotal)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <TodayReport
-            orders={orders}
-            activeShiftDate={activeShiftDate}
-            closedReport={closedTodayReport}
-            menuItems={menuItems}
-          />
-        </div>
-      ) : daysOperated === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px 20px",
-            color: T.faint,
-            border: `1px solid ${T.border}`,
-            borderRadius: 14,
-          }}
-        >
-          <BarChart3
-            size={36}
-            style={{ margin: "0 auto 12px", opacity: 0.3 }}
-          />
-          <p style={{ fontSize: 14 }}>
-            No history yet — open the store, take orders, close the day
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? "140px" : "170px"},1fr))`,
-              gap: 12,
-            }}
-          >
-            {[
-              {
-                label: "Total Revenue",
-                value: fmt(allTimeRevenue),
-                icon: <DollarSign size={20} />,
-                color: T.gold,
-              },
-              {
-                label: "Orders Completed",
-                value: String(allTimeCompleted),
-                icon: <Package size={20} />,
-                color: T.green,
-              },
-              {
-                label: "Days Operated",
-                value: String(daysOperated),
-                icon: <Clock size={20} />,
-                color: T.blue,
-              },
-              {
-                label: "Avg Daily Revenue",
-                value: fmt(avgDailyRevenue),
-                icon: <BarChart3 size={20} />,
-                color: T.purple,
-              },
-            ].map((s) => (
-              <StatCard
-                key={s.label}
-                label={s.label}
-                value={s.value}
-                icon={s.icon}
-                accent={s.color}
+              <TodayReport
+                orders={orders}
+                activeShiftDate={activeShiftDate}
+                activeShiftOpenedAt={activeShiftOpenedAt}
+                closedReport={closedTodayReport}
+                menuItems={menuItems}
               />
-            ))}
-          </div>
-          <SalesCalendar orders={orders} dailyReports={dailyReports} />
+            </>
+          )}
+          {daysOperated === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "60px 20px",
+                color: T.faint,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+              }}
+            >
+              <BarChart3
+                size={36}
+                style={{ margin: "0 auto 12px", opacity: 0.3 }}
+              />
+              <p style={{ fontSize: 14 }}>
+                No history yet — open the store, take orders, close the day
+              </p>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? "140px" : "170px"},1fr))`,
+                  gap: 12,
+                }}
+              >
+                {[
+                  {
+                    label: "Total Revenue",
+                    value: fmt(allTimeRevenue),
+                    icon: <DollarSign size={20} />,
+                    color: T.gold,
+                  },
+                  {
+                    label: "Orders Completed",
+                    value: String(allTimeCompleted),
+                    icon: <Package size={20} />,
+                    color: T.green,
+                  },
+                  {
+                    label: "Days Operated",
+                    value: String(daysOperated),
+                    icon: <Clock size={20} />,
+                    color: T.blue,
+                  },
+                  {
+                    label: "Avg Daily Revenue",
+                    value: fmt(avgDailyRevenue),
+                    icon: <BarChart3 size={20} />,
+                    color: T.purple,
+                  },
+                ].map((s) => (
+                  <StatCard
+                    key={s.label}
+                    label={s.label}
+                    value={s.value}
+                    icon={s.icon}
+                    accent={s.color}
+                  />
+                ))}
+              </div>
+              <SalesCalendar orders={orders} dailyReports={dailyReports} />
+            </>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -14575,6 +14796,10 @@ export default function AdminDashboard() {
             }),
           });
           if (closeRes.ok) {
+            const closeData = await closeRes.json().catch(() => null);
+            if (closeData?.shiftReport) {
+              setShiftReports((p) => [...p, closeData.shiftReport]);
+            }
             setShiftDate(null);
             setShopOpenedAt(null);
             await fetchData();
@@ -15299,12 +15524,21 @@ export default function AdminDashboard() {
     );
   }
 
-  const activeOrders = orders.filter(
-    (o) => o.status !== "completed" && o.status !== "cancelled",
-  );
-  const doneOrders = orders.filter(
-    (o) => o.status === "completed" || o.status === "cancelled",
-  );
+  const activeOrders = !shopOpenedAt
+    ? []
+    : orders.filter(
+        (o) =>
+          o.status !== "completed" &&
+          o.status !== "cancelled" &&
+          new Date(o.createdAt) >= new Date(shopOpenedAt),
+      );
+  const doneOrders = !shopOpenedAt
+    ? []
+    : orders.filter(
+        (o) =>
+          (o.status === "completed" || o.status === "cancelled") &&
+          new Date(o.createdAt) >= new Date(shopOpenedAt),
+      );
 
   // If we're closed and already filed today's report, show that —
   // don't let the header drop to 0 just because orders got archived.
@@ -15334,7 +15568,13 @@ export default function AdminDashboard() {
       : orders.filter((o) => new Date(o.createdAt) >= new Date(shopOpenedAt))
           .length;
 
-  const completedToday = orders.filter((o) => o.status === "completed");
+  const completedToday = !shopOpenedAt
+    ? []
+    : orders.filter(
+        (o) =>
+          o.status === "completed" &&
+          new Date(o.createdAt) >= new Date(shopOpenedAt),
+      );
   const todayCost = completedToday.reduce((s, o) => {
     return (
       s +

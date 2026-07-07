@@ -11,7 +11,7 @@ export async function GET() {
     await connectDB();
     const doc = await Setting.findOne({ key: "shopStatus" }).lean();
     return NextResponse.json({
-      open: (doc as any)?.open ?? true,
+      open: (doc as any)?.open ?? false,
       openedAt: (doc as any)?.openedAt ?? null,
       shiftDate: (doc as any)?.shiftDate ?? null,
       shiftLabel: (doc as any)?.shiftLabel ?? "Shift 1",
@@ -22,7 +22,7 @@ export async function GET() {
   } catch (e) {
     console.error("[shop-status GET]", e);
     return NextResponse.json({
-      open: true,
+      open: false,
       openedAt: null,
       shiftDate: null,
       startingCash: null,
@@ -46,7 +46,12 @@ export async function POST(req: Request) {
     // daily-close is responsible for clearing after it saves the report.
     if (open) {
       const now = new Date();
-      update.shiftDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      update.shiftDate = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(now);
       update.startingCash = typeof startingCash === "number" ? startingCash : 0;
       update.shiftLabel = shiftLabel || "Shift 1";
       update.paidIn = [];

@@ -74,10 +74,12 @@ export async function POST(req: NextRequest) {
 
   const shiftDate =
     (shopDoc as any)?.shiftDate ??
-    (() => {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    })();
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
 
   const {
     type,

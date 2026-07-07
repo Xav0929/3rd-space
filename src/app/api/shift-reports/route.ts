@@ -12,10 +12,21 @@ const SettingSchema = new mongoose.Schema({}, { strict: false });
 const Setting =
   mongoose.models.Setting || mongoose.model("Setting", SettingSchema);
 
-export async function GET() {
+function dayKeyOf(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export async function GET(req: NextRequest) {
   await connectDB();
-  const today = new Date();
-  const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const { searchParams } = new URL(req.url);
+  // Optional ?dayKey=YYYY-MM-DD — defaults to today (Asia/Manila) when omitted,
+  // so History can browse any past day, not just "today".
+  const dayKey = searchParams.get("dayKey") || dayKeyOf(new Date());
   const reports = await ShiftReport.find({ dayKey }).sort({ closedAt: 1 });
   return NextResponse.json(reports);
 }
@@ -32,8 +43,11 @@ export async function POST(req: NextRequest) {
     openedBy,
   } = body;
 
-  const today = new Date();
-  const dayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  // A shift belongs to the day it OPENED, not the moment it happens to be
+  // closed. Without this, a shift opened at 11pm and closed just after
+  // midnight would get filed under the next day and vanish from the day
+  // it actually ran on.
+  const dayKey = dayKeyOf(new Date(openedAt));
 
   const windowEnd = closedAt ? new Date(closedAt) : new Date();
   const shiftOrders = await Order.find({
