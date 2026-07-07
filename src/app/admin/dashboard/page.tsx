@@ -2848,6 +2848,7 @@ function OrderCard({
   onPaymentConfirm,
   onCashConfirm,
   onSetPaymentMethod,
+  onAdjustSplit,
   onDelete,
   onItemsUpdate,
   onApplyItemDiscount,
@@ -2865,6 +2866,11 @@ function OrderCard({
     change: number,
   ) => Promise<void> | void;
   onSetPaymentMethod: (id: string, method: "cash" | "gcash") => void;
+  onAdjustSplit: (
+    id: string,
+    cashAmount: number,
+    gcashAmount: number,
+  ) => Promise<void> | void;
   onDelete: (id: string) => void;
   onItemsUpdate: (
     id: string,
@@ -2928,6 +2934,24 @@ function OrderCard({
   const isSplit = order.paymentMethod === "split";
   const splitCash = order.cashAmount ?? 0;
   const splitGcash = order.gcashAmount ?? 0;
+  const [showSplitEditor, setShowSplitEditor] = useState(false);
+  const [splitCashInput, setSplitCashInput] = useState("");
+  const [splitGcashInput, setSplitGcashInput] = useState("");
+
+  function openSplitEditor() {
+    setSplitCashInput(
+      isSplit ? String(splitCash) : String(order.total.toFixed(2)),
+    );
+    setSplitGcashInput(isSplit ? String(splitGcash) : "0");
+    setShowSplitEditor(true);
+  }
+
+  const splitInputsSum =
+    (parseFloat(splitCashInput) || 0) + (parseFloat(splitGcashInput) || 0);
+  const splitInputsValid =
+    Math.abs(splitInputsSum - order.total) < 0.01 &&
+    parseFloat(splitCashInput) >= 0 &&
+    parseFloat(splitGcashInput) >= 0;
 
   return (
     <>
@@ -4213,6 +4237,28 @@ function OrderCard({
                   </span>
                 )}
 
+                {/* Admin override: split the payment yourself, even if the
+                    customer picked (or was recorded as) a single method */}
+                {methodKnown && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openSplitEditor();
+                    }}
+                    style={{
+                      fontSize: 11,
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      color: T.muted,
+                      background: "rgba(255,255,255,0.03)",
+                      border: `1px solid ${T.border}`,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {isSplit ? "Edit Split" : "Split Payment"}
+                  </button>
+                )}
+
                 {/* Receipt button */}
                 {order.receiptUrl && (
                   <>
@@ -4289,6 +4335,131 @@ function OrderCard({
                   </>
                 )}
               </div>
+
+              {/* Split-payment override editor */}
+              {showSplitEditor && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    padding: "12px",
+                    borderRadius: 8,
+                    background: "rgba(212,168,67,0.05)",
+                    border: `1px solid ${T.borderH}`,
+                  }}
+                >
+                  <p style={{ color: T.muted, fontSize: 11 }}>
+                    Total is {fmt(order.total)}. Enter how much was actually
+                    cash vs GCash:
+                  </p>
+                  <div
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
+                    <label style={{ flex: 1 }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: T.muted,
+                          display: "block",
+                          marginBottom: 3,
+                        }}
+                      >
+                        Cash
+                      </span>
+                      <input
+                        type="number"
+                        value={splitCashInput}
+                        onChange={(e) => setSplitCashInput(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          background: "rgba(0,0,0,0.3)",
+                          border: `1px solid ${T.border}`,
+                          color: T.cream,
+                          fontSize: 13,
+                        }}
+                      />
+                    </label>
+                    <label style={{ flex: 1 }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: T.muted,
+                          display: "block",
+                          marginBottom: 3,
+                        }}
+                      >
+                        GCash
+                      </span>
+                      <input
+                        type="number"
+                        value={splitGcashInput}
+                        onChange={(e) => setSplitGcashInput(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          background: "rgba(0,0,0,0.3)",
+                          border: `1px solid ${T.border}`,
+                          color: T.cream,
+                          fontSize: 13,
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {!splitInputsValid && (
+                    <p style={{ color: T.red, fontSize: 10 }}>
+                      Cash + GCash must add up to {fmt(order.total)} (currently{" "}
+                      {fmt(splitInputsSum)}).
+                    </p>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={async () => {
+                        await onAdjustSplit(
+                          order._id,
+                          parseFloat(splitCashInput) || 0,
+                          parseFloat(splitGcashInput) || 0,
+                        );
+                        setShowSplitEditor(false);
+                      }}
+                      disabled={!splitInputsValid}
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        borderRadius: 6,
+                        background: splitInputsValid
+                          ? T.gold
+                          : "rgba(255,255,255,0.05)",
+                        color: splitInputsValid ? "#0a0f0a" : T.faint,
+                        border: "none",
+                        cursor: splitInputsValid ? "pointer" : "default",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Save Split
+                    </button>
+                    <button
+                      onClick={() => setShowSplitEditor(false)}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 6,
+                        background: "rgba(255,255,255,0.03)",
+                        color: T.muted,
+                        border: `1px solid ${T.border}`,
+                        cursor: "pointer",
+                        fontSize: 12,
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Row 2: Actions — only show if not yet paid */}
               {order.paymentStatus !== "confirmed" && (
@@ -15327,6 +15498,41 @@ export default function AdminDashboard() {
     }
   }
 
+  // Lets an admin manually split a payment after the fact — e.g. the
+  // customer said "cash" but actually paid part by GCash and it was missed.
+  async function adjustSplitPayment(
+    id: string,
+    cashAmount: number,
+    gcashAmount: number,
+  ) {
+    const prevOrders = orders;
+    setOrders((p) =>
+      p.map((o) =>
+        o._id === id
+          ? { ...o, paymentMethod: "split", cashAmount, gcashAmount }
+          : o,
+      ),
+    );
+    showToast(
+      `Payment split: ${fmt(cashAmount)} cash + ${fmt(gcashAmount)} GCash`,
+    );
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentMethod: "split",
+          cashAmount,
+          gcashAmount,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch {
+      setOrders(prevOrders);
+      showToast("Failed to update payment split", false);
+    }
+  }
+
   function deleteOrder(id: string) {
     setActiveConfirm({ id, type: "order" });
   }
@@ -16185,6 +16391,7 @@ export default function AdminDashboard() {
                       onPaymentConfirm={confirmPayment}
                       onCashConfirm={confirmCashPayment}
                       onSetPaymentMethod={setPaymentMethod}
+                      onAdjustSplit={adjustSplitPayment}
                       onDelete={deleteOrder}
                       onItemsUpdate={updateItems}
                       onApplyItemDiscount={applyItemDiscount}
@@ -16223,6 +16430,7 @@ export default function AdminDashboard() {
                       onPaymentConfirm={confirmPayment}
                       onCashConfirm={confirmCashPayment}
                       onSetPaymentMethod={setPaymentMethod}
+                      onAdjustSplit={adjustSplitPayment}
                       onDelete={deleteOrder}
                       onItemsUpdate={updateItems}
                       onApplyItemDiscount={applyItemDiscount}
