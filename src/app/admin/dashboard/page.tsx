@@ -8971,7 +8971,7 @@ function AnalyticsTab({
           ${row("GCash", fmt(sr.gcashRev))}
           ${row("Orders completed", String(sr.orderCount))}
           ${row("Cancelled", String(sr.cancelledCount || 0))}
-          ${sr.discountTotal ? row("Total discounts given", fmt(sr.discountTotal)) : ""}
+          ${row("Total discounts given", fmt(sr.discountTotal || 0))}
           <tr class="section"><td colspan="2">CASH DRAWER</td></tr>
           ${row("Starting cash", fmt(sr.startingCash || 0))}
           ${sr.paidInTotal ? row("Paid in", `+${fmt(sr.paidInTotal)}`) : ""}
