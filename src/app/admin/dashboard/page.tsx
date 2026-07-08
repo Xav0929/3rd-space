@@ -7570,12 +7570,16 @@ function TodayReport({
   activeShiftOpenedAt,
   closedReport,
   menuItems,
+  shiftStartingCash = 0,
+  liveCashLog = { paidInTotal: 0, paidOutTotal: 0 },
 }: {
   orders: Order[];
   activeShiftDate?: string | null;
   activeShiftOpenedAt?: string | null;
   closedReport?: DailyReport | null;
   menuItems?: MenuItem[];
+  shiftStartingCash?: number;
+  liveCashLog?: { paidInTotal: number; paidOutTotal: number };
 }) {
   const today = new Date();
 
@@ -8099,9 +8103,17 @@ function TodayReport({
 
   const todayOrders = !activeShiftOpenedAt
     ? []
-    : orders.filter(
-        (o) => new Date(o.createdAt) >= new Date(activeShiftOpenedAt),
-      );
+    : orders.filter((o) => {
+        const created = new Date(o.createdAt);
+        if (created < new Date(activeShiftOpenedAt)) return false;
+        // Guard against a stale/never-reset openedAt leaking prior-day
+        // orders into "today's" totals — always require same calendar day.
+        return (
+          created.getFullYear() === today.getFullYear() &&
+          created.getMonth() === today.getMonth() &&
+          created.getDate() === today.getDate()
+        );
+      });
 
   const completed = todayOrders.filter((o) => o.status === "completed");
   const revenue = completed.reduce((s, o) => s + o.total, 0);
@@ -8383,7 +8395,7 @@ function TodayReport({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr",
+          gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr 1fr",
           gap: 12,
         }}
       >
@@ -8497,91 +8509,165 @@ function TodayReport({
           )}
         </div>
 
-        {/* Payment split */}
+        {/* Payment + By Type merged */}
         <div
           style={{
             background: T.bgCard,
             border: `1px solid ${T.border}`,
             borderRadius: 14,
             padding: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
           }}
         >
-          <p
-            style={{
-              color: T.gold,
-              fontSize: 11,
-              letterSpacing: ".15em",
-              textTransform: "uppercase",
-              fontFamily: "'Cinzel',serif",
-              marginBottom: 14,
-            }}
-          >
-            ──Payment
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              {
-                label: "Cash",
-                value: cashRev,
-                count: cashOrders.length,
-                color: T.green,
-              },
-              {
-                label: "GCash",
-                value: gcashRev,
-                count: gcashOrders.length,
+          <div>
+            <p
+              style={{
                 color: T.gold,
-              },
-            ].map((s) => (
-              <div key={s.label}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 5,
-                  }}
-                >
-                  <span style={{ color: T.muted, fontSize: 12 }}>
-                    {s.label}{" "}
-                    <span style={{ color: T.faint, fontSize: 10 }}>
-                      ({s.count})
-                    </span>
-                  </span>
-                  <span
+                fontSize: 11,
+                letterSpacing: ".15em",
+                textTransform: "uppercase",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 14,
+              }}
+            >
+              ──Payment
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[
+                {
+                  label: "Cash",
+                  value: cashRev,
+                  count: cashOrders.length,
+                  color: T.green,
+                },
+                {
+                  label: "GCash",
+                  value: gcashRev,
+                  count: gcashOrders.length,
+                  color: T.gold,
+                },
+              ].map((s) => (
+                <div key={s.label}>
+                  <div
                     style={{
-                      fontFamily: "'Cinzel',serif",
-                      color: s.color,
-                      fontSize: 12,
-                      fontWeight: 700,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: 5,
                     }}
                   >
-                    {fmt(s.value)}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    height: 5,
-                    background: "rgba(255,255,255,0.04)",
-                    borderRadius: 99,
-                  }}
-                >
+                    <span style={{ color: T.muted, fontSize: 12 }}>
+                      {s.label}{" "}
+                      <span style={{ color: T.faint, fontSize: 10 }}>
+                        ({s.count})
+                      </span>
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        color: s.color,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {fmt(s.value)}
+                    </span>
+                  </div>
                   <div
                     style={{
                       height: 5,
+                      background: "rgba(255,255,255,0.04)",
                       borderRadius: 99,
-                      background: s.color,
-                      width:
-                        revenue > 0 ? `${(s.value / revenue) * 100}%` : "0%",
-                      transition: "width .4s",
                     }}
-                  />
+                  >
+                    <div
+                      style={{
+                        height: 5,
+                        borderRadius: 99,
+                        background: s.color,
+                        width:
+                          revenue > 0 ? `${(s.value / revenue) * 100}%` : "0%",
+                        transition: "width .4s",
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              borderTop: `1px solid ${T.border}`,
+              paddingTop: 14,
+            }}
+          >
+            <p
+              style={{
+                color: T.gold,
+                fontSize: 11,
+                letterSpacing: ".15em",
+                textTransform: "uppercase",
+                fontFamily: "'Cinzel',serif",
+                marginBottom: 14,
+              }}
+            >
+              ──By Type
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[
+                { label: "Dine-In", value: dineInRev, color: T.green },
+                { label: "Delivery", value: deliveryRev, color: T.gold },
+                { label: "Takeout", value: takeoutRev, color: T.blue },
+              ].map((s) => (
+                <div key={s.label}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: 5,
+                    }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 12 }}>
+                      {s.label}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        color: s.color,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {fmt(s.value)}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: 5,
+                      background: "rgba(255,255,255,0.04)",
+                      borderRadius: 99,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: 5,
+                        borderRadius: 99,
+                        background: s.color,
+                        width:
+                          revenue > 0 ? `${(s.value / revenue) * 100}%` : "0%",
+                        transition: "width .4s",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Order type revenue */}
+        {/* Cash Management */}
         <div
           style={{
             background: T.bgCard,
@@ -8600,56 +8686,83 @@ function TodayReport({
               marginBottom: 14,
             }}
           >
-            ──By Type
+            ──Cash Management
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
-              { label: "Dine-In", value: dineInRev, color: T.green },
-              { label: "Delivery", value: deliveryRev, color: T.gold },
-              { label: "Takeout", value: takeoutRev, color: T.blue },
+              {
+                label: "Starting Cash",
+                value: shiftStartingCash,
+                color: T.cream,
+              },
+              {
+                label: "Paid In",
+                value: liveCashLog.paidInTotal,
+                color: T.green,
+                sign: "+",
+              },
+              {
+                label: "Paid Out",
+                value: liveCashLog.paidOutTotal,
+                color: T.red,
+                sign: "-",
+              },
             ].map((s) => (
-              <div key={s.label}>
-                <div
+              <div
+                key={s.label}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ color: T.muted, fontSize: 12 }}>{s.label}</span>
+                <span
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 5,
+                    fontFamily: "'Cinzel',serif",
+                    color: s.color,
+                    fontSize: 13,
+                    fontWeight: 700,
                   }}
                 >
-                  <span style={{ color: T.muted, fontSize: 12 }}>
-                    {s.label}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'Cinzel',serif",
-                      color: s.color,
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {fmt(s.value)}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    height: 5,
-                    background: "rgba(255,255,255,0.04)",
-                    borderRadius: 99,
-                  }}
-                >
-                  <div
-                    style={{
-                      height: 5,
-                      borderRadius: 99,
-                      background: s.color,
-                      width:
-                        revenue > 0 ? `${(s.value / revenue) * 100}%` : "0%",
-                      transition: "width .4s",
-                    }}
-                  />
-                </div>
+                  {s.sign === "-" && s.value > 0
+                    ? "-"
+                    : s.sign === "+" && s.value > 0
+                      ? "+"
+                      : ""}
+                  {fmt(s.value)}
+                </span>
               </div>
             ))}
+            <div
+              style={{
+                borderTop: `1px solid ${T.border}`,
+                paddingTop: 10,
+                marginTop: 4,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span style={{ color: T.muted, fontSize: 12 }}>
+                Drawer Should Have
+              </span>
+              <span
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  color: T.gold,
+                  fontSize: 15,
+                  fontWeight: 700,
+                }}
+              >
+                {fmt(
+                  shiftStartingCash +
+                    cashRev +
+                    liveCashLog.paidInTotal -
+                    liveCashLog.paidOutTotal,
+                )}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -8859,6 +8972,8 @@ function AnalyticsTab({
           activeShiftOpenedAt={activeShiftOpenedAt}
           closedReport={closedTodayReport}
           menuItems={menuItems}
+          shiftStartingCash={shiftStartingCash}
+          liveCashLog={liveCashLog}
         />
       ) : analyticsView === "history" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -14923,8 +15038,13 @@ export default function AdminDashboard() {
   ) {
     setShopToggling(true);
     try {
+      // Opening a shift ALWAYS mints a brand-new timestamp — never reuse
+      // whatever shopOpenedAt happens to be in client state, since that can
+      // be stale from a shift that wasn't cleanly closed (page refresh,
+      // race condition, etc). This is what was causing last night's shift
+      // to merge into "today's" numbers even after clicking Open Store.
       let newOpenedAt = shopOpenedAt;
-      if (next && !shopOpenedAt) {
+      if (next) {
         newOpenedAt = new Date().toISOString();
       }
       const res = await fetch("/api/shop-status", {
@@ -14939,7 +15059,10 @@ export default function AdminDashboard() {
       });
       if (res.ok) {
         setShopOpen(next);
-        if (next && !shopOpenedAt && newOpenedAt) setShopOpenedAt(newOpenedAt);
+// Always sync local state to the fresh timestamp we just sent —
+        // don't gate on the old shopOpenedAt value, since that's exactly
+        // the stale value we're trying to overwrite.
+        if (next && newOpenedAt) setShopOpenedAt(newOpenedAt);
         if (next && extra?.shiftLabel) {
           setShiftLabel(extra.shiftLabel);
         }
@@ -15730,20 +15853,35 @@ export default function AdminDashboard() {
     );
   }
 
+  // Guard against a stale/never-reset shopOpenedAt leaking a prior day's
+  // orders into "today's" header stats — always require same calendar day
+  // as right now, in addition to being after openedAt.
+  function isTodayAndAfterOpen(createdAt: string, openedAt: string) {
+    const created = new Date(createdAt);
+    const opened = new Date(openedAt);
+    if (created < opened) return false;
+    const now = new Date();
+    return (
+      created.getFullYear() === now.getFullYear() &&
+      created.getMonth() === now.getMonth() &&
+      created.getDate() === now.getDate()
+    );
+  }
+
   const activeOrders = !shopOpenedAt
     ? []
     : orders.filter(
         (o) =>
           o.status !== "completed" &&
           o.status !== "cancelled" &&
-          new Date(o.createdAt) >= new Date(shopOpenedAt),
+          isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
       );
   const doneOrders = !shopOpenedAt
     ? []
     : orders.filter(
         (o) =>
           (o.status === "completed" || o.status === "cancelled") &&
-          new Date(o.createdAt) >= new Date(shopOpenedAt),
+          isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
       );
 
   // If we're closed and already filed today's report, show that —
@@ -15763,7 +15901,7 @@ export default function AdminDashboard() {
           .filter(
             (o) =>
               o.status === "completed" &&
-              new Date(o.createdAt) >= new Date(shopOpenedAt),
+              isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
           )
           .reduce((s, o) => s + o.total, 0);
   const revenue = todaysClosedReport ? todaysClosedReport.revenue : liveRevenue;
@@ -15771,7 +15909,7 @@ export default function AdminDashboard() {
     ? todaysClosedReport.totalOrders
     : !shiftDate || !shopOpenedAt
       ? 0
-      : orders.filter((o) => new Date(o.createdAt) >= new Date(shopOpenedAt))
+      : orders.filter((o) => isTodayAndAfterOpen(o.createdAt, shopOpenedAt))
           .length;
 
   const completedToday = !shopOpenedAt
@@ -15779,7 +15917,7 @@ export default function AdminDashboard() {
     : orders.filter(
         (o) =>
           o.status === "completed" &&
-          new Date(o.createdAt) >= new Date(shopOpenedAt),
+          isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
       );
   const todayCost = completedToday.reduce((s, o) => {
     return (
