@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
   const windowEnd = closedAt ? new Date(closedAt) : new Date();
   const shiftOrders = await Order.find({
     createdAt: { $gte: new Date(openedAt), $lte: windowEnd },
+    shiftReportId: null, // only orders not already claimed by a prior report
   });
   const completed = shiftOrders.filter((o: any) => o.status === "completed");
   const revenue = completed.reduce((s: number, o: any) => s + o.total, 0);
@@ -127,6 +128,12 @@ export async function POST(req: NextRequest) {
     discountTotal,
   });
 
+  // Mark these orders as claimed so they can never be double-counted
+  // by a future shift report or backfill.
+  await Order.updateMany(
+    { _id: { $in: shiftOrders.map((o: any) => o._id) } },
+    { $set: { shiftReportId: report._id } },
+  );
   // Reset the cash log now that it's been captured on this shift's report —
   // the next shift should start with an empty log.
   await Setting.findOneAndUpdate(
