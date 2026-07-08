@@ -14984,6 +14984,7 @@ function ShiftHandoverModal({
   const [nextCash, setNextCash] = useState("");
   const [paidIn, setPaidIn] = useState(0);
   const [paidOut, setPaidOut] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetch("/api/shop-status/cash-log")
@@ -15321,13 +15322,16 @@ function ShiftHandoverModal({
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button
-                onClick={() =>
+                disabled={submitting}
+                onClick={() => {
+                  if (submitting) return;
+                  setSubmitting(true);
                   onConfirm(
                     counted,
                     nextLabel.trim() || nextShiftLabel,
                     parseFloat(nextCash) || 0,
-                  )
-                }
+                  );
+                }}
                 style={{
                   flex: 1,
                   padding: "12px",
@@ -15338,10 +15342,13 @@ function ShiftHandoverModal({
                   fontFamily: "'Cinzel',serif",
                   fontSize: 12,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  opacity: submitting ? 0.6 : 1,
                 }}
               >
-                HAND OVER & OPEN {(nextLabel || nextShiftLabel).toUpperCase()}
+                {submitting
+                  ? "SAVING…"
+                  : `HAND OVER & OPEN ${(nextLabel || nextShiftLabel).toUpperCase()}`}
               </button>
               <button
                 onClick={() => setStep("count")}

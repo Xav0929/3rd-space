@@ -105,28 +105,61 @@ export async function POST(req: NextRequest) {
     });
   });
 
-  const report = await ShiftReport.create({
-    dayKey,
-    shiftLabel,
-    openedBy: openedBy || null,
-    openedAt,
-    closedAt: closedAt || new Date().toISOString(),
-    revenue,
-    orderCount: completed.length,
-    cancelledCount,
-    cashRev,
-    gcashRev,
-    startingCash,
-    countedCash: countedCash ?? null,
-    expectedCash,
-    cashDiff,
-    items,
-    paidIn: paidInEntries,
-    paidOut: paidOutEntries,
-    paidInTotal,
-    paidOutTotal,
-    discountTotal,
-  });
+  // Idempotent write: a shift's openedAt is unique per shift (freshly
+  // generated the moment that shift opens), so it's the natural dedupe key.
+  // findOneAndUpdate + upsert is atomic at the MongoDB level — even if two
+  // requests for the same shift land at the exact same millisecond (double
+  // click, two tabs, a retried request), only ONE document is ever created.
+  // $setOnInsert means: if a report for this openedAt already exists, don't
+  // touch it — just hand back the existing one.
+  const rawResult = await ShiftReport.collection.findOneAndUpdate(
+    { openedAt },
+    {
+      $setOnInsert: {
+        dayKey,
+        shiftLabel,
+        openedBy: openedBy || null,
+        openedAt,
+        closedAt: closedAt || new Date().toISOString(),
+        revenue,
+        orderCount: completed.length,
+        cancelledCount,
+        cashRev,
+        gcashRev,
+        startingCash,
+        countedCash: countedCash ?? null,
+        expectedCash,
+        cashDiff,
+        items,
+        paidIn: paidInEntries,
+        paidOut: paidOutEntries,
+        paidInTotal,
+        paidOutTotal,
+        discountTotal,
+      },
+    },
+    { upsert: true, returnDocument: "after", includeResultMetadata: true },
+  );
+  const report = rawResult?.value;
+  const wasInsert = rawResult?.lastErrorObject?.upserted != null;
+
+  if (!report) {
+    // Should be unreachable (upsert:true guarantees a document back), but
+    // keep TypeScript and runtime both honest if the driver ever returns
+    // nothing.
+    return NextResponse.json(
+      { error: "Failed to create or fetch shift report" },
+      { status: 500 },
+    );
+  }
+
+  if (!wasInsert) {
+    // A report for this exact shift (same openedAt) already exists — this
+    // request was a duplicate (double click, retry, second tab, etc).
+    // Return the existing report as-is and skip re-claiming orders /
+    // resetting the cash log, since that already happened on the first call.
+    return NextResponse.json(report);
+  }
 
   // Mark these orders as claimed so they can never be double-counted
   // by a future shift report or backfill.
