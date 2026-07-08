@@ -7579,6 +7579,7 @@ function TodayReport({
   activeShiftDate,
   activeShiftOpenedAt,
   closedReport,
+  lastShiftReport,
   menuItems,
   shiftStartingCash = 0,
   liveCashLog = { paidInTotal: 0, paidOutTotal: 0 },
@@ -7587,6 +7588,7 @@ function TodayReport({
   activeShiftDate?: string | null;
   activeShiftOpenedAt?: string | null;
   closedReport?: DailyReport | null;
+  lastShiftReport?: ShiftReport | null;
   menuItems?: MenuItem[];
   shiftStartingCash?: number;
   liveCashLog?: { paidInTotal: number; paidOutTotal: number };
@@ -7603,37 +7605,75 @@ function TodayReport({
     const printShiftReport = () => {
       const win = window.open("", "_blank", "width=380,height=600");
       if (!win) return;
-      const dateStr = new Date(closedReport.closedAt).toLocaleDateString(
-        "en-PH",
-        { month: "long", day: "numeric", year: "numeric" },
-      );
-      const openedStr = closedReport.openedAt
-        ? new Date(closedReport.openedAt).toLocaleTimeString("en-PH", {
+
+      // Prefer the specific shift's own ShiftReport (accurate, per-shift
+      // numbers) over the whole-day DailyReport, which sums every shift
+      // that ran today and was silently overstating cash sales / expected
+      // cash / total cash in drawer whenever more than one shift ran.
+      const sr = lastShiftReport;
+      const revenue = sr ? sr.revenue : closedReport.revenue;
+      const discountTotal = sr
+        ? sr.discountTotal || 0
+        : closedReport.discountTotal || 0;
+      const netRevenue = sr
+        ? sr.revenue - (sr.discountTotal || 0)
+        : closedReport.netRevenue || closedReport.revenue;
+      const cashRev = sr ? sr.cashRev : closedReport.cashRev;
+      const gcashRev = sr ? sr.gcashRev : closedReport.gcashRev;
+      const orderCount = sr ? sr.orderCount : closedReport.orderCount;
+      const cancelledCount = sr
+        ? sr.cancelledCount || 0
+        : closedReport.cancelledCount || 0;
+      const avgOrder = sr
+        ? sr.orderCount
+          ? sr.revenue / sr.orderCount
+          : 0
+        : closedReport.avgOrder || 0;
+      const deliveryFees = sr ? 0 : closedReport.deliveryFees || 0;
+      const startingCash = sr
+        ? sr.startingCash || 0
+        : closedReport.startingCash || 0;
+      const expectedCash = sr
+        ? (sr.startingCash || 0) +
+          sr.cashRev +
+          (sr.paidInTotal || 0) -
+          (sr.paidOutTotal || 0)
+        : closedReport.expectedCash || 0;
+      const countedCash = sr ? sr.countedCash : closedReport.countedCash;
+      const cashDiff = sr ? sr.cashDiff : closedReport.cashDiff;
+      const openedAtIso = sr ? sr.openedAt : closedReport.openedAt;
+      const closedAtIso = sr ? sr.closedAt : closedReport.closedAt;
+      const shiftHasCashRecon = sr ? true : hasCashRecon;
+
+      const dateStr = new Date(closedAtIso).toLocaleDateString("en-PH", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+      const openedStr = openedAtIso
+        ? new Date(openedAtIso).toLocaleTimeString("en-PH", {
             hour: "numeric",
             minute: "2-digit",
             hour12: true,
           })
         : "—";
-      const closedStr = new Date(closedReport.closedAt).toLocaleTimeString(
-        "en-PH",
-        { hour: "numeric", minute: "2-digit", hour12: true },
-      );
+      const closedStr = new Date(closedAtIso).toLocaleTimeString("en-PH", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
       const row = (label: string, value: string) =>
         `<tr><td>${label}</td><td style="text-align:right;font-weight:700;">${value}</td></tr>`;
-      const cashReconRows = hasCashRecon
+      const cashReconRows = shiftHasCashRecon
         ? `
 <tr class="section"><td colspan="2">CASH RECONCILIATION</td></tr>
-            ${row("Starting cash", `₱${(closedReport.startingCash || 0).toFixed(2)}`)}
-            ${row("Cash sales", `₱${closedReport.cashRev.toFixed(2)}`)}
-            ${row("Expected cash", `₱${(closedReport.expectedCash || 0).toFixed(2)}`)}
-            ${row("Counted cash", closedReport.countedCash != null ? `₱${closedReport.countedCash.toFixed(2)}` : "—")}
+            ${row("Starting cash", `₱${startingCash.toFixed(2)}`)}
+            ${row("Cash sales", `₱${cashRev.toFixed(2)}`)}
+            ${row("Expected cash", `₱${expectedCash.toFixed(2)}`)}
+            ${row("Counted cash", countedCash != null ? `₱${countedCash.toFixed(2)}` : "—")}
             ${row(
-              closedReport.cashDiff != null && closedReport.cashDiff < 0
-                ? "Short by"
-                : "Over by",
-              closedReport.cashDiff != null
-                ? `₱${Math.abs(closedReport.cashDiff).toFixed(2)}`
-                : "—",
+              cashDiff != null && cashDiff < 0 ? "Short by" : "Over by",
+              cashDiff != null ? `₱${Math.abs(cashDiff).toFixed(2)}` : "—",
             )}
           `
         : "";
@@ -7656,20 +7696,20 @@ function TodayReport({
           <p class="sub">${dateStr}<br/>Opened ${openedStr} · Closed ${closedStr}</p>
           <table>
             <tr class="section"><td colspan="2">SALES SUMMARY</td></tr>
-            ${row("Gross sales", `₱${closedReport.revenue.toFixed(2)}`)}
-            ${row("Discounts", `₱${(closedReport.discountTotal || 0).toFixed(2)}`)}
+            ${row("Gross sales", `₱${revenue.toFixed(2)}`)}
+            ${row("Discounts", `₱${discountTotal.toFixed(2)}`)}
             ${row("Refunds", "₱0.00")}
-            ${row("Net sales", `₱${(closedReport.netRevenue || closedReport.revenue).toFixed(2)}`)}
+            ${row("Net sales", `₱${netRevenue.toFixed(2)}`)}
             <tr class="section"><td colspan="2">PAYMENT BREAKDOWN</td></tr>
-            ${row("Cash", `₱${closedReport.cashRev.toFixed(2)}`)}
-            ${row("GCash", `₱${closedReport.gcashRev.toFixed(2)}`)}
+            ${row("Cash", `₱${cashRev.toFixed(2)}`)}
+            ${row("GCash", `₱${gcashRev.toFixed(2)}`)}
             <tr class="section"><td colspan="2">ORDERS</td></tr>
-            ${row("Completed", String(closedReport.orderCount))}
-            ${row("Cancelled", String(closedReport.cancelledCount || 0))}
-            ${row("Avg order", `₱${Math.round(closedReport.avgOrder || 0)}`)}
-            ${row("Delivery fees", `₱${closedReport.deliveryFees || 0}`)}
+            ${row("Completed", String(orderCount))}
+            ${row("Cancelled", String(cancelledCount))}
+            ${row("Avg order", `₱${Math.round(avgOrder)}`)}
+            ${row("Delivery fees", `₱${deliveryFees}`)}
             ${cashReconRows}
-            <tr class="total"><td>TOTAL CASH IN DRAWER</td><td style="text-align:right;font-weight:700;">₱${closedReport.cashRev.toFixed(2)}</td></tr>
+            <tr class="total"><td>TOTAL CASH IN DRAWER</td><td style="text-align:right;font-weight:700;">₱${cashRev.toFixed(2)}</td></tr>
           </table>
         </body>
         </html>
@@ -8830,6 +8870,13 @@ function AnalyticsTab({
   const closedTodayReport = !activeShiftDate
     ? (dailyReports.find((r) => r.dayKey === todayCalKey) ?? null)
     : null;
+  const todaysShiftReports = shiftReports.filter(
+    (sr) => sr.dayKey === todayCalKey,
+  );
+  const lastShiftReportToday =
+    todaysShiftReports.length > 0
+      ? todaysShiftReports[todaysShiftReports.length - 1]
+      : null;
 
   // ── History day picker ──────────────────────────────────────────────────
   function shiftDayKey(key: string, delta: number) {
@@ -8839,6 +8886,7 @@ function AnalyticsTab({
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
   }
   const [historyDayKey, setHistoryDayKey] = useState(todayCalKey);
+  const [selectedShift, setSelectedShift] = useState<ShiftReport | null>(null);
   const isViewingToday = historyDayKey === todayCalKey;
   const [pastReports, setPastReports] = useState<ShiftReport[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -8995,6 +9043,7 @@ function AnalyticsTab({
           activeShiftDate={activeShiftDate}
           activeShiftOpenedAt={activeShiftOpenedAt}
           closedReport={closedTodayReport}
+          lastShiftReport={lastShiftReportToday}
           menuItems={menuItems}
           shiftStartingCash={shiftStartingCash}
           liveCashLog={liveCashLog}
@@ -9123,6 +9172,7 @@ function AnalyticsTab({
                 {displayedReports.map((sr) => (
                   <div
                     key={sr._id}
+                    onClick={() => setSelectedShift(sr)}
                     style={{
                       background: T.bgCard,
                       border: `1px solid ${T.border}`,
@@ -9131,7 +9181,15 @@ function AnalyticsTab({
                       display: "flex",
                       flexDirection: "column",
                       gap: 8,
+                      cursor: "pointer",
+                      transition: "border-color .15s",
                     }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.borderColor = T.borderH)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.borderColor = T.border)
+                    }
                   >
                     <div
                       style={{
@@ -9183,7 +9241,10 @@ function AnalyticsTab({
                           Closed
                         </span>
                         <button
-                          onClick={() => printShiftHandover(sr)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printShiftHandover(sr);
+                          }}
                           title="Print shift handover report"
                           style={{
                             background: "rgba(212,168,67,0.08)",
@@ -9659,7 +9720,9 @@ function AnalyticsTab({
                                   (shiftStartingCash || 0) +
                                     liveOrders
                                       .filter((o) => o.paymentMethod === "cash")
-                                      .reduce((s, o) => s + o.total, 0),
+                                      .reduce((s, o) => s + o.total, 0) +
+                                    liveCashLog.paidInTotal -
+                                    liveCashLog.paidOutTotal,
                                 )}
                               </span>
                             </div>
@@ -9782,6 +9845,7 @@ function AnalyticsTab({
                 activeShiftDate={activeShiftDate}
                 activeShiftOpenedAt={activeShiftOpenedAt}
                 closedReport={closedTodayReport}
+                lastShiftReport={lastShiftReportToday}
                 menuItems={menuItems}
               />
             </>
@@ -9853,6 +9917,345 @@ function AnalyticsTab({
           )}
         </div>
       ) : null}
+
+      {selectedShift &&
+        (() => {
+          const start = new Date(selectedShift.openedAt).getTime();
+          const end = new Date(selectedShift.closedAt).getTime();
+          const shiftOrders = orders
+            .filter((o) => {
+              const t = new Date(o.createdAt).getTime();
+              return t >= start && t <= end && o.status !== "pending";
+            })
+            .sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+            );
+          return (
+            <div
+              onClick={() => setSelectedShift(null)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 2000,
+                background: "rgba(0,0,0,0.75)",
+                backdropFilter: "blur(6px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "16px",
+              }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: "#0f1a0f",
+                  border: `1px solid ${T.borderH}`,
+                  borderRadius: 18,
+                  padding: "24px",
+                  width: "100%",
+                  maxWidth: 560,
+                  maxHeight: "85vh",
+                  overflowY: "auto",
+                  boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        fontFamily: "'Cinzel',serif",
+                        color: T.gold,
+                        fontSize: 16,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {selectedShift.shiftLabel}
+                      {selectedShift.openedBy
+                        ? ` · ${selectedShift.openedBy}`
+                        : ""}
+                    </p>
+                    <p style={{ color: T.muted, fontSize: 12, marginTop: 2 }}>
+                      {new Date(selectedShift.openedAt).toLocaleTimeString(
+                        "en-PH",
+                        { hour: "numeric", minute: "2-digit", hour12: true },
+                      )}{" "}
+                      –{" "}
+                      {new Date(selectedShift.closedAt).toLocaleTimeString(
+                        "en-PH",
+                        { hour: "numeric", minute: "2-digit", hour12: true },
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedShift(null)}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: "50%",
+                      width: 32,
+                      height: 32,
+                      color: T.muted,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill,minmax(120px,1fr))",
+                    gap: 8,
+                  }}
+                >
+                  {[
+                    {
+                      label: "Revenue",
+                      val: fmt(selectedShift.revenue),
+                      color: T.gold,
+                    },
+                    {
+                      label: "Orders",
+                      val: String(selectedShift.orderCount),
+                      color: T.cream,
+                    },
+                    {
+                      label: "Cash",
+                      val: fmt(selectedShift.cashRev),
+                      color: T.green,
+                    },
+                    {
+                      label: "GCash",
+                      val: fmt(selectedShift.gcashRev),
+                      color: T.gold,
+                    },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      style={{
+                        background: "rgba(255,255,255,0.02)",
+                        border: `1px solid ${T.border}`,
+                        borderRadius: 8,
+                        padding: "8px 10px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: T.muted,
+                          fontSize: 9,
+                          letterSpacing: ".08em",
+                          marginBottom: 3,
+                        }}
+                      >
+                        {s.label.toUpperCase()}
+                      </p>
+                      <p
+                        style={{
+                          color: s.color,
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {s.val}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedShift.cashDiff !== null && (
+                  <div
+                    style={{
+                      background:
+                        selectedShift.cashDiff === 0
+                          ? "rgba(34,197,94,0.06)"
+                          : "rgba(239,68,68,0.06)",
+                      border: `1px solid ${selectedShift.cashDiff === 0 ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ color: T.muted, fontSize: 11 }}>
+                      Starting {fmt(selectedShift.startingCash || 0)} · Expected{" "}
+                      {fmt(
+                        (selectedShift.startingCash || 0) +
+                          selectedShift.cashRev +
+                          (selectedShift.paidInTotal || 0) -
+                          (selectedShift.paidOutTotal || 0),
+                      )}{" "}
+                      · Counted{" "}
+                      {selectedShift.countedCash != null
+                        ? fmt(selectedShift.countedCash)
+                        : "—"}
+                    </span>
+                    <span
+                      style={{
+                        color: selectedShift.cashDiff === 0 ? T.green : T.red,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {selectedShift.cashDiff === 0
+                        ? "Balanced ✓"
+                        : `${selectedShift.cashDiff > 0 ? "Over" : "Short"} ${fmt(Math.abs(selectedShift.cashDiff))}`}
+                    </span>
+                  </div>
+                )}
+
+                <p
+                  style={{
+                    color: T.gold,
+                    fontSize: 11,
+                    letterSpacing: ".12em",
+                    fontFamily: "'Cinzel',serif",
+                    marginTop: 4,
+                  }}
+                >
+                  ──Orders ({shiftOrders.length})
+                </p>
+
+                {shiftOrders.length === 0 ? (
+                  <p
+                    style={{
+                      color: T.faint,
+                      fontSize: 13,
+                      textAlign: "center",
+                      padding: "16px 0",
+                    }}
+                  >
+                    No orders found in this shift's time window.
+                  </p>
+                ) : (
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                  >
+                    {shiftOrders.map((o) => (
+                      <div
+                        key={o._id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 14px",
+                          background: "rgba(255,255,255,0.03)",
+                          border: `1px solid ${T.border}`,
+                          borderRadius: 10,
+                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            minWidth: 0,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: "'Cinzel',serif",
+                              fontSize: 12,
+                              color: T.cream,
+                              fontWeight: 700,
+                            }}
+                          >
+                            #{o.orderNumber}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              color: o.status === "cancelled" ? T.red : T.green,
+                              background:
+                                o.status === "cancelled"
+                                  ? "rgba(239,68,68,0.1)"
+                                  : "rgba(34,197,94,0.1)",
+                              padding: "2px 7px",
+                              borderRadius: 4,
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {o.status}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              color:
+                                o.paymentMethod === "cash" ? T.green : T.gold,
+                            }}
+                          >
+                            {o.paymentMethod || "—"}
+                          </span>
+                          {o.items?.length > 0 && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                color: T.faint,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                maxWidth: 180,
+                              }}
+                            >
+                              ·{" "}
+                              {o.items
+                                .map((it) => `${it.quantity}× ${it.name}`)
+                                .join(", ")}
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                          }}
+                        >
+                          <span style={{ fontSize: 11, color: T.faint }}>
+                            {new Date(o.createdAt).toLocaleTimeString("en-PH", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </span>
+                          <span
+                            style={{
+                              fontFamily: "'Cinzel',serif",
+                              fontSize: 13,
+                              color: T.gold,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {fmt(o.total)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }
@@ -15908,18 +16311,13 @@ export default function AdminDashboard() {
   // orders into "today's" header stats — always require same calendar day
   // as right now, in addition to being after openedAt.
   function isTodayAndAfterOpen(createdAt: string, openedAt: string) {
-    const created = new Date(createdAt);
-    const opened = new Date(openedAt);
-    if (created < opened) return false;
-    // Compare calendar dates in Asia/Manila (not the device's local
-    // timezone) so this always matches the server's dayKeyOf().
-    const manilaFmt = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Manila",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    return manilaFmt.format(created) === manilaFmt.format(new Date());
+    // A shift's real boundary is when it opened, not the calendar date —
+    // shifts routinely close 30–60min past midnight, and a same-day check
+    // would wrongly drop pre-midnight orders from the live view the moment
+    // the clock ticks over, right when staff are trying to count the
+    // drawer. Real filtering by calendar day only matters for the
+    // *saved* ShiftReport's dayKey, which is handled server-side.
+    return new Date(createdAt) >= new Date(openedAt);
   }
 
   const activeOrders = !shopOpenedAt
