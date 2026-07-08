@@ -6291,7 +6291,12 @@ function SalesCalendar({
   orders.forEach((o) => {
     if (o.status !== "completed") return;
     const d = new Date(o.createdAt);
-    const calKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const calKey = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
     const key = (o as any).shiftDate || calKey;
     if (!dailyStats[key] || !dailyStats[key].report) {
       if (!dailyStats[key])
@@ -6316,7 +6321,12 @@ function SalesCalendar({
   );
 
   const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(today);
   const selectedStats = selectedDay ? dailyStats[selectedDay] : null;
 
   const MONTHS = [
@@ -8099,7 +8109,12 @@ function TodayReport({
       </div>
     );
   }
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(today);
 
   const todayOrders = !activeShiftOpenedAt
     ? []
@@ -8107,11 +8122,16 @@ function TodayReport({
         const created = new Date(o.createdAt);
         if (created < new Date(activeShiftOpenedAt)) return false;
         // Guard against a stale/never-reset openedAt leaking prior-day
-        // orders into "today's" totals — always require same calendar day.
+        // orders into "today's" totals — always require same calendar day,
+        // compared in Asia/Manila (not the device's local timezone) so this
+        // matches the server's dayKeyOf() exactly.
         return (
-          created.getFullYear() === today.getFullYear() &&
-          created.getMonth() === today.getMonth() &&
-          created.getDate() === today.getDate()
+          new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Manila",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(created) === todayKey
         );
       });
 
@@ -8800,8 +8820,12 @@ function AnalyticsTab({
   );
 
   const todayCalKey = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
   })();
   const closedTodayReport = !activeShiftDate
     ? (dailyReports.find((r) => r.dayKey === todayCalKey) ?? null)
@@ -9427,7 +9451,12 @@ function AnalyticsTab({
                     const untrackedOrders = orders.filter((o) => {
                       if (o.status !== "completed") return false;
                       const t = new Date(o.createdAt).getTime();
-                      const dKey = `${new Date(o.createdAt).getFullYear()}-${String(new Date(o.createdAt).getMonth() + 1).padStart(2, "0")}-${String(new Date(o.createdAt).getDate()).padStart(2, "0")}`;
+                      const dKey = new Intl.DateTimeFormat("en-CA", {
+                        timeZone: "Asia/Manila",
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      }).format(new Date(o.createdAt));
                       if (dKey !== todayCalKey) return false;
                       return !windows.some((w) => t >= w.start && t <= w.end);
                     });
@@ -15081,11 +15110,17 @@ export default function AdminDashboard() {
 
         // When pausing, automatically save the daily report
         if (!next) {
+          // Same race guard as handoverShift — re-fetch the true openedAt
+          // right before closing instead of trusting local state.
+          const freshStatus = await fetch("/api/shop-status").then((r) =>
+            r.json(),
+          );
+          const trueOpenedAt = freshStatus.openedAt || shopOpenedAt;
           const closeRes = await fetch("/api/daily-close", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              openedAt: shopOpenedAt,
+              openedAt: trueOpenedAt,
               countedCash: extra?.countedCash,
             }),
           });
@@ -15212,21 +15247,33 @@ export default function AdminDashboard() {
   ) {
     setShopToggling(true);
     try {
+      // Never trust client-side shopOpenedAt here — the 15s background
+      // poll can race and stomp it with a stale value between when the
+      // last shift opened and now. Always pull the true current openedAt
+      // fresh from the server right before filing the report.
+      const freshStatus = await fetch("/api/shop-status").then((r) => r.json());
+      const trueOpenedAt = freshStatus.openedAt || shopOpenedAt;
+      const trueShiftLabel = freshStatus.shiftLabel || shiftLabel;
+      const trueStartingCash =
+        typeof freshStatus.startingCash === "number"
+          ? freshStatus.startingCash
+          : shiftStartingCash;
+
       console.log(
-        "[handoverShift] shopOpenedAt:",
-        shopOpenedAt,
+        "[handoverShift] trueOpenedAt:",
+        trueOpenedAt,
         "shiftLabel:",
-        shiftLabel,
+        trueShiftLabel,
       );
       const reportRes = await fetch("/api/shift-reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          openedAt: shopOpenedAt,
+          openedAt: trueOpenedAt,
           closedAt: new Date().toISOString(),
           countedCash,
-          shiftLabel,
-          startingCash: shiftStartingCash,
+          shiftLabel: trueShiftLabel,
+          startingCash: trueStartingCash,
           openedBy: staffName,
         }),
       });
@@ -15864,12 +15911,15 @@ export default function AdminDashboard() {
     const created = new Date(createdAt);
     const opened = new Date(openedAt);
     if (created < opened) return false;
-    const now = new Date();
-    return (
-      created.getFullYear() === now.getFullYear() &&
-      created.getMonth() === now.getMonth() &&
-      created.getDate() === now.getDate()
-    );
+    // Compare calendar dates in Asia/Manila (not the device's local
+    // timezone) so this always matches the server's dayKeyOf().
+    const manilaFmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    return manilaFmt.format(created) === manilaFmt.format(new Date());
   }
 
   const activeOrders = !shopOpenedAt
@@ -15890,10 +15940,12 @@ export default function AdminDashboard() {
 
   // If we're closed and already filed today's report, show that —
   // don't let the header drop to 0 just because orders got archived.
-  const todayCalKey = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  })();
+  const todayCalKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
   const todaysClosedReport = !shiftDate
     ? dailyReports.find((r) => r.dayKey === todayCalKey)
     : null;
