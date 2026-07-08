@@ -15059,7 +15059,7 @@ export default function AdminDashboard() {
       });
       if (res.ok) {
         setShopOpen(next);
-// Always sync local state to the fresh timestamp we just sent —
+        // Always sync local state to the fresh timestamp we just sent —
         // don't gate on the old shopOpenedAt value, since that's exactly
         // the stale value we're trying to overwrite.
         if (next && newOpenedAt) setShopOpenedAt(newOpenedAt);
@@ -15346,6 +15346,10 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (tab === "analytics") fetchLiveCashLog();
+  }, [tab]);
 
   useEffect(() => {
     if (!role) return;
@@ -16152,6 +16156,7 @@ export default function AdminDashboard() {
                   if (shopToggling) return;
                   const next = !shopOpen;
                   if (shopOpen) {
+                    fetchLiveCashLog();
                     setShowShiftOptions(true);
                   } else {
                     setShowOpenShiftModal(true);
@@ -16201,7 +16206,10 @@ export default function AdminDashboard() {
               </button>
               {shopOpen && (
                 <button
-                  onClick={() => setShowCashLog(true)}
+                  onClick={() => {
+                    fetchLiveCashLog();
+                    setShowCashLog(true);
+                  }}
                   style={{
                     padding: "7px 13px",
                     background: "rgba(91,155,213,0.1)",
