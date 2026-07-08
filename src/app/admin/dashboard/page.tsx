@@ -16805,7 +16805,7 @@ export default function AdminDashboard() {
                 o.status === "completed" &&
                 o.paymentMethod === "cash" &&
                 shopOpenedAt &&
-                new Date(o.createdAt) >= new Date(shopOpenedAt),
+                isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
             )
             .reduce((s, o) => s + o.total, 0)}
           startingCash={shiftStartingCash}
@@ -16847,7 +16847,7 @@ export default function AdminDashboard() {
                 o.status === "completed" &&
                 o.paymentMethod === "cash" &&
                 shopOpenedAt &&
-                new Date(o.createdAt) >= new Date(shopOpenedAt),
+                isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
             )
             .reduce((s, o) => s + o.total, 0)}
           onConfirm={(countedCash) => {
