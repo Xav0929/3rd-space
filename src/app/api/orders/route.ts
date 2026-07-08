@@ -4,6 +4,7 @@ import { Order } from "@/models/Order";
 import { MenuItem } from "@/models/MenuItem";
 import { notifyClients } from "@/lib/sse";
 import Redemption from "@/models/Redemption";
+import { Setting } from "@/lib/models/Setting";
 
 function generateOrderNumber() {
   const date = new Date();
@@ -49,18 +50,6 @@ export async function POST(req: NextRequest) {
   await connectDB();
   const body = await req.json();
 
-  const { default: mongoose } = await import("mongoose");
-  const Setting =
-    mongoose.models.Setting ||
-    mongoose.model(
-      "Setting",
-      new mongoose.Schema({
-        key: String,
-        open: Boolean,
-        openedAt: { type: String, default: null },
-        shiftDate: { type: String, default: null },
-      }),
-    );
   const shopDoc = await Setting.findOne({ key: "shopStatus" }).lean();
 
   if (body.source !== "crew") {

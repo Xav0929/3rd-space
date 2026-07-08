@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import mongoose from "mongoose";
-
-const SettingSchema = new mongoose.Schema({}, { strict: false });
-const Setting =
-  mongoose.models.Setting || mongoose.model("Setting", SettingSchema);
+import { Setting } from "@/lib/models/Setting";
 
 export async function POST(req: Request) {
   try {
