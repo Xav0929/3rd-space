@@ -8196,10 +8196,22 @@ function TodayReport({
     .slice(0, 6);
 
   // Payment split
-  const cashOrders = completed.filter((o) => o.paymentMethod === "cash");
-  const gcashOrders = completed.filter((o) => o.paymentMethod === "gcash");
-  const cashRev = cashOrders.reduce((s, o) => s + o.total, 0);
-  const gcashRev = gcashOrders.reduce((s, o) => s + o.total, 0);
+  const cashOrders = completed.filter(
+    (o) => o.paymentMethod === "cash" || o.paymentMethod === "split",
+  );
+  const gcashOrders = completed.filter(
+    (o) => o.paymentMethod === "gcash" || o.paymentMethod === "split",
+  );
+  const cashRev = completed.reduce((s, o) => {
+    if (o.paymentMethod === "cash") return s + o.total;
+    if (o.paymentMethod === "split") return s + (o.cashAmount ?? 0);
+    return s;
+  }, 0);
+  const gcashRev = completed.reduce((s, o) => {
+    if (o.paymentMethod === "gcash") return s + o.total;
+    if (o.paymentMethod === "split") return s + (o.gcashAmount ?? 0);
+    return s;
+  }, 0);
 
   // Order type revenue
   const deliveryRev = completed
@@ -9718,9 +9730,13 @@ function AnalyticsTab({
                               >
                                 {fmt(
                                   (shiftStartingCash || 0) +
-                                    liveOrders
-                                      .filter((o) => o.paymentMethod === "cash")
-                                      .reduce((s, o) => s + o.total, 0) +
+                                    liveOrders.reduce((s, o) => {
+                                      if (o.paymentMethod === "cash")
+                                        return s + o.total;
+                                      if (o.paymentMethod === "split")
+                                        return s + (o.cashAmount ?? 0);
+                                      return s;
+                                    }, 0) +
                                     liveCashLog.paidInTotal -
                                     liveCashLog.paidOutTotal,
                                 )}
@@ -9762,9 +9778,13 @@ function AnalyticsTab({
                                 }}
                               >
                                 {fmt(
-                                  liveOrders
-                                    .filter((o) => o.paymentMethod === "cash")
-                                    .reduce((s, o) => s + o.total, 0),
+                                  liveOrders.reduce((s, o) => {
+                                    if (o.paymentMethod === "cash")
+                                      return s + o.total;
+                                    if (o.paymentMethod === "split")
+                                      return s + (o.cashAmount ?? 0);
+                                    return s;
+                                  }, 0),
                                 )}
                               </span>
                             </div>
@@ -9785,9 +9805,13 @@ function AnalyticsTab({
                                 }}
                               >
                                 {fmt(
-                                  liveOrders
-                                    .filter((o) => o.paymentMethod === "gcash")
-                                    .reduce((s, o) => s + o.total, 0),
+                                  liveOrders.reduce((s, o) => {
+                                    if (o.paymentMethod === "gcash")
+                                      return s + o.total;
+                                    if (o.paymentMethod === "split")
+                                      return s + (o.gcashAmount ?? 0);
+                                    return s;
+                                  }, 0),
                                 )}
                               </span>
                             </div>
@@ -17208,11 +17232,14 @@ export default function AdminDashboard() {
             .filter(
               (o) =>
                 o.status === "completed" &&
-                o.paymentMethod === "cash" &&
                 shopOpenedAt &&
                 isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
             )
-            .reduce((s, o) => s + o.total, 0)}
+            .reduce((s, o) => {
+              if (o.paymentMethod === "cash") return s + o.total;
+              if (o.paymentMethod === "split") return s + (o.cashAmount ?? 0);
+              return s;
+            }, 0)}
           startingCash={shiftStartingCash}
           onConfirm={(countedCash, nextLabel, nextCash) =>
             handoverShift(countedCash, nextLabel, nextCash)
@@ -17250,11 +17277,14 @@ export default function AdminDashboard() {
             .filter(
               (o) =>
                 o.status === "completed" &&
-                o.paymentMethod === "cash" &&
                 shopOpenedAt &&
                 isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
             )
-            .reduce((s, o) => s + o.total, 0)}
+            .reduce((s, o) => {
+              if (o.paymentMethod === "cash") return s + o.total;
+              if (o.paymentMethod === "split") return s + (o.cashAmount ?? 0);
+              return s;
+            }, 0)}
           onConfirm={(countedCash) => {
             setShowCloseShiftModal(false);
             toggleShop(false, { countedCash });
