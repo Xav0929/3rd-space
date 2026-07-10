@@ -5489,6 +5489,8 @@ function MenuTab({
     val: string;
   } | null>(null);
   const [savingCostId, setSavingCostId] = useState<string | null>(null);
+  const w = useWindowWidth();
+  const isMobile = w < 640;
 
   async function saveCost(item: MenuItem, cost: number) {
     setSavingCostId(item._id);
@@ -5752,11 +5754,16 @@ function MenuTab({
           style={{
             border: `1px solid ${T.border}`,
             borderRadius: 12,
-            overflow: "hidden",
+            overflowX: "auto",
           }}
         >
           <table
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: 12,
+              minWidth: isMobile ? 480 : undefined,
+            }}
           >
             <thead>
               <tr
@@ -5781,6 +5788,8 @@ function MenuTab({
                         letterSpacing: 0.8,
                         fontFamily: "'Cinzel',serif",
                         whiteSpace: "nowrap",
+                        display:
+                          isMobile && h === "Category" ? "none" : undefined,
                       }}
                     >
                       {h}
@@ -5859,6 +5868,7 @@ function MenuTab({
                         padding: "9px 14px",
                         color: T.muted,
                         fontSize: 11,
+                        display: isMobile ? "none" : undefined,
                       }}
                     >
                       {item.category}
