@@ -4371,7 +4371,17 @@ function OrderCard({
                       <input
                         type="number"
                         value={splitCashInput}
-                        onChange={(e) => setSplitCashInput(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setSplitCashInput(v);
+                          const cashNum = parseFloat(v) || 0;
+                          const remainder = Math.max(order.total - cashNum, 0);
+                          setSplitGcashInput(
+                            remainder % 1 === 0
+                              ? String(remainder)
+                              : remainder.toFixed(2),
+                          );
+                        }}
                         style={{
                           width: "100%",
                           padding: "6px 8px",
@@ -4397,7 +4407,17 @@ function OrderCard({
                       <input
                         type="number"
                         value={splitGcashInput}
-                        onChange={(e) => setSplitGcashInput(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setSplitGcashInput(v);
+                          const gcashNum = parseFloat(v) || 0;
+                          const remainder = Math.max(order.total - gcashNum, 0);
+                          setSplitCashInput(
+                            remainder % 1 === 0
+                              ? String(remainder)
+                              : remainder.toFixed(2),
+                          );
+                        }}
                         style={{
                           width: "100%",
                           padding: "6px 8px",
