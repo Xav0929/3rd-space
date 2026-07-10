@@ -3,6 +3,128 @@ import { connectDB } from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { deleteFromR2 } from "@/lib/r2";
 import { notifyClients } from "@/lib/sse";
+import mongoose from "mongoose";
+
+const ShiftReportSchema = new mongoose.Schema({}, { strict: false });
+const ShiftReport =
+  mongoose.models.ShiftReport ||
+  mongoose.model("ShiftReport", ShiftReportSchema);
+
+const TERMINAL_STATUSES = ["completed", "cancelled"];
+
+async function attributeToOriginalShift(orderId: string) {
+  const order = await Order.findById(orderId);
+  if (!order) return;
+  if (order.shiftReportId) return; // already claimed, leave it alone
+  if (!TERMINAL_STATUSES.includes(order.status)) return;
+
+  const createdAt = new Date(order.createdAt);
+
+  const candidateReports = await ShiftReport.find({
+    closedAt: { $exists: true, $ne: null },
+  }).lean();
+
+  const match = candidateReports.find((r: any) => {
+    const start = new Date(r.openedAt);
+    const end = new Date(r.closedAt);
+    return createdAt >= start && createdAt <= end;
+  });
+
+  if (!match) {
+    console.log(
+      "[attributeToOriginalShift] no matching report for order",
+      orderId,
+      "createdAt:",
+      createdAt.toISOString(),
+    );
+    return;
+  }
+
+  console.log(
+    "[attributeToOriginalShift] matched report",
+    (match as any)._id,
+    "for order",
+    orderId,
+  );
+
+  const isCompleted = order.status === "completed";
+
+  // If this order's cash was already counted when the shift originally
+  // closed (paid but still preparing at handover), don't add it again —
+  // only revenue/orderCount still need crediting now.
+  const alreadyCashCounted = ((match as any).cashCountedOrderIds || []).some(
+    (id: any) => String(id) === String(order._id),
+  );
+
+  const addRevenue = isCompleted ? order.total : 0;
+  const addCash =
+    isCompleted && !alreadyCashCounted
+      ? order.paymentMethod === "cash"
+        ? order.total
+        : order.paymentMethod === "split"
+          ? order.cashAmount || 0
+          : 0
+      : 0;
+  const addGcash =
+    isCompleted && !alreadyCashCounted
+      ? order.paymentMethod === "gcash"
+        ? order.total
+        : order.paymentMethod === "split"
+          ? order.gcashAmount || 0
+          : 0
+      : 0;
+  const addCancelled = order.status === "cancelled" ? 1 : 0;
+  const addDiscount = isCompleted
+    ? (order.items || []).reduce(
+        (s: number, it: any) => s + (it.discountAmount || 0),
+        0,
+      ) +
+      (order.discountAmount || 0) +
+      (order.voucherDiscount || 0)
+    : 0;
+
+  const mergedItems = { ...(match as any).items };
+  if (isCompleted) {
+    (order.items || []).forEach((it: any) => {
+      if (!mergedItems[it.name]) mergedItems[it.name] = { qty: 0, revenue: 0 };
+      mergedItems[it.name].qty += it.quantity;
+      mergedItems[it.name].revenue += it.price * it.quantity;
+    });
+  }
+
+  const newExpectedCash = (match as any).expectedCash + addCash;
+  const newCashDiff =
+    typeof (match as any).countedCash === "number"
+      ? (match as any).countedCash - newExpectedCash
+      : null;
+
+  await ShiftReport.collection.updateOne(
+    { _id: (match as any)._id },
+    {
+      $inc: {
+        revenue: addRevenue,
+        orderCount: isCompleted ? 1 : 0,
+        cancelledCount: addCancelled,
+        cashRev: addCash,
+        gcashRev: addGcash,
+        discountTotal: addDiscount,
+      },
+      $set: {
+        items: mergedItems,
+        expectedCash: newExpectedCash,
+        cashDiff: newCashDiff,
+        pendingOrderIds: ((match as any).pendingOrderIds || []).filter(
+          (pid: any) => String(pid) !== String(order._id),
+        ),
+      },
+    },
+  );
+
+  await Order.updateOne(
+    { _id: order._id },
+    { $set: { shiftReportId: (match as any)._id } },
+  );
+}
 
 export async function GET(
   _: NextRequest,
@@ -88,6 +210,15 @@ export async function PATCH(
     });
     if (!order)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    if (body.status && TERMINAL_STATUSES.includes(body.status)) {
+      try {
+        await attributeToOriginalShift(id);
+      } catch (attribErr) {
+        console.error("[attributeToOriginalShift] failed", attribErr);
+      }
+    }
+
     return NextResponse.json(order);
   } catch (e) {
     console.error("PATCH /api/orders/[id]", e);

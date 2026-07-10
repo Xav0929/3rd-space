@@ -37,6 +37,27 @@ export async function POST(req: Request) {
     // Falls back to calendar date only if somehow shiftDate was never set.
     const shopDoc = await Setting.findOne({ key: "shopStatus" }).lean();
 
+    // Use shiftDate if available, otherwise fall back to today's calendar key
+    const dayKey = (shopDoc as any)?.shiftDate ?? calendarKey(now);
+
+    // Day-level starting cash must be the FIRST shift's float for this
+    // dayKey, not shopDoc.startingCash — that field gets overwritten on
+    // every handover, so by the last shift of the day it holds that
+    // shift's carried-over float, not the day's original opening cash.
+    // Using it here double-counts every earlier shift's cash sales.
+    const firstShiftToday = await ShiftReport.findOne({ dayKey })
+      .sort({ openedAt: 1 })
+      .lean();
+    // Day-level starting cash (for the aggregate DailyReport) — always the
+    // very first shift's float for this dayKey.
+    const dayStartingCash =
+      (firstShiftToday as any)?.startingCash ??
+      (shopDoc as any)?.startingCash ??
+      0;
+    // This-shift's starting cash (for the ShiftReport of the shift being
+    // closed right now) — the live carried-over float in shopDoc, NOT the
+    // day's original float. These two are different for every shift after
+    // the first one.
     const startingCash = (shopDoc as any)?.startingCash ?? 0;
     const paidIn = (shopDoc as any)?.paidIn ?? [];
     const paidOut = (shopDoc as any)?.paidOut ?? [];
@@ -48,9 +69,6 @@ export async function POST(req: Request) {
       (s: number, e: any) => s + (e.amount || 0),
       0,
     );
-
-    // Use shiftDate if available, otherwise fall back to today's calendar key
-    const dayKey = (shopDoc as any)?.shiftDate ?? calendarKey(now);
 
     // Check if a report already exists for this business day
     const existingReport = await DailyReport.findOne({ dayKey }).lean();
@@ -116,12 +134,16 @@ export async function POST(req: Request) {
       });
     });
 
-    const cashRev = completed
-      .filter((o: any) => o.paymentMethod === "cash")
-      .reduce((s: number, o: any) => s + o.total, 0);
-    const gcashRev = completed
-      .filter((o: any) => o.paymentMethod === "gcash")
-      .reduce((s: number, o: any) => s + o.total, 0);
+    const cashRev = completed.reduce((s: number, o: any) => {
+      if (o.paymentMethod === "cash") return s + o.total;
+      if (o.paymentMethod === "split") return s + (o.cashAmount ?? 0);
+      return s;
+    }, 0);
+    const gcashRev = completed.reduce((s: number, o: any) => {
+      if (o.paymentMethod === "gcash") return s + o.total;
+      if (o.paymentMethod === "split") return s + (o.gcashAmount ?? 0);
+      return s;
+    }, 0);
     const dineInRev = completed
       .filter((o: any) => o.type === "dine-in")
       .reduce((s: number, o: any) => s + o.total, 0);
@@ -152,16 +174,17 @@ export async function POST(req: Request) {
       discountTotal,
       items,
       orders: JSON.parse(JSON.stringify(allOrders)),
-      startingCash,
+      startingCash: dayStartingCash,
       paidIn,
       paidOut,
       paidInTotal,
       paidOutTotal,
       countedCash: typeof countedCash === "number" ? countedCash : null,
-      expectedCash: startingCash + cashRev + paidInTotal - paidOutTotal,
+      expectedCash: dayStartingCash + cashRev + paidInTotal - paidOutTotal,
       cashDiff:
         typeof countedCash === "number"
-          ? countedCash - (startingCash + cashRev + paidInTotal - paidOutTotal)
+          ? countedCash -
+            (dayStartingCash + cashRev + paidInTotal - paidOutTotal)
           : null,
     };
 
@@ -178,12 +201,16 @@ export async function POST(req: Request) {
       (s: number, o: any) => s + o.total,
       0,
     );
-    const thisShiftCashRev = thisShiftCompleted
-      .filter((o: any) => o.paymentMethod === "cash")
-      .reduce((s: number, o: any) => s + o.total, 0);
-    const thisShiftGcashRev = thisShiftCompleted
-      .filter((o: any) => o.paymentMethod === "gcash")
-      .reduce((s: number, o: any) => s + o.total, 0);
+    const thisShiftCashRev = thisShiftCompleted.reduce((s: number, o: any) => {
+      if (o.paymentMethod === "cash") return s + o.total;
+      if (o.paymentMethod === "split") return s + (o.cashAmount ?? 0);
+      return s;
+    }, 0);
+    const thisShiftGcashRev = thisShiftCompleted.reduce((s: number, o: any) => {
+      if (o.paymentMethod === "gcash") return s + o.total;
+      if (o.paymentMethod === "split") return s + (o.gcashAmount ?? 0);
+      return s;
+    }, 0);
     const thisShiftItems: Record<string, { qty: number; revenue: number }> = {};
     thisShiftCompleted.forEach((o: any) => {
       o.items?.forEach((it: any) => {

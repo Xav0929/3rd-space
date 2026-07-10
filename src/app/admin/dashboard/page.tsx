@@ -42,6 +42,22 @@ import {
   Navigation,
 } from "lucide-react";
 
+// Standard ESC/POS drawer-kick command (ESC p m t1 t2), sent to the
+// printer's kick-out connector (pin 2). This is intentionally independent
+// of buildEscPosReceipt() so the drawer can be popped for ANY cash-handling
+// moment — split payments, paid in/out — not just full-cash order receipts.
+function buildDrawerKickBytes(): Uint8Array {
+  return new Uint8Array([0x1b, 0x70, 0x00, 0x19, 0xfa]);
+}
+function kickCashDrawer() {
+  try {
+    const url = escPosToRawBtUrl(buildDrawerKickBytes());
+    window.location.href = url;
+  } catch {
+    // no-op if RawBT isn't reachable — never block the actual transaction
+  }
+}
+
 const T = {
   bg: "#0a0f0a",
   bgCard: "rgba(255,255,255,0.035)",
@@ -2997,6 +3013,7 @@ function OrderCard({
           onConfirm={async (cashReceived, change) => {
             setShowCashRegister(false);
             await onCashConfirm(order._id, cashReceived, change);
+            kickCashDrawer();
             printReceipt(1, { cashReceived, change });
           }}
           onCancel={() => setShowCashRegister(false)}
@@ -7603,6 +7620,7 @@ function TodayReport({
   menuItems,
   shiftStartingCash = 0,
   liveCashLog = { paidInTotal: 0, paidOutTotal: 0 },
+  onPrintDayReport,
 }: {
   orders: Order[];
   activeShiftDate?: string | null;
@@ -7612,6 +7630,7 @@ function TodayReport({
   menuItems?: MenuItem[];
   shiftStartingCash?: number;
   liveCashLog?: { paidInTotal: number; paidOutTotal: number };
+  onPrintDayReport?: () => void;
 }) {
   const today = new Date();
 
@@ -7631,13 +7650,16 @@ function TodayReport({
       // that ran today and was silently overstating cash sales / expected
       // cash / total cash in drawer whenever more than one shift ran.
       const sr = lastShiftReport;
-      const revenue = sr ? sr.revenue : closedReport.revenue;
+      // sr.revenue is already the actual amount charged (order.total is
+      // computed post-discount at the item level) — so it's Net, not
+      // Gross. Gross is net + discount added back, not net - discount.
       const discountTotal = sr
         ? sr.discountTotal || 0
         : closedReport.discountTotal || 0;
       const netRevenue = sr
-        ? sr.revenue - (sr.discountTotal || 0)
-        : closedReport.netRevenue || closedReport.revenue;
+        ? sr.revenue
+        : (closedReport.netRevenue ?? closedReport.revenue);
+      const revenue = netRevenue + discountTotal;
       const cashRev = sr ? sr.cashRev : closedReport.cashRev;
       const gcashRev = sr ? sr.gcashRev : closedReport.gcashRev;
       const orderCount = sr ? sr.orderCount : closedReport.orderCount;
@@ -7728,8 +7750,8 @@ function TodayReport({
             ${row("Cancelled", String(cancelledCount))}
             ${row("Avg order", `₱${Math.round(avgOrder)}`)}
             ${row("Delivery fees", `₱${deliveryFees}`)}
-            ${cashReconRows}
-            <tr class="total"><td>TOTAL CASH IN DRAWER</td><td style="text-align:right;font-weight:700;">₱${cashRev.toFixed(2)}</td></tr>
+${cashReconRows}
+            <tr class="total"><td>TOTAL CASH IN DRAWER</td><td style="text-align:right;font-weight:700;">₱${(countedCash != null ? countedCash : expectedCash).toFixed(2)}</td></tr>
           </table>
         </body>
         </html>
@@ -7776,28 +7798,30 @@ function TodayReport({
               })}
             </span>
           )}
-          <button
-            onClick={printShiftReport}
-            style={{
-              marginLeft: "auto",
-              padding: "6px 14px",
-              background: "rgba(212,168,67,0.1)",
-              border: `1px solid ${T.borderH}`,
-              borderRadius: 8,
-              color: T.gold,
-              fontSize: 11,
-              fontWeight: 700,
-              fontFamily: "'Cinzel',serif",
-              letterSpacing: ".06em",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Printer size={12} /> PRINT SHIFT REPORT
-          </button>
+          {onPrintDayReport && (
+            <button
+              onClick={onPrintDayReport}
+              style={{
+                marginLeft: "auto",
+                padding: "6px 14px",
+                background: "rgba(212,168,67,0.1)",
+                border: `1px solid ${T.borderH}`,
+                borderRadius: 8,
+                color: T.gold,
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "'Cinzel',serif",
+                letterSpacing: ".06em",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Printer size={12} /> PRINT DAY REPORT
+            </button>
+          )}
         </div>
 
         {hasCashRecon && (
@@ -8996,14 +9020,15 @@ function AnalyticsTab({
       <body>
         <h1>3RD SPACE — SHIFT HANDOVER</h1>
         <p class="sub">${sr.shiftLabel}${sr.openedBy ? ` · ${sr.openedBy}` : ""}<br/>${dateStr}<br/>Opened ${openedStr} · Closed ${closedStr}</p>
-        <table>
+      <table>
           <tr class="section"><td colspan="2">SALES</td></tr>
-          ${row("Gross revenue", fmt(sr.revenue))}
+          ${row("Gross revenue", fmt(sr.revenue + (sr.discountTotal || 0)))}
+          ${row("Discounts", fmt(sr.discountTotal || 0))}
+          ${row("Net revenue", fmt(sr.revenue))}
           ${row("Cash", fmt(sr.cashRev))}
           ${row("GCash", fmt(sr.gcashRev))}
           ${row("Orders completed", String(sr.orderCount))}
           ${row("Cancelled", String(sr.cancelledCount || 0))}
-          ${row("Total discounts given", fmt(sr.discountTotal || 0))}
           <tr class="section"><td colspan="2">CASH DRAWER</td></tr>
           ${row("Starting cash", fmt(sr.startingCash || 0))}
           ${sr.paidInTotal ? row("Paid in", `+${fmt(sr.paidInTotal)}`) : ""}
@@ -9027,6 +9052,111 @@ function AnalyticsTab({
               ? `<tr class="section"><td colspan="2">TOP ITEMS</td></tr>${itemRows}`
               : ""
           }
+</table>
+      </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  }
+
+  function printDailyReport(reports: ShiftReport[], dateLabel: string) {
+    const win = window.open("", "_blank", "width=380,height=600");
+    if (!win) return;
+    const row = (label: string, value: string) =>
+      `<tr><td>${label}</td><td style="text-align:right;font-weight:700;">${value}</td></tr>`;
+
+    const sorted = [...reports].sort(
+      (a, b) => new Date(a.openedAt).getTime() - new Date(b.openedAt).getTime(),
+    );
+
+    const totalRevenue = sorted.reduce((s, r) => s + (r.revenue || 0), 0);
+    const totalCash = sorted.reduce((s, r) => s + (r.cashRev || 0), 0);
+    const totalGcash = sorted.reduce((s, r) => s + (r.gcashRev || 0), 0);
+    const totalOrders = sorted.reduce((s, r) => s + (r.orderCount || 0), 0);
+    const totalCancelled = sorted.reduce(
+      (s, r) => s + (r.cancelledCount || 0),
+      0,
+    );
+    const totalDiscount = sorted.reduce(
+      (s, r) => s + (r.discountTotal || 0),
+      0,
+    );
+
+    const shiftSections = sorted
+      .map((sr) => {
+        const openedStr = new Date(sr.openedAt).toLocaleTimeString("en-PH", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+        const closedStr = new Date(sr.closedAt).toLocaleTimeString("en-PH", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+        const expectedCash =
+          (sr.startingCash || 0) +
+          sr.cashRev +
+          (sr.paidInTotal || 0) -
+          (sr.paidOutTotal || 0);
+        return `
+          <tr class="section"><td colspan="2">${sr.shiftLabel}${sr.openedBy ? ` · ${sr.openedBy}` : ""}</td></tr>
+          ${row("Opened – Closed", `${openedStr} – ${closedStr}`)}
+          ${row("Revenue", fmt(sr.revenue))}
+          ${row("Orders", String(sr.orderCount))}
+${row("Cash", fmt(sr.cashRev))}
+          ${row("GCash", fmt(sr.gcashRev))}
+          ${row("Discounts", fmt(sr.discountTotal || 0))}
+          ${row("Starting cash", fmt(sr.startingCash || 0))}
+          ${row("Expected cash", fmt(expectedCash))}
+          ${row("Counted cash", sr.countedCash != null ? fmt(sr.countedCash) : "—")}
+          ${
+            sr.cashDiff != null
+              ? row(
+                  sr.cashDiff === 0
+                    ? "Balanced"
+                    : sr.cashDiff > 0
+                      ? "Over by"
+                      : "Short by",
+                  fmt(Math.abs(sr.cashDiff)),
+                )
+              : ""
+          }
+        `;
+      })
+      .join("");
+
+    win.document.write(`
+      <html>
+      <head>
+        <title>Day Report — ${dateLabel}</title>
+        <style>
+          body { font-family: 'Courier New', monospace; padding: 16px; color: #000; }
+          h1 { font-size: 16px; text-align: center; margin-bottom: 2px; }
+          p.sub { text-align: center; font-size: 11px; margin-bottom: 14px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          td { padding: 4px 0; border-bottom: 1px dashed #999; }
+          tr.total td { border-top: 2px solid #000; border-bottom: none; font-size: 15px; padding-top: 8px; }
+          tr.section td { padding-top: 12px; font-weight: 700; border-bottom: 1px solid #000; }
+        </style>
+      </head>
+      <body>
+        <h1>3RD SPACE — DAY REPORT</h1>
+        <p class="sub">${dateLabel}<br/>${sorted.length} shift${sorted.length === 1 ? "" : "s"}</p>
+        <table>
+          ${shiftSections}
+<tr class="section"><td colspan="2">DAY TOTAL</td></tr>
+${row("Gross sales", fmt(totalRevenue + totalDiscount))}
+          ${row("Discounts", fmt(totalDiscount))}
+          ${row("Net sales", fmt(totalRevenue))}
+          ${row("Orders", String(totalOrders))}
+          ${row("Cancelled", String(totalCancelled))}
+          ${row("Cash", fmt(totalCash))}
+          ${row("GCash", fmt(totalGcash))}
+          ${row("Final drawer count", fmt(sorted[sorted.length - 1]?.countedCash ?? 0))}
+<tr class="total"><td>NET SALES</td><td style="text-align:right;font-weight:700;">₱${totalRevenue.toFixed(2)}</td></tr>
         </table>
       </body>
       </html>
@@ -9079,6 +9209,9 @@ function AnalyticsTab({
           menuItems={menuItems}
           shiftStartingCash={shiftStartingCash}
           liveCashLog={liveCashLog}
+          onPrintDayReport={() =>
+            printDailyReport(displayedReports, historyDateLabel)
+          }
         />
       ) : analyticsView === "history" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -9153,7 +9286,7 @@ function AnalyticsTab({
               )}
             </div>
             {displayedReports.length > 0 && (
-              <div style={{ display: "flex", gap: 16 }}>
+              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
                 <span style={{ fontSize: 11, color: T.muted }}>
                   {displayedReports.length} shift
                   {displayedReports.length === 1 ? "" : "s"}
@@ -9891,6 +10024,9 @@ function AnalyticsTab({
                 closedReport={closedTodayReport}
                 lastShiftReport={lastShiftReportToday}
                 menuItems={menuItems}
+                onPrintDayReport={() =>
+                  printDailyReport(displayedReports, historyDateLabel)
+                }
               />
             </>
           )}
@@ -14466,6 +14602,7 @@ function CashLogModal({
         const d = await res.json();
         setPaidIn(d.paidIn || []);
         setPaidOut(d.paidOut || []);
+        kickCashDrawer();
         onLogged?.(type, amt);
         setAmount("");
         setNote("");
@@ -15934,11 +16071,16 @@ export default function AdminDashboard() {
   async function fetchData(silent = false): Promise<void> {
     try {
       if (!silent) setLoading(true);
-      const [oRes, mRes, sRes] = await Promise.all([
+      const [oRes, mRes, sRes, srRes] = await Promise.all([
         fetch("/api/orders"),
         fetch("/api/menu"),
         fetch("/api/shop-status"),
+        fetch("/api/shift-reports"),
       ]);
+      if (srRes.ok) {
+        const srData = await srRes.json();
+        if (Array.isArray(srData)) setShiftReports(srData);
+      }
       if (sRes.ok) {
         const s = await sRes.json();
         setShopOpen(s.open);
@@ -17246,7 +17388,8 @@ export default function AdminDashboard() {
           cashRevThisShift={orders
             .filter(
               (o) =>
-                o.status === "completed" &&
+                o.paymentStatus === "confirmed" &&
+                o.status !== "cancelled" &&
                 shopOpenedAt &&
                 isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
             )
