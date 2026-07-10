@@ -6015,6 +6015,42 @@ function MenuTab({
         </div>
       )}
 
+      {editItem && (
+        <div
+          onClick={(e) => e.target === e.currentTarget && setEditItem(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(0,0,0,0.78)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "90svh",
+              overflowY: "auto",
+              background: "#0f1a0f",
+              borderRadius: 16,
+              boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
+            }}
+          >
+            <MenuItemForm
+              key={`edit-${editItem._id}`}
+              item={editItem}
+              onSave={saveItem}
+              onCancel={() => setEditItem(null)}
+            />
+          </div>
+        </div>
+      )}
+
       {menuView === "cards" && (
         <>
           {showForm && (
@@ -6024,42 +6060,6 @@ function MenuTab({
               onSave={saveItem}
               onCancel={() => setShowForm(false)}
             />
-          )}
-
-          {editItem && (
-            <div
-              onClick={(e) => e.target === e.currentTarget && setEditItem(null)}
-              style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 1000,
-                background: "rgba(0,0,0,0.78)",
-                backdropFilter: "blur(6px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "16px",
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  maxWidth: 520,
-                  maxHeight: "90svh",
-                  overflowY: "auto",
-                  background: "#0f1a0f",
-                  borderRadius: 16,
-                  boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
-                }}
-              >
-                <MenuItemForm
-                  key={`edit-${editItem._id}`}
-                  item={editItem}
-                  onSave={saveItem}
-                  onCancel={() => setEditItem(null)}
-                />
-              </div>
-            </div>
           )}
 
           {categories.map((cat) => (

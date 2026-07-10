@@ -29,6 +29,7 @@ const MenuItemSchema = new Schema(
     available: { type: Boolean, default: true },
     variants: { type: [String], default: [] },
     options: { type: [OptionGroupSchema], default: [] },
+    cost: { type: Number, default: null },
   },
   { timestamps: true },
 );
