@@ -367,6 +367,9 @@ export async function PATCH(req: NextRequest) {
   if (paymentStatus) update.paymentStatus = paymentStatus;
   if (body.cancelReason) update.cancelReason = body.cancelReason;
   if (body.paymentMethod) update.paymentMethod = body.paymentMethod;
+  if (typeof body.cashAmount === "number") update.cashAmount = body.cashAmount;
+  if (typeof body.gcashAmount === "number")
+    update.gcashAmount = body.gcashAmount;
 
   if (!Object.keys(update).length) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });

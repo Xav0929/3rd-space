@@ -56,12 +56,16 @@ export async function POST(req: NextRequest) {
   });
   const completed = shiftOrders.filter((o: any) => o.status === "completed");
   const revenue = completed.reduce((s: number, o: any) => s + o.total, 0);
-  const cashRev = completed
-    .filter((o: any) => o.paymentMethod === "cash")
-    .reduce((s: number, o: any) => s + o.total, 0);
-  const gcashRev = completed
-    .filter((o: any) => o.paymentMethod === "gcash")
-    .reduce((s: number, o: any) => s + o.total, 0);
+  const cashRev = completed.reduce((s: number, o: any) => {
+    if (o.paymentMethod === "cash") return s + o.total;
+    if (o.paymentMethod === "split") return s + (o.cashAmount ?? 0);
+    return s;
+  }, 0);
+  const gcashRev = completed.reduce((s: number, o: any) => {
+    if (o.paymentMethod === "gcash") return s + o.total;
+    if (o.paymentMethod === "split") return s + (o.gcashAmount ?? 0);
+    return s;
+  }, 0);
   const cancelledCount = shiftOrders.filter(
     (o: any) => o.status === "cancelled",
   ).length;

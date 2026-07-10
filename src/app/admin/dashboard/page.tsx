@@ -16351,14 +16351,9 @@ export default function AdminDashboard() {
     return new Date(createdAt) >= new Date(openedAt);
   }
 
-  const activeOrders = !shopOpenedAt
-    ? []
-    : orders.filter(
-        (o) =>
-          o.status !== "completed" &&
-          o.status !== "cancelled" &&
-          isTodayAndAfterOpen(o.createdAt, shopOpenedAt),
-      );
+  const activeOrders = orders.filter(
+    (o) => o.status !== "completed" && o.status !== "cancelled",
+  );
   const doneOrders = !shopOpenedAt
     ? []
     : orders.filter(

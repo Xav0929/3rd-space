@@ -110,6 +110,15 @@ const OrderSchema = new Schema(
     voucherCode: { type: String },
     voucherDiscount: { type: Number },
     voucherItemName: { type: String },
+
+    // Marks which ShiftReport already counted this order, so it can
+    // never be double-counted by a later report covering an overlapping
+    // createdAt window.
+    shiftReportId: {
+      type: Schema.Types.ObjectId,
+      ref: "ShiftReport",
+      default: null,
+    },
   },
   { timestamps: true },
 );

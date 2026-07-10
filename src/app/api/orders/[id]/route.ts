@@ -84,7 +84,7 @@ export async function PATCH(
     }
 
     const order = await Order.findByIdAndUpdate(id, stampUpdate, {
-      returnDocument: "after",
+      new: true,
     });
     if (!order)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
