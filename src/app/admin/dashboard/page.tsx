@@ -2552,6 +2552,15 @@ function EditOrderItemsModal({
     });
     setSearch("");
   }
+  // Quick-add a generic charge (e.g. a delivery fee for a takeout order
+  // that turned into a delivery). Kept separate from addMenuItem since
+  // "Others" isn't a real menu product — each tap adds its own line so
+  // staff can stack multiple if needed (e.g. two ₱50 fees), rather than
+  // merging into one bucket at the wrong price.
+  const OTHERS_PRESETS = [30, 40, 50, 60, 70, 80, 90];
+  function addOthersItem(price: number) {
+    setItems((p) => [...p, { name: "Others", price, quantity: 1 }]);
+  }
 
   const filteredMenu = search.trim()
     ? menuItems
@@ -2807,6 +2816,42 @@ function EditOrderItemsModal({
               ))}
             </div>
           )}
+        </div>
+
+        <div>
+          <label
+            style={{
+              color: T.muted,
+              fontSize: 10,
+              letterSpacing: ".1em",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            OTHERS (e.g. delivery fee)
+          </label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {OTHERS_PRESETS.map((price) => (
+              <button
+                key={price}
+                onClick={() => addOthersItem(price)}
+                style={{
+                  flex: "1 1 calc(33.33% - 6px)",
+                  minWidth: 60,
+                  padding: "8px 6px",
+                  borderRadius: 8,
+                  border: `1px solid ${T.border}`,
+                  background: "rgba(255,255,255,0.02)",
+                  color: T.cream,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                +₱{price}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div
