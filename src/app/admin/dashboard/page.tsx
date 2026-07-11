@@ -356,30 +356,45 @@ function getCrewCustomizations(
   itemName?: string,
   liveSauces?: { name: string; image: string }[],
   liveEggStyles?: { name: string; image: string }[],
+  liveMilkSubs?: { label: string; price: number }[],
+  liveBaseSubs?: { label: string; price: number }[],
 ): CrewCustomizationConfig | null {
   const c = category.toLowerCase().trim();
   const n = (itemName || "").toLowerCase();
+
+  // If "Substitutions" menu items exist for milk/base, they are the source
+  // of truth — hiding "Oatmilk Substitution" (etc.) as a menu item now
+  // hides it everywhere it's offered as an option. undefined (no such
+  // items created yet) falls back to the old hardcoded lists.
+  const effMilk: { label: string; price: number }[] =
+    liveMilkSubs !== undefined
+      ? [{ label: "Regular Milk", price: 0 }, ...liveMilkSubs]
+      : MILK_SUBS;
+  const effBase: { label: string; price: number }[] =
+    liveBaseSubs !== undefined
+      ? [{ label: "Coffee", price: 0 }, ...liveBaseSubs]
+      : BASE_SUBS;
 
   if (n.includes("americano")) return { addons: DRINK_ADDONS };
   if (n.includes("orange")) return { addons: DRINK_ADDONS };
 
   if (c.includes("3rd space"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   if (c.includes("coffee"))
     return {
-      substitutions: MILK_SUBS,
-      baseSubs: BASE_SUBS,
+      substitutions: effMilk,
+      baseSubs: effBase,
       addons: DRINK_ADDONS,
     };
   if (c.includes("brain fuel")) return { addons: DRINK_ADDONS };
   if (c.includes("oat")) return { addons: DRINK_ADDONS };
   if (c.includes("flavored soda")) return { addons: DRINK_ADDONS };
   if (c.includes("matcha"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   if (c.includes("non"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   if (c.includes("tea"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   if (c.includes("house plate"))
     return {
       addons: [
@@ -11948,6 +11963,42 @@ function CrewTab({
       (i) => i.category.toLowerCase().includes("egg style") && i.available,
     )
     .map((i) => ({ name: i.name, image: i.image }));
+
+  // "Substitutions" menu items (e.g. "Oatmilk Substitution", "Matcha
+  // Substitution") drive the Milk/Base option pickers. Hiding one of these
+  // items (✗ Hidden in Menu tab) removes it from every drink that offers
+  // it — same live-sync pattern as sauces/egg styles above.
+  const milkSubItemsExist = menuItems.some(
+    (i) =>
+      i.category.toLowerCase().includes("substitution") && /milk/i.test(i.name),
+  );
+  const baseSubItemsExist = menuItems.some(
+    (i) =>
+      i.category.toLowerCase().includes("substitution") &&
+      /matcha|base/i.test(i.name),
+  );
+  const liveMilkSubs = menuItems
+    .filter(
+      (i) =>
+        i.category.toLowerCase().includes("substitution") &&
+        i.available &&
+        /milk/i.test(i.name),
+    )
+    .map((i) => ({
+      label: i.name.replace(/substitution/i, "").trim(),
+      price: i.price,
+    }));
+  const liveBaseSubs = menuItems
+    .filter(
+      (i) =>
+        i.category.toLowerCase().includes("substitution") &&
+        i.available &&
+        /matcha|base/i.test(i.name),
+    )
+    .map((i) => ({
+      label: i.name.replace(/substitution/i, "").trim(),
+      price: i.price,
+    }));
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<
     "gcash" | "cash" | "later"
@@ -12062,6 +12113,8 @@ function CrewTab({
       item.name,
       liveSauces,
       liveEggStyles,
+      milkSubItemsExist ? liveMilkSubs : undefined,
+      baseSubItemsExist ? liveBaseSubs : undefined,
     );
     if (config) {
       setCustomizingItem(item);
@@ -12975,6 +13028,8 @@ function CrewTab({
                         resolved.name,
                         liveSauces,
                         liveEggStyles,
+                        milkSubItemsExist ? liveMilkSubs : undefined,
+                        baseSubItemsExist ? liveBaseSubs : undefined,
                       );
                       if (config) {
                         setCustomizingItem(resolved);

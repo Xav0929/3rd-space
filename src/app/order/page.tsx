@@ -77,9 +77,24 @@ function getCategoryCustomizations(
   liveSauces?: { name: string; image: string }[],
   liveEggStyles?: { name: string; image: string }[],
   itemName?: string,
+  liveMilkSubs?: { label: string; price: number }[],
+  liveBaseSubs?: { label: string; price: number }[],
 ): CustomizationConfig | null {
   const c = category.toLowerCase().trim();
   const n = (itemName || "").toLowerCase();
+
+  // "Substitutions" menu items (e.g. "Oatmilk Substitution", "Matcha
+  // Substitution") are the source of truth when they exist — hiding one
+  // in the admin Menu tab hides it here too. undefined (no such items
+  // created yet) falls back to the old hardcoded lists.
+  const effMilk: { label: string; price: number }[] =
+    liveMilkSubs !== undefined
+      ? [{ label: "Regular Milk", price: 0 }, ...liveMilkSubs]
+      : MILK_SUBS;
+  const effBase: { label: string; price: number }[] =
+    liveBaseSubs !== undefined
+      ? [{ label: "Coffee", price: 0 }, ...liveBaseSubs]
+      : BASE_SUBS;
 
   // Americano: no milk sub, just drink add-ons
   if (n.includes("americano")) return { addons: DRINK_ADDONS };
@@ -87,7 +102,7 @@ function getCategoryCustomizations(
   if (n.includes("orange")) return { addons: DRINK_ADDONS };
 
   if (c.includes("3rd space"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   if (c.includes("appetizer") || c.includes("snack"))
     return {
       sauces:
@@ -108,8 +123,8 @@ function getCategoryCustomizations(
   if (c.includes("oat")) return { addons: DRINK_ADDONS };
   if (c.includes("coffee"))
     return {
-      substitutions: MILK_SUBS,
-      baseSubs: BASE_SUBS,
+      substitutions: effMilk,
+      baseSubs: effBase,
       addons: DRINK_ADDONS,
     };
   if (c.includes("flavored soda")) return { addons: DRINK_ADDONS };
@@ -121,9 +136,9 @@ function getCategoryCustomizations(
       ],
     };
   if (c.includes("matcha"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   if (c.includes("non"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   if (c.includes("noodle") || c.includes("soup"))
     return {
       addons: [
@@ -154,7 +169,7 @@ function getCategoryCustomizations(
       ],
     };
   if (c.includes("tea"))
-    return { substitutions: MILK_SUBS, addons: DRINK_ADDONS };
+    return { substitutions: effMilk, addons: DRINK_ADDONS };
   return null;
 }
 
@@ -1842,12 +1857,31 @@ function GenericOptionsSheet({
   item,
   onAdd,
   onClose,
+  hiddenSubLabels,
 }: {
   item: MenuItem;
   onAdd: (customizations: SelectedCustomization[]) => void;
   onClose: () => void;
+  hiddenSubLabels?: Set<string>;
 }) {
-  const groups = item.options || [];
+  // Saved per-item option groups (from the admin "Edit Item" form) are a
+  // frozen snapshot taken at save time — they don't auto-update when a
+  // "Substitutions" menu item gets hidden later. Strip out any choice
+  // whose label matches a currently-hidden substitution item, and drop
+  // any group left with zero choices, so hiding e.g. "Oatmilk
+  // Substitution" removes "Oat Milk" here too, not just in the live
+  // category-driven picker.
+  const groups = (item.options || [])
+    .map((g) => ({
+      ...g,
+      choices: g.choices.filter(
+        (c) =>
+          !hiddenSubLabels?.has(
+            c.label.trim().toLowerCase().replace(/\s+/g, ""),
+          ),
+      ),
+    }))
+    .filter((g) => g.choices.length > 0);
   const [selections, setSelections] = useState<Record<string, Set<string>>>(
     () => {
       const init: Record<string, Set<string>> = {};
@@ -2110,6 +2144,53 @@ function MenuScreen({
     )
     .map((i: MenuItem) => ({ name: i.name, image: i.image }));
 
+  const milkSubItemsExist = menuItems.some(
+    (i: MenuItem) =>
+      i.category.toLowerCase().includes("substitution") && /milk/i.test(i.name),
+  );
+  const baseSubItemsExist = menuItems.some(
+    (i: MenuItem) =>
+      i.category.toLowerCase().includes("substitution") &&
+      /matcha|base/i.test(i.name),
+  );
+  const liveMilkSubs = menuItems
+    .filter(
+      (i: MenuItem) =>
+        i.category.toLowerCase().includes("substitution") &&
+        i.available &&
+        /milk/i.test(i.name),
+    )
+    .map((i: MenuItem) => ({
+      label: i.name.replace(/substitution/i, "").trim(),
+      price: i.price,
+    }));
+  const liveBaseSubs = menuItems
+    .filter(
+      (i: MenuItem) =>
+        i.category.toLowerCase().includes("substitution") &&
+        i.available &&
+        /matcha|base/i.test(i.name),
+    )
+    .map((i: MenuItem) => ({
+      label: i.name.replace(/substitution/i, "").trim(),
+      price: i.price,
+    }));
+
+  const hiddenSubLabels = new Set<string>(
+    menuItems
+      .filter(
+        (i: MenuItem) =>
+          i.category.toLowerCase().includes("substitution") && !i.available,
+      )
+      .map((i: MenuItem) =>
+        i.name
+          .replace(/substitution/i, "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, ""),
+      ),
+  );
+
   const ITEM_VARIANTS: Record<string, { label: string; price?: number }[]> = {
     longganisa: [
       { label: "Garlic" },
@@ -2164,6 +2245,8 @@ function MenuScreen({
       liveSauces,
       liveEggStyles,
       item.name,
+      milkSubItemsExist ? liveMilkSubs : undefined,
+      baseSubItemsExist ? liveBaseSubs : undefined,
     );
     if (config) {
       setCustomizingItem(item);
@@ -2692,6 +2775,8 @@ function MenuScreen({
                   liveSauces,
                   liveEggStyles,
                   itemWithVariant.name,
+                  milkSubItemsExist ? liveMilkSubs : undefined,
+                  baseSubItemsExist ? liveBaseSubs : undefined,
                 );
                 if (config) {
                   setCustomizingItem(itemWithVariant);
@@ -2707,6 +2792,8 @@ function MenuScreen({
               liveSauces,
               liveEggStyles,
               itemWithVariant.name,
+              milkSubItemsExist ? liveMilkSubs : undefined,
+              baseSubItemsExist ? liveBaseSubs : undefined,
             );
             if (config) {
               setCustomizingItem(itemWithVariant);
@@ -2722,6 +2809,7 @@ function MenuScreen({
         <GenericOptionsSheet
           item={genericOptionsItem}
           onClose={() => setGenericOptionsItem(null)}
+          hiddenSubLabels={hiddenSubLabels}
           onAdd={(customizations) => {
             onAddToCart(genericOptionsItem, customizations);
             setGenericOptionsItem(null);
