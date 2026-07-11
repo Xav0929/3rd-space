@@ -2553,13 +2553,68 @@ function EditOrderItemsModal({
     setSearch("");
   }
   // Quick-add a generic charge (e.g. a delivery fee for a takeout order
-  // that turned into a delivery). Kept separate from addMenuItem since
-  // "Others" isn't a real menu product — each tap adds its own line so
-  // staff can stack multiple if needed (e.g. two ₱50 fees), rather than
-  // merging into one bucket at the wrong price.
-  const OTHERS_PRESETS = [30, 40, 50, 60, 70, 80, 90];
+  // that turned into a delivery). "Others" isn't a real menu product, so
+  // instead of a fixed price ladder, staff build their own list of go-to
+  // amounts once (typed + saved), then just tap a button after that —
+  // no retyping every time. The list persists in localStorage per device,
+  // and staff can remove any preset they no longer want.
+  // Shared across the whole store (DB-backed, not per-browser) — anyone
+  // editing an order sees the same set of quick-add "Others" amounts,
+  // and it survives clearing browser data / switching devices.
+  const [othersPresets, setOthersPresets] = useState<number[]>([]);
+  const [othersInput, setOthersInput] = useState("");
+  const [othersManaging, setOthersManaging] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/others-presets")
+      .then((r) => r.json())
+      .then((d) => setOthersPresets(d.amounts || []))
+      .catch(() => {});
+  }, []);
+
+  async function savePresets(next: number[]) {
+    setOthersPresets(next);
+    try {
+      await fetch("/api/others-presets", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amounts: next }),
+      });
+    } catch {}
+  }
+  function addOthersPreset() {
+    const price = parseFloat(othersInput);
+    if (!price || price <= 0) return;
+    if (!othersPresets.includes(price)) {
+      savePresets([...othersPresets, price].sort((a, b) => a - b));
+    }
+    setOthersInput("");
+  }
+  function removeOthersPreset(price: number) {
+    savePresets(othersPresets.filter((p) => p !== price));
+  }
   function addOthersItem(price: number) {
     setItems((p) => [...p, { name: "Others", price, quantity: 1 }]);
+  }
+  // In Manage mode, tapping a preset edits its value in place instead of
+  // deleting it — retype the amount and it swaps out, keeping the same
+  // slot in the (sorted) list rather than deleting + re-adding at the end.
+  const [editingPreset, setEditingPreset] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  function startEditPreset(price: number) {
+    setEditingPreset(price);
+    setEditingValue(String(price));
+  }
+  function commitEditPreset(oldPrice: number) {
+    const newPrice = parseFloat(editingValue);
+    setEditingPreset(null);
+    if (!newPrice || newPrice <= 0 || newPrice === oldPrice) return;
+    const next = othersPresets
+      .filter((p) => p !== oldPrice)
+      .concat(newPrice)
+      .filter((p, i, arr) => arr.indexOf(p) === i)
+      .sort((a, b) => a - b);
+    savePresets(next);
   }
 
   const filteredMenu = search.trim()
@@ -2819,38 +2874,175 @@ function EditOrderItemsModal({
         </div>
 
         <div>
-          <label
+          <div
             style={{
-              color: T.muted,
-              fontSize: 10,
-              letterSpacing: ".1em",
-              display: "block",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               marginBottom: 6,
             }}
           >
-            OTHERS (e.g. delivery fee)
-          </label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {OTHERS_PRESETS.map((price) => (
+            <label
+              style={{
+                color: T.muted,
+                fontSize: 10,
+                letterSpacing: ".1em",
+              }}
+            >
+              OTHERS (e.g. delivery fee)
+            </label>
+            {othersPresets.length > 0 && (
               <button
-                key={price}
-                onClick={() => addOthersItem(price)}
+                onClick={() => setOthersManaging((v) => !v)}
                 style={{
-                  flex: "1 1 calc(33.33% - 6px)",
-                  minWidth: 60,
-                  padding: "8px 6px",
-                  borderRadius: 8,
-                  border: `1px solid ${T.border}`,
-                  background: "rgba(255,255,255,0.02)",
-                  color: T.cream,
-                  fontSize: 12,
-                  fontWeight: 700,
+                  background: "none",
+                  border: "none",
+                  color: othersManaging ? T.gold : T.muted,
+                  fontSize: 10,
+                  letterSpacing: ".05em",
                   cursor: "pointer",
+                  textDecoration: "underline",
                 }}
               >
-                +₱{price}
+                {othersManaging ? "Done" : "Manage"}
               </button>
-            ))}
+            )}
+          </div>
+
+          {othersPresets.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                marginBottom: 8,
+              }}
+            >
+              {othersPresets.map((price) =>
+                othersManaging && editingPreset === price ? (
+                  <input
+                    key={price}
+                    autoFocus
+                    type="number"
+                    inputMode="decimal"
+                    value={editingValue}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    onBlur={() => commitEditPreset(price)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEditPreset(price);
+                      if (e.key === "Escape") setEditingPreset(null);
+                    }}
+                    style={{
+                      width: 70,
+                      padding: "7px 8px",
+                      borderRadius: 8,
+                      border: `1px solid ${T.gold}`,
+                      background: "rgba(255,255,255,0.06)",
+                      color: T.cream,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+                ) : (
+                  <div
+                    key={price}
+                    style={{ position: "relative", display: "inline-flex" }}
+                  >
+                    <button
+                      onClick={() =>
+                        othersManaging
+                          ? startEditPreset(price)
+                          : addOthersItem(price)
+                      }
+                      style={{
+                        padding: othersManaging
+                          ? "8px 22px 8px 12px"
+                          : "8px 12px",
+                        borderRadius: 8,
+                        border: `1px solid ${othersManaging ? T.gold : T.border}`,
+                        background: "rgba(255,255,255,0.02)",
+                        color: T.cream,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      +₱{price}
+                    </button>
+                    {othersManaging && (
+                      <span
+                        onClick={() => removeOthersPreset(price)}
+                        title="Remove preset"
+                        style={{
+                          position: "absolute",
+                          top: -6,
+                          right: -6,
+                          width: 16,
+                          height: 16,
+                          borderRadius: 999,
+                          background: T.red,
+                          color: "#fff",
+                          fontSize: 10,
+                          lineHeight: "16px",
+                          textAlign: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        ×
+                      </span>
+                    )}
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={othersInput}
+              onChange={(e) => setOthersInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addOthersPreset()}
+              placeholder="Add new amount (₱)"
+              style={{
+                flex: 1,
+                background: "rgba(255,255,255,0.04)",
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                padding: "9px 12px",
+                color: T.cream,
+                fontSize: 13,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+            <button
+              onClick={addOthersPreset}
+              disabled={!othersInput || parseFloat(othersInput) <= 0}
+              style={{
+                padding: "9px 16px",
+                borderRadius: 8,
+                border: "none",
+                background:
+                  othersInput && parseFloat(othersInput) > 0
+                    ? T.gold
+                    : "rgba(255,255,255,0.06)",
+                color:
+                  othersInput && parseFloat(othersInput) > 0
+                    ? "#0a0f0a"
+                    : T.muted,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor:
+                  othersInput && parseFloat(othersInput) > 0
+                    ? "pointer"
+                    : "not-allowed",
+              }}
+            >
+              Save
+            </button>
           </div>
         </div>
 
