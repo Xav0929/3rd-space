@@ -151,6 +151,8 @@ type Order = {
   customerContact?: string;
   deliveryAddress?: string;
   receiptUrl?: string;
+  gcashRef?: string;
+  gcashSenderName?: string;
   tableNumber?: string;
   paymentStatus: "pending" | "confirmed";
   paymentMethod?: "cash" | "gcash" | "pending" | "split";
@@ -4532,6 +4534,35 @@ function OrderCard({
                   >
                     {isSplit ? "Edit Split" : "Split Payment"}
                   </button>
+                )}
+
+                {/* GCash reference number (customer chose "Enter Reference No."
+                    instead of uploading a screenshot — no image to show, so
+                    surface the sender name + ref no. directly for staff to
+                    check against the GCash business inbox). */}
+                {!order.receiptUrl && order.gcashRef && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: T.blue,
+                      background: "rgba(91,155,213,0.08)",
+                      border: "1px solid rgba(91,155,213,0.2)",
+                      borderRadius: 6,
+                      padding: "5px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <ImageIcon size={12} />
+                    <span>
+                      {order.gcashSenderName && (
+                        <strong>{order.gcashSenderName}</strong>
+                      )}
+                      {order.gcashSenderName && " · "}
+                      Ref: {order.gcashRef}
+                    </span>
+                  </div>
                 )}
 
                 {/* Receipt button */}

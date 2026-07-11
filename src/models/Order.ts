@@ -64,6 +64,7 @@ const OrderSchema = new Schema(
     receiptUrl: { type: String },
     receiptKey: { type: String },
     gcashRef: { type: String },
+    gcashSenderName: { type: String },
     deliveryFee: { type: Number, default: 0 },
 
     // dine-in only

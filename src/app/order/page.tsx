@@ -4571,6 +4571,7 @@ function PaymentScreen({
   onBack,
   form,
   vouchers = [],
+  onGcashRefChange,
 }: {
   cart: CartItem[];
   orderType: OrderType;
@@ -4588,6 +4589,7 @@ function PaymentScreen({
     itemName: string;
     cartKey: string;
   }[];
+  onGcashRefChange?: (name: string, refNo: string) => void;
 }) {
   const rawTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const deliveryFee =
@@ -4607,6 +4609,24 @@ function PaymentScreen({
   const [hasCopied, setHasCopied] = useState(false);
   // sentConfirmed: dine-in only — user ticked "I've sent the money"
   const [sentConfirmed, setSentConfirmed] = useState(false);
+
+  // Screenshot is painful on desktop/laptop (no camera roll to pull from),
+  // so give an alternative: type the GCash sender name + reference number
+  // instead. Either path satisfies proof-of-payment.
+  const [verifyMethod, setVerifyMethod] = useState<"screenshot" | "reference">(
+    "screenshot",
+  );
+  const [gcashSenderName, setGcashSenderName] = useState("");
+  const [gcashRefNo, setGcashRefNo] = useState("");
+  // Not every wallet's reference number follows GCash's own 13-digit
+  // format (GoTyme, Maya, etc. differ in length), so we no longer
+  // enforce a fixed format here — just require that something was typed.
+  const gcashRefValid = gcashRefNo.trim().length > 0;
+  const gcashRefTouched = gcashRefNo.trim().length > 0;
+  useEffect(() => {
+    onGcashRefChange?.(gcashSenderName.trim(), gcashRefNo.trim());
+  }, [gcashSenderName, gcashRefNo]);
+  const refEntered = gcashSenderName.trim().length > 0 && gcashRefValid;
 
   // ── SPLIT PAYMENT STATE ───────────────────────────────────────────────────
   const [splitCashInput, setSplitCashInput] = useState("");
@@ -4692,14 +4712,16 @@ function PaymentScreen({
    * Screenshot is now mandatory for every GCash order — staff need proof
    * of payment regardless of order type, not just a self-attested checkbox.
    */
+  const proofDone = verifyMethod === "screenshot" ? uploaded : refEntered;
+
   const canConfirm: boolean =
     effectiveMethod === "cash"
       ? true
       : effectiveMethod === "split" && gcashPortion === 0
         ? true
         : showGcashFlow && orderType !== "delivery"
-          ? hasCopied && sentConfirmed && uploaded
-          : uploaded; // delivery, or split with a gcash portion
+          ? hasCopied && sentConfirmed && proofDone
+          : proofDone; // delivery, or split with a gcash portion
 
   return (
     <div
@@ -5521,24 +5543,60 @@ function PaymentScreen({
                 </button>
               )}
 
-              {/* ── Non-delivery: required screenshot upload ── */}
+              {/* ── Non-delivery: proof-of-payment method toggle ── */}
               {orderType !== "delivery" && hasCopied && (
                 <div
                   style={{
-                    background: CARD,
-                    border: `1px solid ${uploaded ? "rgba(74,222,128,.35)" : BR}`,
-                    borderRadius: 16,
-                    padding: 16,
-                    marginBottom: 16,
-                    transition: "border-color .3s",
+                    display: "flex",
+                    gap: 8,
+                    marginBottom: 12,
                   }}
                 >
+                  {(["screenshot", "reference"] as const).map((m) => {
+                    const a = verifyMethod === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => setVerifyMethod(m)}
+                        style={{
+                          flex: 1,
+                          padding: "10px 8px",
+                          borderRadius: 10,
+                          border: `1.5px solid ${a ? G : BR}`,
+                          background: a ? GD : CARD,
+                          color: a ? G : CM,
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".06em",
+                          cursor: "pointer",
+                          touchAction: "manipulation",
+                        }}
+                      >
+                        {m === "screenshot"
+                          ? "UPLOAD SCREENSHOT"
+                          : "ENTER REFERENCE NO."}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── Non-delivery: reference-number entry (laptop-friendly alt) ── */}
+              {orderType !== "delivery" &&
+                hasCopied &&
+                verifyMethod === "reference" && (
                   <div
                     style={{
+                      background: CARD,
+                      border: `1px solid ${refEntered ? "rgba(74,222,128,.35)" : BR}`,
+                      borderRadius: 16,
+                      padding: 16,
+                      marginBottom: 16,
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 6,
+                      flexDirection: "column",
+                      gap: 12,
+                      transition: "border-color .3s",
                     }}
                   >
                     <p
@@ -5549,149 +5607,293 @@ function PaymentScreen({
                         fontFamily: "'Cinzel',serif",
                       }}
                     >
-                      GCASH SCREENSHOT{" "}
+                      GCASH REFERENCE{" "}
                       <span style={{ color: CF, fontWeight: 400 }}>
-                        (required — staff need this to verify your payment)
+                        (found in your GCash sent-money receipt)
                       </span>
                     </p>
-                    {uploaded && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          color: "#4ade80",
-                          fontSize: 11,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Check size={12} /> Uploaded
-                      </div>
-                    )}
+                    <InputField
+                      label="Name on your GCash account"
+                      placeholder="e.g. Juan Dela Cruz"
+                      value={gcashSenderName}
+                      onChange={setGcashSenderName}
+                    />
+                    <InputField
+                      label="Reference No."
+                      placeholder="e.g. 1234567890123"
+                      value={gcashRefNo}
+                      onChange={setGcashRefNo}
+                      inputMode="numeric"
+                    />
                   </div>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFile}
-                    style={{ display: "none" }}
-                  />
-                  {preview ? (
-                    <div>
-                      <div style={{ position: "relative" }}>
-                        <img
-                          src={preview}
-                          alt="Receipt"
-                          style={{
-                            width: "100%",
-                            maxHeight: 180,
-                            objectFit: "cover",
-                            borderRadius: 10,
-                            border: `1px solid ${uploaded ? G : BR}`,
-                          }}
-                        />
-                        {uploaded && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: 8,
-                              right: 8,
-                              background: G,
-                              borderRadius: 999,
-                              width: 26,
-                              height: 26,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Check size={13} color={BG} />
-                          </div>
-                        )}
-                        {uploading && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              background: "rgba(14,25,14,.6)",
-                              borderRadius: 10,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: G,
-                              fontSize: 12,
-                              fontFamily: "'Cinzel',serif",
-                              letterSpacing: ".1em",
-                            }}
-                          >
-                            UPLOADING…
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => fileRef.current?.click()}
+                )}
+
+              {/* ── Non-delivery: required screenshot upload ── */}
+              {orderType !== "delivery" &&
+                hasCopied &&
+                verifyMethod === "screenshot" && (
+                  <div
+                    style={{
+                      background: CARD,
+                      border: `1px solid ${uploaded ? "rgba(74,222,128,.35)" : BR}`,
+                      borderRadius: 16,
+                      padding: 16,
+                      marginBottom: 16,
+                      transition: "border-color .3s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <p
                         style={{
-                          marginTop: 8,
-                          width: "100%",
-                          padding: "9px",
-                          background: "transparent",
-                          border: `1px dashed ${BR}`,
-                          borderRadius: 8,
                           color: CM,
                           fontSize: 11,
+                          letterSpacing: ".1em",
+                          fontFamily: "'Cinzel',serif",
+                        }}
+                      >
+                        GCASH SCREENSHOT{" "}
+                        <span style={{ color: CF, fontWeight: 400 }}>
+                          (required — staff need this to verify your payment)
+                        </span>
+                      </p>
+                      {uploaded && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            color: "#4ade80",
+                            fontSize: 11,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Check size={12} /> Uploaded
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFile}
+                      style={{ display: "none" }}
+                    />
+                    {preview ? (
+                      <div>
+                        <div style={{ position: "relative" }}>
+                          <img
+                            src={preview}
+                            alt="Receipt"
+                            style={{
+                              width: "100%",
+                              maxHeight: 180,
+                              objectFit: "cover",
+                              borderRadius: 10,
+                              border: `1px solid ${uploaded ? G : BR}`,
+                            }}
+                          />
+                          {uploaded && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                background: G,
+                                borderRadius: 999,
+                                width: 26,
+                                height: 26,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Check size={13} color={BG} />
+                            </div>
+                          )}
+                          {uploading && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "rgba(14,25,14,.6)",
+                                borderRadius: 10,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: G,
+                                fontSize: 12,
+                                fontFamily: "'Cinzel',serif",
+                                letterSpacing: ".1em",
+                              }}
+                            >
+                              UPLOADING…
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => fileRef.current?.click()}
+                          style={{
+                            marginTop: 8,
+                            width: "100%",
+                            padding: "9px",
+                            background: "transparent",
+                            border: `1px dashed ${BR}`,
+                            borderRadius: 8,
+                            color: CM,
+                            fontSize: 11,
+                            cursor: "pointer",
+                            touchAction: "manipulation",
+                          }}
+                        >
+                          <Edit3
+                            size={11}
+                            style={{ marginRight: 5, verticalAlign: "middle" }}
+                          />
+                          Change Screenshot
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => fileRef.current?.click()}
+                        disabled={uploading}
+                        style={{
+                          width: "100%",
+                          padding: "18px 16px",
+                          background: "rgba(212,168,67,.05)",
+                          border: `2px dashed ${G}`,
+                          borderRadius: 12,
+                          color: G,
+                          cursor: uploading ? "wait" : "pointer",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 6,
+                          boxSizing: "border-box",
+                          touchAction: "manipulation",
+                          minHeight: 80,
+                          transition: "all .2s",
+                        }}
+                      >
+                        <Upload size={18} />
+                        <span
+                          style={{
+                            fontFamily: "'Cinzel',serif",
+                            fontSize: 11,
+                            letterSpacing: ".1em",
+                          }}
+                        >
+                          {uploading
+                            ? "UPLOADING…"
+                            : "TAP TO UPLOAD SCREENSHOT"}
+                        </span>
+                        <span style={{ color: CF, fontSize: 11 }}>
+                          JPG, PNG accepted
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+              {/* ── Delivery: proof-of-payment method toggle ── */}
+              {orderType === "delivery" && hasCopied && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    marginBottom: 12,
+                  }}
+                >
+                  {(["screenshot", "reference"] as const).map((m) => {
+                    const a = verifyMethod === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => setVerifyMethod(m)}
+                        style={{
+                          flex: 1,
+                          padding: "10px 8px",
+                          borderRadius: 10,
+                          border: `1.5px solid ${a ? G : BR}`,
+                          background: a ? GD : CARD,
+                          color: a ? G : CM,
+                          fontFamily: "'Cinzel',serif",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".06em",
                           cursor: "pointer",
                           touchAction: "manipulation",
                         }}
                       >
-                        <Edit3
-                          size={11}
-                          style={{ marginRight: 5, verticalAlign: "middle" }}
-                        />
-                        Change Screenshot
+                        {m === "screenshot"
+                          ? "UPLOAD SCREENSHOT"
+                          : "ENTER REFERENCE NO."}
                       </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      disabled={uploading}
-                      style={{
-                        width: "100%",
-                        padding: "18px 16px",
-                        background: "rgba(212,168,67,.05)",
-                        border: `2px dashed ${G}`,
-                        borderRadius: 12,
-                        color: G,
-                        cursor: uploading ? "wait" : "pointer",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 6,
-                        boxSizing: "border-box",
-                        touchAction: "manipulation",
-                        minHeight: 80,
-                        transition: "all .2s",
-                      }}
-                    >
-                      <Upload size={18} />
-                      <span
-                        style={{
-                          fontFamily: "'Cinzel',serif",
-                          fontSize: 11,
-                          letterSpacing: ".1em",
-                        }}
-                      >
-                        {uploading ? "UPLOADING…" : "TAP TO UPLOAD SCREENSHOT"}
-                      </span>
-                      <span style={{ color: CF, fontSize: 11 }}>
-                        JPG, PNG accepted
-                      </span>
-                    </button>
-                  )}
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── Delivery: reference-number entry (laptop-friendly alt) ── */}
+              {orderType === "delivery" && verifyMethod === "reference" && (
+                <div
+                  style={{
+                    background: CARD,
+                    border: `1px solid ${refEntered ? "rgba(74,222,128,.35)" : BR}`,
+                    borderRadius: 16,
+                    padding: 18,
+                    marginBottom: 18,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    transition: "border-color .3s",
+                    opacity: hasCopied ? 1 : 0.5,
+                  }}
+                >
+                  <p
+                    style={{
+                      color: CM,
+                      fontSize: 11,
+                      letterSpacing: ".1em",
+                      fontFamily: "'Cinzel',serif",
+                    }}
+                  >
+                    GCASH REFERENCE <span style={{ color: ERR }}>*</span>
+                  </p>
+                  <InputField
+                    label="Name on your GCash account"
+                    placeholder="e.g. Juan Dela Cruz"
+                    value={gcashSenderName}
+                    onChange={setGcashSenderName}
+                  />
+                  <div>
+                    <InputField
+                      label="Reference No. (13 digits)"
+                      placeholder="e.g. 1234567890123"
+                      value={gcashRefNo}
+                      onChange={(v: string) =>
+                        setGcashRefNo(v.replace(/\D/g, "").slice(0, 13))
+                      }
+                      inputMode="numeric"
+                    />
+                    {gcashRefTouched && !gcashRefValid && (
+                      <p style={{ color: ERR, fontSize: 11, marginTop: 5 }}>
+                        Must be exactly 13 digits — check your GCash receipt for
+                        the "Ref No."
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* ── Delivery: screenshot upload ── */}
-              {orderType === "delivery" && (
+              {orderType === "delivery" && verifyMethod === "screenshot" && (
                 <div
                   style={{
                     background: CARD,
@@ -5943,8 +6145,10 @@ function PaymentScreen({
                     ? "COPY GCASH NUMBER TO CONTINUE"
                     : orderType !== "delivery" && !sentConfirmed
                       ? "TICK THE CHECKBOX TO CONTINUE"
-                      : !uploaded
-                        ? "UPLOAD SCREENSHOT TO CONTINUE"
+                      : !proofDone
+                        ? verifyMethod === "screenshot"
+                          ? "UPLOAD SCREENSHOT TO CONTINUE"
+                          : "ENTER NAME & REFERENCE NO. TO CONTINUE"
                         : "CONFIRM & PLACE ORDER"}
               </button>
 
@@ -6377,6 +6581,8 @@ export default function OrderPage() {
   const [paymentMethod, setPaymentMethod] = useState<PayMethod>("cash");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [receiptKey, setReceiptKey] = useState("");
+  const [gcashRefName, setGcashRefName] = useState("");
+  const [gcashRefNumber, setGcashRefNumber] = useState("");
   const [vouchers, setVouchers] = useState<
     {
       code: string;
@@ -6519,6 +6725,15 @@ export default function OrderPage() {
           ? {
               cashAmount: splitAmounts.cashAmount,
               gcashAmount: splitAmounts.gcashAmount,
+            }
+          : {}),
+        // Present when the customer used "Enter Reference No." instead of
+        // uploading a screenshot — staff can verify against the GCash
+        // business inbox using these instead of an image.
+        ...(gcashRefName.trim() && gcashRefNumber.trim()
+          ? {
+              gcashSenderName: gcashRefName.trim(),
+              gcashReferenceNo: gcashRefNumber.trim(),
             }
           : {}),
       };
@@ -6768,6 +6983,10 @@ export default function OrderPage() {
           onBack={back}
           form={form}
           vouchers={vouchers}
+          onGcashRefChange={(name, ref) => {
+            setGcashRefName(name);
+            setGcashRefNumber(ref);
+          }}
         />
       )}
       {step === "confirmed" && confirmed && (

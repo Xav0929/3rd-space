@@ -80,6 +80,8 @@ export async function POST(req: NextRequest) {
     receiptUrl,
     receiptKey,
     gcashRef,
+    gcashSenderName,
+    gcashReferenceNo,
     tableNumber,
     paymentMethod,
     cashAmount,
@@ -92,6 +94,12 @@ export async function POST(req: NextRequest) {
     voucherCodes,
     isTab,
   } = body;
+  // The order page's "Enter Reference No." flow sends gcashSenderName +
+  // gcashReferenceNo (not gcashRef, which was the older single-field
+  // shape). Normalize to the field this route/model already saves
+  // (gcashRef) plus a new gcashSenderName field, so either input path
+  // ends up readable the same way downstream.
+  const resolvedGcashRef = gcashReferenceNo || gcashRef || undefined;
   const total = body.total;
 
   if (!type || !items?.length || !total) {
@@ -261,7 +269,12 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    if (source !== "waiter" && source !== "crew" && !receiptUrl && !gcashRef) {
+    if (
+      source !== "waiter" &&
+      source !== "crew" &&
+      !receiptUrl &&
+      !resolvedGcashRef
+    ) {
       return NextResponse.json(
         {
           error:
@@ -320,7 +333,8 @@ export async function POST(req: NextRequest) {
     deliveryAddressDetails,
     receiptUrl,
     receiptKey,
-    gcashRef,
+    gcashRef: resolvedGcashRef,
+    gcashSenderName: gcashSenderName || undefined,
     tableNumber,
     paymentMethod,
     cashAmount,
