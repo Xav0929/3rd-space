@@ -3014,7 +3014,13 @@ function OrderCard({
             setShowCashRegister(false);
             await onCashConfirm(order._id, cashReceived, change);
             kickCashDrawer();
-            printReceipt(1, { cashReceived, change });
+            // Give the drawer-kick intent (rawbt: URL) time to be handled
+            // before firing the receipt-print intent. Two window.location.href
+            // assignments to a custom scheme back-to-back can cause the
+            // second one to be silently dropped by the OS/WebView.
+            setTimeout(() => {
+              printReceipt(1, { cashReceived, change });
+            }, 600);
           }}
           onCancel={() => setShowCashRegister(false)}
         />
