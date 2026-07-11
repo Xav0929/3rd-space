@@ -20,7 +20,7 @@ function loadImageElement(url: string): Promise<HTMLImageElement> {
 
 export async function imageUrlToEscPosRaster(
   url: string,
-  maxWidthPx = 240,
+  maxWidthPx = 120,
 ): Promise<number[]> {
   const img = await loadImageElement(url);
 
@@ -105,9 +105,18 @@ export async function buildEscPosReceipt(order: {
   push(ESC, 0x61, 0x01);
 
   // Logo image instead of plain "3RD SPACE" text
+  // NOTE: uses a dedicated small receipt-only logo (logo-receipt.png), not the
+  // main site logo.png, and is capped at 120px wide. Keeping this image small
+  // and fixed-size matters: the whole receipt (this bitmap + all text) gets
+  // base64-encoded into a single rawbt:base64,... URL handed to
+  // window.location.href. Custom-scheme URIs have undocumented but real length
+  // limits on Android/WebView — if the payload is too long it gets silently
+  // truncated, and the printer feeds partway through the stream then stalls.
+  // Do not swap in a bigger/different image here without keeping the final
+  // encoded payload comfortably under a few thousand characters.
   const logoBytes = await imageUrlToEscPosRaster(
-    `${window.location.origin}/logo.png`,
-    240,
+    `${window.location.origin}/logo-receipt.png`,
+    120,
   );
   push(...logoBytes);
   push(0x0a); // feed one line after the image
