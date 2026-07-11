@@ -3013,14 +3013,14 @@ function OrderCard({
           onConfirm={async (cashReceived, change) => {
             setShowCashRegister(false);
             await onCashConfirm(order._id, cashReceived, change);
-            kickCashDrawer();
-            // Give the drawer-kick intent (rawbt: URL) time to be handled
-            // before firing the receipt-print intent. Two window.location.href
-            // assignments to a custom scheme back-to-back can cause the
-            // second one to be silently dropped by the OS/WebView.
-            setTimeout(() => {
-              printReceipt(1, { cashReceived, change });
-            }, 600);
+            // NOTE: no separate kickCashDrawer() call here — buildEscPosReceipt()
+            // already embeds the drawer-kick ESC command inside the receipt
+            // bytes whenever paymentMethod is "cash". Firing a standalone
+            // kickCashDrawer() AND printReceipt() back-to-back sent two
+            // competing rawbt: intent URLs via window.location.href, and
+            // RawBT/Android would only honor one of them — silently dropping
+            // the actual receipt print while still popping the drawer.
+            printReceipt(1, { cashReceived, change });
           }}
           onCancel={() => setShowCashRegister(false)}
         />
